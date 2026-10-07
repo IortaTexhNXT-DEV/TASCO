@@ -59,12 +59,12 @@
 
 | Group | Endpoints | Share of requests |
 |---|---|---|
-| Customer reads | `GET /api/customer/home` | 25 % |
+| Customer reads | `GET /api/customer/home`, `GET /api/customer/quotes` | 25 % |
 | Customer quote | `POST /api/customer/quotes` (TNDS, TNDS + PA_SEAT) | 12 % |
 | Customer order | `POST /api/customer/orders` (unique `Idempotency-Key`) | 4 % |
 | Customer session | `POST /api/customer/session` (signed link) | 5 % |
 | Staff reads | `GET /api/leads`, `GET /api/customers/:id`, `GET /api/handoffs`, `GET /api/touchpoints` | 20 % |
-| Staff writes | `PATCH /api/handoffs/:id`, `POST /api/quotes`, `POST /api/orders` | 6 % |
+| Staff writes | `PATCH /api/handoffs/:id`, `POST /api/quotes`, `POST /api/quotes/:id/send` | 6 % |
 | Partner | `POST /api/partner/v1/quotes`, `POST /api/partner/v1/orders`, `GET /api/partner/v1/policies` | 15 % |
 | Public | `GET /api/public/certificates/:certNo` | 5 % |
 | Events | `POST /api/ecosystem/events` | 5 % |
@@ -99,7 +99,7 @@ Latency is server-side, measured by `http_request_duration_seconds` (route label
 | Customer reads | `GET /api/customer/home`, `GET /api/customer/claims` | ≤ 300 ms | ≤ 600 ms | < 0.1 % |
 | Quotes | `POST /api/customer/quotes`, `POST /api/quotes`, `POST /api/partner/v1/quotes` (known plate) | ≤ 500 ms | ≤ 1 s | < 0.1 % |
 | Partner quote, unknown plate (onboarding + rebuild) | `POST /api/partner/v1/quotes` | ≤ 1.2 s | ≤ 2.5 s | < 0.5 % |
-| Orders (pay + issue) | `POST /api/customer/orders`, `/api/orders`, `/api/partner/v1/orders` | ≤ 2.5 s with real integrations (≤ 800 ms platform time excluding wallet and core) | ≤ 5 s | < 0.5 % excluding upstream 503 |
+| Orders (pay + issue) | `POST /api/customer/orders` (wallet + core), `POST /api/partner/v1/orders` (core only, partner-collected) | ≤ 2.5 s with real integrations (≤ 800 ms platform time excluding wallet and core) | ≤ 5 s | < 0.5 % excluding upstream 503 |
 | Staff reads | `GET /api/leads`, `GET /api/customers/:id`, `GET /api/handoffs`, `GET /api/touchpoints`, `GET /api/policies` | ≤ 500 ms | ≤ 1 s | < 0.5 % |
 | Staff writes | `PATCH /api/handoffs/:id`, `POST /api/voice/sessions/:id/turns`, `PUT /api/customer/consent` | ≤ 500 ms | ≤ 1 s | < 0.5 % |
 | Auth | `POST /api/auth/login`, `/mfa` | ≤ 600 ms | ≤ 1.2 s | < 0.1 % |

@@ -43,6 +43,8 @@ function createOpsService({ store, rules, audit, clock, logger }) {
               for (const pid of o.policies || []) if (!(await c('policies').get(pid))) mismatches.push({ orderId: o.id, issue: `policy ${pid} missing` });
             }
             if (o.status === 'pending_payment' && new Date(o.createdAt) < new Date(Date.now() - 3600000)) mismatches.push({ orderId: o.id, issue: 'stuck in pending_payment > 1h' });
+            if (o.status === 'compensation_failed') mismatches.push({ orderId: o.id, issue: `compensation failed (refund ${o.refund?.status}; ${o.cancelFailures?.length || 0} policy cancellations failed) — manual action` });
+            if (o.status === 'payment_failed') mismatches.push({ orderId: o.id, issue: 'payment failed — confirm with VETC wallet that no capture occurred', severity: 'check' });
           }
           if (page.length < 1000) break;
         }

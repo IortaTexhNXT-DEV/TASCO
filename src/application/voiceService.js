@@ -13,7 +13,7 @@ const { canContact } = require('../domain/contactPolicy');
  * competitor, opt-out, wrong number) — every call improves the data.
  */
 
-function createVoiceService({ store, rules, audit, events, clock, logger, metrics, gateways }) {
+function createVoiceService({ store, rules, audit, events, clock, metrics, gateways }) {
   const sessions = store.collection('voice_sessions');
   const handoffs = store.collection('handoffs');
   const profiles = store.collection('profiles');

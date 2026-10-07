@@ -1,4 +1,4 @@
-import { h, clear, mount, fmtDateTime } from '../../shared/dom.js';
+import { h, mount, fmtDateTime } from '../../shared/dom.js';
 import { pageHead, table, statusBadge, field, toast, errorToast, confirmDialog } from '../ui.js';
 
 /** Flat JSON-path diff for reviewing a version against the active one. */

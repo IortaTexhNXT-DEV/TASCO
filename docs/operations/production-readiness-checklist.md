@@ -20,28 +20,28 @@
 | PRC-SEC-03 | `DEMO_MODE=false`; `ALLOW_DEMO_IN_PRODUCTION` unset; `/api/demo/totp/*` → 404 (SYN-06) | P1 | SRE | Synthetic result | Not started |
 | PRC-SEC-04 | **`npm run job -- seed` cannot run against PROD** (KI-01 fixed, or `seed` excluded from PROD manifests and RBAC denies `kubectl exec`) | P1 | Dev lead | Fix PR / manifest review | Not started (KI-01) |
 | PRC-SEC-05 | No demo users in the PROD DB (`GET /api/users` shows no `admin`, `exec`, `agent.hn`… with the demo password); named accounts only | P1 | Admin | User export | Not started |
-| PRC-SEC-06 | MFA enforced for `admin`, `rule_approver`, `compliance_officer`, `data_steward` (`MFA_REQUIRED_ROLES`); MFA step honours lockout (KI-06) | P1 | Security | TC-010, TC-020 | In progress (KI-06) |
+| PRC-SEC-06 | MFA enforced for `admin`, `rule_approver`, `compliance_officer`, `data_steward` (`MFA_REQUIRED_ROLES`) with self-enrolment; lockout across both factors and TOTP replay protection (KI-06 fixed); separation-of-duties pairs in `rbac.json` reviewed by Security | P1 | Security | TC-010, TC-020, TC-027 | In progress |
 | PRC-SEC-07 | Rate limiting at the gateway/WAF in front of the in-process limiter (multi-replica, KI-07); `TRUST_PROXY=true` with the real client IP | P1 | SRE | WAF config | Not started |
 | PRC-SEC-08 | Independent penetration test: no open critical/high; mediums with a dated plan | P1 | TASCO CISO | Pen-test report | Not started |
 | PRC-SEC-09 | CI security gates green on the release tag: CodeQL, `npm run audit`, gitleaks, Trivy (no critical/high), ZAP baseline (no high), SBOM attached | P1 | DevSecOps | CI run link | In progress |
-| PRC-SEC-10 | `/metrics` not reachable from the internet (KI-14); NetworkPolicy allows only Prometheus | P1 | SRE | `curl` from outside → 404/403 | Not started |
+| PRC-SEC-10 | `METRICS_TOKEN` set; `/metrics` not reachable from the internet (KI-14); NetworkPolicy allows only Prometheus | P1 | SRE | `curl` from outside → 401/404 | Not started |
 | PRC-SEC-11 | `CORS_ORIGINS` set to the exact console/app origins | P1 | SRE | Config | Not started |
 | PRC-SEC-12 | TLS everywhere: ingress certificate valid, HSTS (production), `DATABASE_SSL=true` with a CA-verified certificate | P1 | SRE | SSL Labs grade A | Not started |
-| PRC-SEC-13 | DB roles: app role with no DDL at runtime (migration Job uses a separate role); `audit_log` with no UPDATE/DELETE grant for the app role; pgaudit on | P1 | DBA | Grants export | Not started |
+| PRC-SEC-13 | DB roles: app role with no DDL at runtime and not the table owner (migration Job uses a separate role); `audit_log` immutability triggers enabled (migrations 001/002) and no UPDATE/DELETE/TRUNCATE grant for the app role; pgaudit on | P1 | DBA | Grants + `pg_trigger` export | Not started |
 | PRC-SEC-14 | Access review of staff roles and regions signed by line managers | P2 | TASCO IT Security | Signed list | Not started |
 | PRC-SEC-15 | Admin unlock / MFA reset procedure agreed (SOP-08) or KI-27 fixed | P2 | Security | SOP sign-off | Not started (KI-27) |
-| PRC-SEC-16 | Signed link expiry and key separation (KI-08) fixed, or risk accepted | P2 | Security | Fix PR / risk acceptance | Not started (KI-08) |
+| PRC-SEC-16 | Signed links expire (`LINK_TTL_DAYS`, done); separate link key from `JWT_SECRET` (KI-08) or accept the risk | P3 | Security | Fix PR / risk acceptance | In progress (KI-08) |
 
 ## 2. Functional and quality
 
 | ID | Check | Pri | Owner | Evidence | Status |
 |---|---|---|---|---|---|
 | PRC-FUNC-01 | UAT signed off (all personas; compliance scenarios without waiver) | P1 | TASCO Business Owner | [UAT sign-off sheet](../quality/uat-plan.md#6-sign-off-sheet) | Not started |
-| PRC-FUNC-02 | SIT passed with VETC wallet/SSO/app/events, TASCO core, Zalo ZNS, SMS, voice vendor (TC-150 – TC-155) | P1 | QA Lead | SIT report | Not started (production adapters pending) |
+| PRC-FUNC-02 | SIT passed with VETC wallet/SSO/app/events, TASCO core, Zalo ZNS, SMS, voice vendor (TC-150 – TC-155, TC-161) | P1 | QA Lead | SIT report | Not started (production adapters pending) |
 | PRC-FUNC-03 | Coverage gate (≥ 80/80/70 %) and all automated suites green on the release tag | P1 | QA Lead | CI | In progress |
-| PRC-FUNC-04 | Front-end pages present in the release image: staff console, `/app/`, `/verify/<certNo>` (KI-15) | P1 | UX lead | Smoke test | Not started (KI-15) |
-| PRC-FUNC-05 | Sev 1 known issues fixed: KI-01, KI-02, KI-09, KI-28 | P1 | Dev lead | Fix PRs + regression TCs | Not started |
-| PRC-FUNC-06 | Sev 2 known issues fixed or waived with a date: KI-03, KI-04, KI-05, KI-06, KI-13, KI-18, KI-25, KI-29 | P1 | Dev lead / PO | KI register | Not started |
+| PRC-FUNC-04 | Front-end pages present in the release image: staff console (`index.html`), customer app (`/app/`), `/verify/<certNo>` (`verify.html`); SYN-09 green | P1 | UX lead | Smoke test | In progress (pages added by UX workstream; KI-15 resolved) |
+| PRC-FUNC-05 | Sev 1 known issues fixed: KI-01, KI-02, KI-28 (KI-09 fixed: keep TC-135 green) | P1 | Dev lead | Fix PRs + regression TCs | In progress |
+| PRC-FUNC-06 | Sev 2 known issues fixed or waived with a date: KI-03, KI-04, KI-05, KI-13, KI-18, KI-25, KI-33 | P1 | Dev lead / PO | KI register | Not started |
 | PRC-FUNC-07 | OpenAPI document published to partners and matching the release (TC-133) | P2 | Tech lead | `docs/api/openapi.json` | Not started |
 | PRC-FUNC-08 | Accessibility: axe 0 serious/critical; manual screen-reader pass on the renewal flow (TC-144, TC-145) | P1 | UX lead | Report | Not started |
 
@@ -64,7 +64,7 @@
 | PRC-OPS-02 | `/health/ready` used for readiness and `/health/live` for liveness; **readiness shows `store:"postgres"`** (KI-28 guard); `terminationGracePeriodSeconds` ≥ 30 | P1 | SRE | Manifest + SYN-01 | Not started (KI-28) |
 | PRC-OPS-03 | Logs shipped and searchable by `requestId`, `route`, `status`; retention ≥ 90 days; no PII in logs (LOG-07 clean) | P1 | SRE | Log query screenshot | Not started |
 | PRC-OPS-04 | CronJobs deployed: journeys **01:30 UTC** (08:30 ICT), relay, reconcile, retention, weekly recompute; `concurrencyPolicy: Forbid`; **no `seed` CronJob** | P1 | SRE | Manifests | In progress |
-| PRC-OPS-05 | Migration Job runs before rollout; `MIGRATE_ON_START=false` in Kubernetes (KI-30) | P1 | SRE | Manifests | In progress |
+| PRC-OPS-05 | Migration Job runs before rollout; `MIGRATE_ON_START=false` in Kubernetes (concurrent migrators are serialised by an advisory lock anyway, KI-30 fixed) | P1 | SRE | Manifests | In progress |
 | PRC-OPS-06 | SQL exporter metrics (`tasco_db_*`) for the outbox backlog, journey backlog, open handoffs and order status | P2 | SRE | Dashboard D3 | Not started |
 | PRC-OPS-07 | Runbook RB-01 – RB-15 and SOP-01 – SOP-09 walked through by L2 (tabletop) | P1 | L2 lead | Attendance + feedback | Not started |
 | PRC-OPS-08 | On-call rota live (L2 + L3 hypercare); paging tested end to end | P1 | L2 lead | Test page | Not started |
@@ -90,14 +90,14 @@
 |---|---|---|---|---|---|
 | PRC-COMP-01 | **Content inventory sign-off**: every active `content.messages` template, the `content.voicebot` script and `benefits` texts (vi) reviewed; no discount, rebate or cashback language; copy-guard list complete (KI-26 whitespace variants reviewed manually) | P1 | TASCO Compliance | Signed inventory with rule checksums | Not started |
 | PRC-COMP-02 | **Contact policy confirmed by Legal** (`contact_policy.json`: window 08:00–20:00, 1/day and 3/week marketing, 2 calls/week, consent mapping, service-message bypass) under Decree 91/2020/ND-CP and the PDP rules | P1 | TASCO Legal | Legal memo | Not started |
-| PRC-COMP-03 | **Voice campaign respects the contact policy** (KI-09 fixed) and the bot disclosure wording is approved | P1 | Compliance + Dev | TC-135, script sign-off | Not started (KI-09) |
+| PRC-COMP-03 | **Voice campaign and journeys respect the contact policy**: KI-09 fixed (TC-135 green); the `at` time override disabled in production (KI-33, TC-162); bot disclosure wording approved | P1 | Compliance + Dev | TC-135, TC-162, script sign-off | In progress (KI-33 open) |
 | PRC-COMP-04 | **Benefits with `legalStatus: pending_legal_review`** (`loyalty_points` in `benefits.json`; `referral.json` disabled) remain hidden from customers until legal approval; any change to approved goes via maker-checker with the legal memo attached | P1 | TASCO Legal | Memo; TC-041 | In progress (control in place; approval pending) |
-| PRC-COMP-05 | **Zalo ZNS templates approved by Zalo** for every `templateKey` used on `zalo_zns` (all 11 keys in `content.messages.json`: `verify_expiry`, `first_reminder`, `conquest_reminder`, `value_reminder`, `urgent_reminder`, `expiry_day`, `lapsed_notice`, `new_vehicle_welcome`, `inspection_tnds_check`, `cross_sell`, `purchase_confirmation`) with parameter mapping | P1 | Marketing + Integration lead | Zalo approval IDs mapped to template keys | Not started |
+| PRC-COMP-05 | **Zalo ZNS templates approved by Zalo** for every `templateKey` used on `zalo_zns` (all 12 keys in `content.messages.json`: `verify_expiry`, `first_reminder`, `conquest_reminder`, `value_reminder`, `urgent_reminder`, `expiry_day`, `lapsed_notice`, `new_vehicle_welcome`, `inspection_tnds_check`, `cross_sell`, `purchase_confirmation`, `quote_ready`) with parameter mapping | P1 | Marketing + Integration lead | Zalo approval IDs mapped to template keys | Not started |
 | PRC-COMP-06 | SMS brandname registered; SMS templates registered where required | P1 | Marketing | Provider confirmation | Not started |
 | PRC-COMP-07 | **Tariffs confirmed by TASCO underwriting**: `tariff.tnds_car`, `tariff.tnds_motorbike` (Decree 67/2023/ND-CP); the illustrative `rating.motor_pd` and `rating.pa_seat` replaced with filed rates via maker-checker | P1 | TASCO Underwriting / Actuarial | Approved rule versions | Not started |
 | PRC-COMP-08 | **Commission caps confirmed by Finance and Legal** (`commission.json` `statutoryCaps`) | P1 (before W2) | TASCO Finance | Memo | Not started |
 | PRC-COMP-09 | **PDP compliance**: privacy notice and consent wording in the app; DPIA completed; data processing agreements VETC ↔ TASCO ↔ iorta; cross-border transfer assessment (none expected) | P1 | DPO | DPIA | Not started |
-| PRC-COMP-10 | DSAR procedure (SOP-05) operational; erasure gap KI-29 fixed or a manual step agreed | P1 | DPO | SOP sign-off | Not started (KI-29) |
+| PRC-COMP-10 | DSAR procedure (SOP-05) operational; erasure covers profile, messages, sessions, handoffs and claims (KI-29 fixed; TC-107) | P1 | DPO | SOP sign-off | In progress |
 | PRC-COMP-11 | Retention: archival pipeline for profiles, messages, orders and certificates built or waived by Legal (KI-13); `retention` CronJob live | P2 | DPO + Dev | Job runs | Not started (KI-13) |
 | PRC-COMP-12 | Maker-checker roles staffed: at least 2 approvers (MFA) and 2 authors, never the same person; emergency rollback pair on call | P1 | PO | Named list | Not started |
 | PRC-COMP-13 | Audit chain verifying (`GET /api/audit/verify` ok) at go-live, chain head exported to WORM | P1 | Compliance | Screenshot + export | Not started |

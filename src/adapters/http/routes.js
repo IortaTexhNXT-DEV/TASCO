@@ -144,7 +144,7 @@ function buildRoutes() {
     { method: 'PATCH', path: '/api/customers/:id/expiry', auth: 'staff', perm: 'profile:update', tag: 'Customers', summary: 'Data steward correction of policy expiry',
       body: { expiryDate: { type: 'date', required: true }, insurer: { type: 'string', max: 60 }, evidence: { type: 'string', max: 300, required: true } },
       handler: async ({ c, principal, params, body }) => {
-        const { applyDeclaredExpiry } = require('../../domain/enrichment'); // eslint-disable-line global-require
+        const { applyDeclaredExpiry } = require('../../domain/enrichment');  
         const col = c.store.collection('profiles');
         const p = await col.get(params.id);
         if (!p) throw errors.notFound('Customer');
@@ -162,7 +162,13 @@ function buildRoutes() {
       handler: async ({ c, query }) => c.services.journeys.schedule(query) },
     { method: 'POST', path: '/api/journeys/run', auth: 'staff', perm: 'journeys:run', tag: 'Journeys', summary: 'Execute due touchpoints',
       body: { date: S.date, at: { type: 'string', max: 40 } },
-      handler: async ({ c, principal, body }) => { const r = await c.services.journeys.runDue({ ...body, actor: principal.id }); await c.events.drain(); return r; } },
+      handler: async ({ c, principal, body }) => {
+        // Simulated dates/times are a demo/UAT feature; production always uses the real clock.
+        const opts = c.config.demoMode ? body : {};
+        const r = await c.services.journeys.runDue({ ...opts, actor: principal.id });
+        await c.events.drain();
+        return r;
+      } },
     { method: 'POST', path: '/api/ecosystem/events', auth: 'staff', perm: 'journeys:run', tag: 'Journeys', summary: 'Ingest a VETC ecosystem event (moment of truth)',
       body: { type: { type: 'string', enum: ['vetc.tag_activated', 'vetc.inspection_booked', 'vetc.wallet_topped_up', 'vetc.long_trip_started'], required: true }, profileId: { ...S.id, required: true }, at: { type: 'string', max: 40 } },
       handler: async ({ c, principal, body }) => { const r = await c.services.journeys.handleEcosystemEvent(body, { actor: principal.id }); await c.events.drain(); return r; } },
@@ -170,16 +176,24 @@ function buildRoutes() {
     // ---------- Voice bot & handoffs ----------
     { method: 'POST', path: '/api/voice/sessions', auth: 'staff', perm: 'voice:operate', tag: 'Voice bot', summary: 'Start a voice bot session (console)',
       body: { profileId: { ...S.id, required: true } },
-      handler: async ({ c, principal, body }) => c.services.voice.start(body.profileId, principal) },
+      handler: async ({ c, principal, body }) => {
+        const p = await c.store.collection('profiles').get(body.profileId);
+        if (p) await c.services.access.check(principal, 'read', { type: 'profile', region: p.province });
+        return c.services.voice.start(body.profileId, principal);
+      } },
     { method: 'GET', path: '/api/voice/sessions/:id', auth: 'staff', perm: 'voice:operate', tag: 'Voice bot', summary: 'Get session transcript',
-      handler: async ({ c, params }) => c.services.voice.get(params.id) },
+      handler: async ({ c, principal, params }) => {
+        const s = await c.services.voice.get(params.id);
+        await c.services.access.check(principal, 'read', { type: 'profile', region: s.region });
+        return s;
+      } },
     { method: 'POST', path: '/api/voice/sessions/:id/turns', auth: 'staff', perm: 'voice:operate', tag: 'Voice bot', summary: 'Send a customer utterance (ASR text)',
       body: { text: { type: 'string', max: 500, required: true } },
       handler: async ({ c, principal, params, body }) => { const s = await c.services.voice.turn(params.id, body.text, principal); await c.events.drain(); return s; } },
     { method: 'POST', path: '/api/voice/campaign', auth: 'staff', perm: 'journeys:run', tag: 'Voice bot', summary: 'Run an automated call campaign over top leads',
       body: { limit: { type: 'integer', min: 1, max: 200, default: 20 }, tier: { type: 'string', enum: ['hot', 'warm'], default: 'hot' }, at: { type: 'string', max: 40 } },
       handler: async ({ c, principal, body }) => {
-        const now = body.at ? new Date(body.at) : c.clock.now();
+        const now = body.at && c.config.demoMode ? new Date(body.at) : c.clock.now();
         const leads = await c.services.leads.list({ tier: body.tier, limit: 500 });
         const outcomes = {};
         const skipped = {};
@@ -231,12 +245,20 @@ function buildRoutes() {
       handler: async ({ c }) => c.services.sales.catalogue() },
     { method: 'POST', path: '/api/quotes', auth: 'staff', perm: 'quote:create', tag: 'Sales', summary: 'Quote one or more products for a customer',
       body: { profileId: { ...S.id, required: true }, products: PRODUCT_LINES, channel: { type: 'string', enum: CHANNELS, default: 'telesales' }, termYears: { type: 'integer', min: 1, max: 3 }, journey: { type: 'string', max: 40 } },
-      handler: async ({ c, principal, body }) => c.services.sales.quote(body, principal) },
+      handler: async ({ c, principal, body }) => {
+        const p = await c.store.collection('profiles').get(body.profileId);
+        if (p) await c.services.access.check(principal, 'read', { type: 'profile', region: p.province });
+        return c.services.sales.quote(body, principal);
+      } },
+    { method: 'POST', path: '/api/quotes/:id/inspection', auth: 'staff', perm: 'quote:create', tag: 'Sales', summary: 'Record the vehicle inspection required for physical-damage cover',
+      body: { passed: { type: 'boolean', required: true }, evidence: { type: 'string', max: 500, required: true } },
+      handler: async ({ c, principal, params, body }) => c.services.sales.recordInspection(params.id, body, principal) },
     { method: 'POST', path: '/api/quotes/:id/send', auth: 'staff', perm: 'quote:create', tag: 'Sales', summary: 'Send a quote to the customer\'s VETC app / Zalo to confirm and pay (staff never take payment)',
       handler: async ({ c, principal, params }) => {
-        const q = await c.services.sales.markSent(params.id, principal);
-        const profile = await c.store.collection('profiles').get(q.profileId);
+        const pending = await c.services.sales.getQuote(params.id);
+        const profile = await c.store.collection('profiles').get(pending.profileId);
         await c.services.access.check(principal, 'read', { type: 'profile', region: profile.province });
+        const q = await c.services.sales.markSent(params.id, principal);
         const lead = await c.store.collection('leads').get(q.profileId);
         const sent = [];
         for (const ch of ['app_push', 'zalo_zns', 'sms']) {
@@ -302,10 +324,10 @@ function buildRoutes() {
       handler: async ({ c, params, query }) => c.services.partners.statement(params.id, query) },
 
     // ---------- Partner API (X-Api-Key) ----------
-    { method: 'POST', path: '/api/partner/v1/quotes', auth: 'partner', perm: 'partner:transact', tag: 'Partner API', summary: 'Quote by plate; unknown vehicles are onboarded (new business)',
+    { method: 'POST', path: '/api/partner/v1/quotes', auth: 'partner', perm: 'partner:transact', scope: 'quote', tag: 'Partner API', summary: 'Quote by plate; unknown vehicles are onboarded (new business)',
       body: {
         plate: { type: 'string', max: 20, required: true }, products: PRODUCT_LINES, holderName: { type: 'string', max: 120 }, phone: { type: 'string', max: 20 },
-        seats: { type: 'integer', min: 1, max: 60 }, usage: { type: 'string', enum: ['personal', 'commercial'] }, ownerType: { type: 'string', enum: ['individual', 'company'] }, currentExpiry: S.date, consentMarketing: { type: 'boolean' },
+        seats: { type: 'integer', min: 1, max: 60 }, usage: { type: 'string', enum: ['personal', 'commercial'] }, ownerType: { type: 'string', enum: ['individual', 'company'] }, currentExpiry: S.date,
       },
       handler: async ({ c, principal, body }) => {
         const plate = normalizePlate(body.plate);
@@ -322,7 +344,7 @@ function buildRoutes() {
         }
         return c.services.sales.quote({ profileId: plate.key, products: body.products, channel: 'partner_api', partnerId: principal.partnerId }, principal);
       } },
-    { method: 'POST', path: '/api/partner/v1/orders', auth: 'partner', perm: 'partner:transact', tag: 'Partner API', summary: 'Bind a partner quote (Idempotency-Key)', idempotent: true,
+    { method: 'POST', path: '/api/partner/v1/orders', auth: 'partner', perm: 'partner:transact', scope: 'purchase', tag: 'Partner API', summary: 'Bind a partner quote (Idempotency-Key)', idempotent: true,
       body: { quoteId: { type: 'string', max: 80, required: true }, holderName: { type: 'string', max: 120 } },
       handler: async ({ c, principal, body, idempotencyKey }) => {
         const q = await c.services.sales.getQuote(body.quoteId);
@@ -331,10 +353,10 @@ function buildRoutes() {
         await c.events.drain();
         return r;
       } },
-    { method: 'GET', path: '/api/partner/v1/policies', auth: 'partner', perm: 'partner:transact', tag: 'Partner API', summary: 'Policies sold by this partner',
+    { method: 'GET', path: '/api/partner/v1/policies', auth: 'partner', perm: 'partner:transact', scope: 'policies:read', tag: 'Partner API', summary: 'Policies sold by this partner',
       query: { limit: S.limit, offset: S.offset },
       handler: async ({ c, principal, query }) => c.services.sales.listPolicies({ ...query, partnerId: principal.partnerId }) },
-    { method: 'GET', path: '/api/partner/v1/statement', auth: 'partner', perm: 'partner:transact', tag: 'Partner API', summary: 'Own commission statement',
+    { method: 'GET', path: '/api/partner/v1/statement', auth: 'partner', perm: 'partner:transact', scope: 'policies:read', tag: 'Partner API', summary: 'Own commission statement',
       query: { from: S.date, to: S.date },
       handler: async ({ c, principal, query }) => c.services.partners.statement(principal.partnerId, query) },
 
@@ -342,6 +364,8 @@ function buildRoutes() {
     { method: 'GET', path: '/api/claims', auth: 'staff', perm: 'claims:read', tag: 'Claims', summary: 'FNOL queue',
       query: { status: { type: 'string', max: 30 }, limit: S.limit, offset: S.offset },
       handler: async ({ c, query }) => c.services.claims.list(query) },
+    { method: 'GET', path: '/api/claims/:id', auth: 'staff', perm: 'claims:read', tag: 'Claims', summary: 'Claim detail',
+      handler: async ({ c, params }) => c.services.claims.get(params.id) },
     { method: 'PATCH', path: '/api/claims/:id', auth: 'staff', perm: 'claims:update', tag: 'Claims', summary: 'Advance claim status',
       body: { status: { type: 'string', max: 30, required: true }, note: S.text(1000) },
       handler: async ({ c, principal, params, body }) => c.services.claims.transition(params.id, body.status, principal, body.note) },
@@ -356,7 +380,9 @@ function buildRoutes() {
     { method: 'POST', path: '/api/data/ingest', auth: 'staff', perm: 'data:ingest', tag: 'Data', summary: 'Ingest a batch of source records (≤ 5,000)',
       body: { source: { type: 'string', max: 60, required: true }, records: { type: 'array', max: 5000, required: true, items: { type: 'object' } } },
       handler: async ({ c, principal, body }) => {
-        const allowed = ['recordId', 'source', 'plateRaw', 'phoneRaw', 'fullName', 'tollClass', 'seatsDeclared', 'usageDeclared', 'ownerType', 'tagActivatedAt', 'policy', 'lastInspectionDate', 'declaredExpiry', 'partnerId', 'firstRegisteredYear'];
+        const allowed = ['recordId', 'source', 'plateRaw', 'phoneRaw', 'fullName', 'tollClass', 'seatsDeclared', 'usageDeclared', 'ownerType', 'tagActivatedAt', 'policy', 'lastInspectionDate', 'declaredExpiry', 'partnerId', 'firstRegisteredYear',
+          // VETC account signals used by MDM (consent and engagement must travel with the record).
+          'appUser', 'appSessions30d', 'tollTrips30d', 'longTripsKm90d', 'walletBalance', 'autoTopUp', 'pushEnabled', 'zaloLinked', 'marketingConsent', 'callConsent', 'dnc', 'complaints12m', 'priorVetcInsurancePurchase'];
         const records = body.records.map((r, i) => {
           const out = {};
           for (const k of allowed) if (r[k] !== undefined) out[k] = r[k];
@@ -383,6 +409,9 @@ function buildRoutes() {
     { method: 'PATCH', path: '/api/users/:id', auth: 'staff', perm: 'users:manage', tag: 'Users', summary: 'Change roles / region / status',
       body: { roles: { type: 'array', max: 10, items: { type: 'string', max: 40 } }, region: { type: 'string', max: 60 }, status: { type: 'string', enum: ['active', 'disabled'] } },
       handler: async ({ c, principal, params, body }) => c.services.identity.update(params.id, body, principal) },
+    { method: 'POST', path: '/api/users/:id/reset', auth: 'staff', perm: 'users:manage', tag: 'Users', summary: 'Unlock an account and/or reset MFA (user re-enrols at next sign-in)',
+      body: { unlock: { type: 'boolean' }, resetMfa: { type: 'boolean' } },
+      handler: async ({ c, principal, params, body }) => c.services.identity.reset(params.id, body, principal) },
     { method: 'GET', path: '/api/ops/status', auth: 'staff', perm: 'ops:read', tag: 'Operations', summary: 'Integrations, store, rules and backlog status',
       handler: async ({ c }) => ({
         store: c.store.kind,
@@ -411,7 +440,8 @@ function buildRoutes() {
       handler: async ({ c, body }) => {
         let id = body.link ? c.links.verify(body.link) : null;
         if (!id && body.demoProfileId && c.config.demoMode) id = body.demoProfileId;
-        if (!id || !(await c.store.collection('profiles').get(id))) throw errors.unauthenticated('Link invalid or expired');
+        const prof = id ? await c.store.collection('profiles').get(id) : null;
+        if (!prof || prof.anonymised) throw errors.unauthenticated('Link invalid or expired');
         return { token: c.services.customers.issueCustomerToken(id), profileId: id };
       } },
     { method: 'GET', path: '/api/customer/home', auth: 'customer', tag: 'Customer', summary: 'My vehicle, cover and benefits',
@@ -438,7 +468,7 @@ function buildRoutes() {
       handler: async ({ c, principal, body }) => { const r = await c.services.customers.updateConsent(principal.customerId, body, principal); await c.events.drain(); return r; } },
     { method: 'POST', path: '/api/customer/claims', auth: 'customer', tag: 'Customer', summary: 'Report an accident (FNOL)',
       body: { policyId: { type: 'string', max: 80, required: true }, incidentDate: { type: 'date', required: true }, description: { type: 'string', max: 2000, required: true }, location: { type: 'string', max: 200 }, photos: { type: 'integer', min: 0, max: 20 } },
-      handler: async ({ c, principal, body }) => c.services.claims.submit({ ...body, profileId: principal.customerId }, principal) },
+      handler: async ({ c, principal, body }) => { const r = await c.services.claims.submit({ ...body, profileId: principal.customerId }, principal); await c.events.drain(); return r; } },
     { method: 'GET', path: '/api/customer/claims', auth: 'customer', tag: 'Customer', summary: 'My claims',
       handler: async ({ c, principal }) => c.services.claims.list({ profileId: principal.customerId }) },
     { method: 'GET', path: '/api/customer/data-export', auth: 'customer', tag: 'Customer', summary: 'Download my data (right of access)',

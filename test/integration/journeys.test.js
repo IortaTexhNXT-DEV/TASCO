@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { makeContainer, ACTOR, findProfile } = require('../helpers');
+const { makeContainer, findProfile } = require('../helpers');
 
 let c;
 test.before(async () => { c = await makeContainer(); });
@@ -52,4 +52,25 @@ test('lead recompute is incremental and audit-logged', async () => {
   assert.ok(r.recomputed > 300);
   assert.ok(await c.services.audit.count() > before);
   assert.deepEqual(await c.services.leads.recompute(['NOPE']), { recomputed: 0 });
+});
+
+test('window-blocked touchpoints are deferred, not lost', async () => {
+  const before = await c.store.collection('touchpoints').count({ status: 'scheduled' });
+  const night = await c.services.journeys.runDue({ date: '2026-10-12', at: '2026-10-12T16:00:00Z' });
+  assert.ok(night.deferred > 0);
+  const day = await c.services.journeys.runDue({ date: '2026-10-12', at: '2026-10-13T03:00:00Z' });
+  assert.ok(day.done > 0, 'deferred touchpoints execute in the next in-window run');
+  assert.ok(before > 0);
+});
+
+test('admin reset unlocks accounts and forces MFA re-enrolment without revealing seeds', async () => {
+  const admin = { id: 'admin-r', roles: ['admin'] };
+  const target = (await c.services.identity.list()).find((u) => u.username === 'steward');
+  const r = await c.services.identity.reset(target.id, { unlock: true, resetMfa: true }, admin);
+  assert.equal(r.mfaEnabled, false);
+  assert.equal(JSON.stringify(r).includes('totp'), false);
+  const login = await c.services.identity.login({ username: 'steward', password: 'Tasco@Demo2026!' });
+  assert.equal(login.mfaEnrolment, true);
+  await assert.rejects(c.services.identity.reset(target.id, {}, { id: target.id, roles: ['admin'] }), /another administrator/);
+  await assert.rejects(c.services.identity.reset('nope', {}, admin), /not found/);
 });

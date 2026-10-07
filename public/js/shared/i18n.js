@@ -8,7 +8,7 @@ const STRINGS = {
     groupWork: 'Công việc', groupGrowth: 'Tăng trưởng', groupGov: 'Quản trị', groupAdmin: 'Quản trị hệ thống',
     loading: 'Đang tải…', empty: 'Không có dữ liệu', save: 'Lưu', cancel: 'Hủy', close: 'Đóng', search: 'Tìm', apply: 'Áp dụng', reset: 'Đặt lại',
     score: 'Điểm', tier: 'Nhóm', journey: 'Hành trình', nba: 'Hành động đề xuất', expiry: 'Hết hạn', days: 'Ngày', region: 'Khu vực', plate: 'Biển số', premium: 'Phí',
-    open: 'Mở', next: 'Tiếp', previous: 'Trước', demoHint: 'Chế độ demo — chọn vai trò để đăng nhập nhanh',
+    open: 'Mở', next: 'Tiếp', previous: 'Trước', demoHint: 'Chế độ demo — chọn vai trò rồi nhập mật khẩu demo',
   },
   en: {
     signIn: 'Sign in', username: 'Username', password: 'Password', mfaCode: '6-digit authentication code', verify: 'Verify',
@@ -18,7 +18,7 @@ const STRINGS = {
     groupWork: 'Work', groupGrowth: 'Growth', groupGov: 'Governance', groupAdmin: 'Administration',
     loading: 'Loading…', empty: 'Nothing here yet', save: 'Save', cancel: 'Cancel', close: 'Close', search: 'Search', apply: 'Apply', reset: 'Reset',
     score: 'Score', tier: 'Tier', journey: 'Journey', nba: 'Next best action', expiry: 'Expiry', days: 'Days', region: 'Region', plate: 'Plate', premium: 'Premium',
-    open: 'Open', next: 'Next', previous: 'Previous', demoHint: 'Demo mode — pick a role to sign in quickly',
+    open: 'Open', next: 'Next', previous: 'Previous', demoHint: 'Demo mode — pick a role, then enter the demo password',
   },
 };
 

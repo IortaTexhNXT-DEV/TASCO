@@ -125,3 +125,59 @@ test('demo endpoints are disabled when DEMO_MODE is off', async () => {
   assert.equal((await s2.call('GET', '/api/meta')).body.demoCustomers, undefined);
   await s2.close();
 });
+
+test('hardening regressions: proxy IP, metrics auth, key scopes, malformed paths, link expiry, erasure', async () => {
+  const hc = await makeContainer({ env: { TRUST_PROXY: 'true', METRICS_TOKEN: 'mt-secret', RATE_LIMIT_LOGIN_MAX: '3' } });
+  const s = await startServer(hc);
+  // Spoofed left-most X-Forwarded-For values must not reset the login limiter.
+  let limited = false;
+  for (let i = 0; i < 6; i++) {
+    const r = await s.call('POST', '/api/auth/login', { body: { username: 'x', password: 'y' }, headers: { 'X-Forwarded-For': `10.0.0.${i}, 203.0.113.9` } });
+    if (r.status === 429) limited = true;
+  }
+  assert.ok(limited, 'rotating spoofed client IPs does not bypass rate limiting');
+  assert.equal((await s.call('GET', '/metrics')).status, 401);
+  assert.equal((await s.call('GET', '/metrics', { headers: { Authorization: 'Bearer mt-secret' } })).status, 200);
+  assert.equal((await s.call('GET', '/api/public/certificates/%E0%A4%A')).status, 400);
+  const k = await hc.services.partners.issueApiKey('P-AGENT-01', { id: 'pm' }, { scopes: ['policies:read'] });
+  assert.equal((await s.call('POST', '/api/partner/v1/quotes', { headers: { 'X-Api-Key': k.apiKey }, body: { plate: '30A-123.45', products: [{ code: 'TNDS_CAR' }] } })).status, 403);
+  assert.equal((await s.call('GET', '/api/partner/v1/policies', { headers: { 'X-Api-Key': k.apiKey } })).status, 200);
+  const p = await findProfile(hc, (x) => !x.anonymised && x.policy.insurer !== 'TASCO');
+  assert.equal(hc.links.verify(hc.links.sign(p.id, -1)), null, 'expired links are rejected');
+  const tok = (await s.call('POST', '/api/customer/session', { body: { link: hc.links.sign(p.id) } })).body.token;
+  assert.equal((await s.call('GET', '/api/customer/home', { token: tok })).status, 200);
+  await hc.services.customers.erase(p.id, { id: 'dpo', roles: ['compliance_officer'] });
+  assert.equal((await s.call('GET', '/api/customer/home', { token: tok })).status, 401, 'erased subject loses session');
+  await s.close();
+});
+
+test('concurrent purchases of one quote cannot double-charge', async () => {
+  const p = await findProfile(c, (x) => !x.anonymised && x.ownerType === 'individual' && x.policy.insurer !== 'TASCO' && x.vehicle.category === 'car_6_11');
+  const me = { id: `customer:${p.id}`, roles: ['customer'], customerId: p.id };
+  const q = await c.services.sales.quote({ profileId: p.id, products: [{ code: 'TNDS_CAR' }], channel: 'vetc_app' }, me);
+  const results = await Promise.allSettled([
+    c.services.sales.purchase({ quoteId: q.id, idempotencyKey: 'race-aaaa-1' }, me),
+    c.services.sales.purchase({ quoteId: q.id, idempotencyKey: 'race-bbbb-2' }, me),
+  ]);
+  assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
+  assert.match(results.find((r) => r.status === 'rejected').reason.message, /already being paid|Quote is/);
+  assert.equal((await c.services.sales.listOrders({ profileId: p.id, status: 'completed' })).length, 1);
+});
+
+test('security-sensitive rule kinds need a compliance officer to approve', async () => {
+  const author = { id: 'au', roles: ['rule_author'] };
+  const approver = { id: 'ap', roles: ['rule_approver'] };
+  const dpo = { id: 'co', roles: ['compliance_officer'] };
+  const guard = await c.services.rules.get('copy_guard');
+  const d = await c.services.rules.createDraft({ kind: 'copy_guard', payload: { ...guard, bannedPhrases: [...guard.bannedPhrases, 'miễn phí bảo hiểm'] } }, author);
+  await c.services.rules.submit(d.id, author);
+  await assert.rejects(c.services.rules.approve(d.id, approver), /compliance_officer/);
+  assert.equal((await c.services.rules.approve(d.id, dpo)).status, 'active');
+});
+
+test('ABAC cannot be widened by adding an unrelated role', async () => {
+  const agentExec = { id: 'ae', roles: ['telesales_agent', 'executive'], region: 'Hà Nội' };
+  await assert.rejects(c.services.access.check(agentExec, 'read', { type: 'profile', region: 'Đà Nẵng' }), /regional_data/);
+  const agentSup = { id: 'as', roles: ['telesales_agent', 'campaign_manager'], region: 'Hà Nội' };
+  await c.services.access.check(agentSup, 'read', { type: 'profile', region: 'Đà Nẵng' });
+});

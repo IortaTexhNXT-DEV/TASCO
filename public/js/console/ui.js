@@ -1,4 +1,4 @@
-import { h, clear, mount } from '../shared/dom.js';
+import { h, mount } from '../shared/dom.js';
 import { t } from '../shared/i18n.js';
 
 export function toast(message, kind = 'info') {

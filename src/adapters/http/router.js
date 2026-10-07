@@ -24,7 +24,11 @@ function createRouter(routes) {
         pathMatched = true;
         if (r.method !== method) continue;
         const params = {};
-        r.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
+        try {
+          r.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
+        } catch {
+          return { badRequest: true };
+        }
         return { route: r, params };
       }
       return pathMatched ? { methodNotAllowed: true } : null;

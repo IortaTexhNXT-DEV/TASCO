@@ -164,13 +164,15 @@ test('logger redacts PII and secrets; metrics render Prometheus format', () => {
 test('config: dev defaults, secrets from files, production hard-fails', () => {
   const dev = loadConfig({});
   assert.equal(dev.production, false);
+  assert.equal(dev.demoMode, false, 'demo features are opt-in');
   assert.ok(dev.warnings.length >= 3);
   const tmp = path.join(require('os').tmpdir(), `jwt-${process.pid}`);
   fs.writeFileSync(tmp, 'from-file-secret\n');
   assert.equal(loadConfig({ ...testEnv(), JWT_SECRET: undefined, JWT_SECRET_FILE: tmp }).jwtSecret, 'from-file-secret');
   fs.unlinkSync(tmp);
   assert.throws(() => loadConfig({ NODE_ENV: 'production' }), /Missing required secret/);
-  const prodEnv = { ...testEnv(), NODE_ENV: 'production', DEMO_MODE: 'false' };
+  assert.throws(() => loadConfig({ ...testEnv(), NODE_ENV: 'production', DEMO_MODE: 'false' }), /DATABASE_URL is required/);
+  const prodEnv = { ...testEnv(), NODE_ENV: 'production', DEMO_MODE: 'false', DATABASE_URL: 'postgres://x/y' };
   const prod = loadConfig(prodEnv);
   assert.equal(prod.production, true);
   assert.equal(prod.demoMode, false);

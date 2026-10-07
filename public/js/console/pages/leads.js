@@ -1,4 +1,4 @@
-import { h, clear, mount, fmtNum, fmtVnd } from '../../shared/dom.js';
+import { h, mount, fmtNum, fmtVnd } from '../../shared/dom.js';
 import { t } from '../../shared/i18n.js';
 import { pageHead, table, pager, tierBadge, select, field } from '../ui.js';
 

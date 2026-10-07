@@ -133,13 +133,23 @@ function totp(secretB32, timeMs = Date.now(), step = 30, digits = 6) {
   return code.padStart(digits, '0');
 }
 
-function verifyTotp(secretB32, code, { window = 1, timeMs = Date.now() } = {}) {
-  if (!/^\d{6}$/.test(String(code || ''))) return false;
+/** Returns the matched 30-second time step (for replay protection) or null. */
+function matchTotpStep(secretB32, code, { window = 1, timeMs = Date.now() } = {}) {
+  if (!/^\d{6}$/.test(String(code || ''))) return null;
   for (let w = -window; w <= window; w++) {
-    const expected = totp(secretB32, timeMs + w * 30000);
-    if (crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(String(code)))) return true;
+    const t = timeMs + w * 30000;
+    const expected = totp(secretB32, t);
+    if (crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(String(code)))) return Math.floor(t / 1000 / 30);
   }
-  return false;
+  return null;
+}
+
+function verifyTotp(secretB32, code, opts) {
+  return matchTotpStep(secretB32, code, opts) !== null;
+}
+
+function otpauthUri({ secret, account, issuer = 'TASCO Growth Platform' }) {
+  return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 }
 
 function sha256(s) {
@@ -152,5 +162,5 @@ function randomToken(bytes = 32) {
 
 module.exports = {
   createFieldCipher, blindIndex, hashPassword, verifyPassword, checkPasswordPolicy, signJwt, verifyJwt,
-  generateTotpSecret, totp, verifyTotp, base32Encode, base32Decode, sha256, randomToken,
+  generateTotpSecret, totp, verifyTotp, matchTotpStep, otpauthUri, base32Encode, base32Decode, sha256, randomToken,
 };

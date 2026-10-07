@@ -4,8 +4,8 @@ Quality engineering documentation for the TASCO Insurance × VETC motor insuranc
 
 | Document | Purpose | Primary audience |
 |---|---|---|
-| [test-strategy.md](test-strategy.md) | Scope, test levels and types (unit, integration, API/contract, SIT, UAT, NFT, security, resilience, DR, accessibility, localisation, compliance, data quality, migration), automation and CI gates, environments, test data, entry/exit criteria, defect severity, metrics, roles. **Appendix A is the known-issues register (KI-01 – KI-31)** found during code review | QA, engineering, TASCO IT, SteerCo |
-| [test-case-catalogue.md](test-case-catalogue.md) | 155 test cases (TC-001 – TC-155) by module, with objective, preconditions, steps, expected result, type, priority and automation file | QA, developers, testers |
+| [test-strategy.md](test-strategy.md) | Scope, test levels and types (unit, integration, API/contract, SIT, UAT, NFT, security, resilience, DR, accessibility, localisation, compliance, data quality, migration), automation and CI gates, environments, test data, entry/exit criteria, defect severity, metrics, roles. **Appendix A is the known-issues register (KI-01 – KI-33)** found during code review | QA, engineering, TASCO IT, SteerCo |
+| [test-case-catalogue.md](test-case-catalogue.md) | 164 test cases (TC-001 – TC-164) by module, with objective, preconditions, steps, expected result, type, priority and automation file | QA, developers, testers |
 | [performance-and-capacity-test-plan.md](performance-and-capacity-test-plan.md) | Workload model for a 6 M-vehicle base, scenarios PERF-S1 – S13, SLO targets, tooling (`npm run test:perf`), environment sizing, pass/fail criteria, capacity model | Perf engineer, SRE, TASCO infrastructure |
 | [uat-plan.md](uat-plan.md) | UAT approach, 46 business scenarios by persona, reference data, entry/exit criteria, triage, sign-off sheet, schedule (11–22 Jan 2027) | TASCO business, VETC CX, Compliance |
 

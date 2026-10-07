@@ -1,0 +1,36 @@
+# Local / demo stack: app + PostgreSQL 16.  `docker compose up --build`
+# then open http://localhost:8080 (demo users, password Tasco@Demo2026!).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: tasco
+      POSTGRES_USER: tasco
+      POSTGRES_PASSWORD: tasco-local-only
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tasco -d tasco"]
+      interval: 5s
+      retries: 10
+  app:
+    build: .
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["8080:8080"]
+    environment:
+      NODE_ENV: development          # demo stack — production refuses DEMO_MODE
+      DEMO_MODE: "true"
+      SIM_TODAY: "2026-10-07"
+      PUBLIC_BASE_URL: http://localhost:8080
+      DATABASE_URL: postgres://tasco:tasco-local-only@db:5432/tasco
+      DATABASE_SSL: "false"
+      # Local-only secrets. Generate real ones with: openssl rand -base64 32
+      JWT_SECRET: local-dev-jwt-secret-change-me-0123456789abcdef
+      DATA_KEYS: k1:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      BLIND_INDEX_KEY: ZmVkY2JhOTg3NjU0MzIxMGZlZGNiYTk4NzY1NDMyMTA=
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+volumes:
+  pgdata:

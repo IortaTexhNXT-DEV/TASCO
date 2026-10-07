@@ -50,6 +50,10 @@
       "quote_ready": {
         "vi": "VETC: Báo giá bảo hiểm cho xe {{plate}} đã sẵn sàng ({{premium}}). Vui lòng kiểm tra và xác nhận thanh toán trong ứng dụng VETC: {{link}}",
         "en": "VETC: Your insurance quote for {{plate}} is ready ({{premium}}). Please review and confirm payment in the VETC app: {{link}}"
+      },
+      "claim_received": {
+        "vi": "TASCO: Đã tiếp nhận yêu cầu bồi thường {{claimId}} cho xe {{plate}}. Giám định viên sẽ liên hệ trong {{slaHours}} giờ từ tổng đài chính thức.",
+        "en": "TASCO: Claim {{claimId}} for {{plate}} received. An assessor will contact you within {{slaHours}} hours from the official hotline."
       }
     }
   }

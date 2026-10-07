@@ -99,5 +99,64 @@
     "partner_api": [
       "partner:transact"
     ]
+  },
+  "separationOfDuties": [
+    [
+      "admin",
+      "rule_author"
+    ],
+    [
+      "admin",
+      "rule_approver"
+    ],
+    [
+      "admin",
+      "compliance_officer"
+    ],
+    [
+      "admin",
+      "data_steward"
+    ],
+    [
+      "admin",
+      "telesales_agent"
+    ],
+    [
+      "admin",
+      "telesales_supervisor"
+    ],
+    [
+      "admin",
+      "campaign_manager"
+    ],
+    [
+      "admin",
+      "partner_manager"
+    ],
+    [
+      "rule_author",
+      "rule_approver"
+    ],
+    [
+      "rule_author",
+      "compliance_officer"
+    ]
+  ],
+  "restrictedRuleKinds": {
+    "abac": [
+      "compliance_officer"
+    ],
+    "copy_guard": [
+      "compliance_officer"
+    ],
+    "contact_policy": [
+      "compliance_officer"
+    ],
+    "commission": [
+      "compliance_officer"
+    ],
+    "retention": [
+      "compliance_officer"
+    ]
   }
 }

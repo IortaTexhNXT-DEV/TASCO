@@ -74,6 +74,11 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
     /** Right of access: everything we hold about the data subject. */
     async exportData(profileId, actor) {
       const p = await mine(profileId);
+      const col = (n) => store.collection(n);
+      const [quotesL, ordersL, claimsL, handoffsL] = await Promise.all([
+        col('quotes').find({ where: { profile_id: profileId }, limit: 500 }), col('orders').find({ where: { profile_id: profileId }, limit: 500 }),
+        col('claims').find({ where: { profile_id: profileId }, limit: 500 }), col('handoffs').find({ where: { profile_id: profileId }, limit: 500 }),
+      ]);
       const [lead, pols, msgs, recs, calls] = await Promise.all([
         leads.get(profileId),
         policies.find({ where: { profile_id: profileId }, limit: 500 }),
@@ -82,8 +87,8 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
         sessions.find({ where: { profile_id: profileId }, limit: 100 }),
       ]);
       await audit.record({ actor: actor.id, action: 'dsar.access_exported', entityType: 'profile', entityId: profileId });
-      const strip = ({ _hidden, ...r }) => r; // eslint-disable-line no-unused-vars
-      return { generatedAt: clock.now().toISOString(), profile: p, lead, policies: pols, messages: msgs, sourceRecords: recs.map(strip), voiceSessions: calls };
+      const strip = ({ _hidden, ...r }) => r;  
+      return { generatedAt: clock.now().toISOString(), profile: p, lead, policies: pols, quotes: quotesL, orders: ordersL, claims: claimsL, telesalesTasks: handoffsL, messages: msgs, sourceRecords: recs.map(strip), voiceSessions: calls };
     },
 
     /**
@@ -94,7 +99,7 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
       const p = await mine(profileId);
       const active = await policies.find({ where: { profile_id: profileId, status: 'active' }, limit: 5 });
       if (active.length) throw errors.rule('Active policy in force — personal data must be retained until expiry (legal obligation)');
-      await profiles.update({ ...p, name: null, phone: null, altPhones: [], anonymised: true, consent: { marketing: false, call: false, dnc: true }, anonymisedAt: clock.now().toISOString() });
+      await profiles.update({ ...p, name: null, phone: null, altPhones: [], anonymised: true, policy: { ...p.policy, competitorNote: null }, consent: { marketing: false, call: false, dnc: true }, anonymisedAt: clock.now().toISOString() });
       await leads.delete(profileId);
       for (const r of await sources.find({ where: { plate_key: profileId }, limit: 100 })) await sources.upsert({ ...r, phoneRaw: null, fullName: null, anonymised: true });
       for (const m of await messages.find({ where: { profile_id: profileId }, limit: 1000 })) await messages.upsert({ ...m, to: null, text: '[erased]' });

@@ -23,7 +23,7 @@ function checksum(payload) {
   return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex').slice(0, 16);
 }
 
-function createRulesService({ store, audit, events, clock, logger }) {
+function createRulesService({ store, audit, events, clock, logger, rbac }) {
   const col = store.collection('rulesets');
   let cache = new Map();
   let cacheAt = 0;
@@ -129,10 +129,19 @@ function createRulesService({ store, audit, events, clock, logger }) {
       const r = await service.byId(id);
       if (r.status !== 'pending_approval') throw errors.rule(`Only pending rule sets can be approved (status: ${r.status})`);
       if (r.createdBy === actor.id) throw errors.forbidden('Maker-checker: you cannot approve your own change');
+      const required = rbac?.restrictedRuleKinds?.[r.kind];
+      if (required && !actor.roles?.some((role) => required.includes(role))) {
+        throw errors.forbidden(`${r.kind} changes must be approved by: ${required.join(', ')}`);
+      }
       const now = clock.now().toISOString();
-      const previous = await col.find({ where: { kind: r.kind, status: 'active' } });
-      for (const p of previous) await col.update({ ...p, status: 'retired', retiredAt: now, supersededBy: id });
-      const updated = await col.update({ ...r, status: 'active', approvedBy: actor.id, approvalComment: comment || null, activatedAt: now });
+      // Retire + activate atomically (Postgres also enforces one active version per kind).
+      const { previous, updated } = await store.transaction(async (tx) => {
+        const tcol = tx.collection('rulesets');
+        const prev = await tcol.find({ where: { kind: r.kind, status: 'active' } });
+        for (const p of prev) await tcol.update({ ...p, status: 'retired', retiredAt: now, supersededBy: id });
+        const upd = await tcol.update({ ...r, status: 'active', approvedBy: actor.id, approvalComment: comment || null, activatedAt: now });
+        return { previous: prev, updated: upd };
+      });
       cacheAt = 0;
       await audit.record({ actor: actor.id, action: 'rules.approved', entityType: 'ruleset', entityId: id, details: { supersedes: previous.map((p) => p.id), comment } });
       await events.publish('rules.activated', { kind: r.kind, id, checksum: r.checksum });

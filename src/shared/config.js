@@ -56,9 +56,16 @@ function loadConfig(env = process.env) {
   const activeDataKey = env.DATA_KEY_ACTIVE || Object.keys(dataKeys)[Object.keys(dataKeys).length - 1];
   if (!dataKeys[activeDataKey]) throw new Error(`DATA_KEY_ACTIVE ${activeDataKey} not present in DATA_KEYS`);
 
-  const demoMode = bool(env.DEMO_MODE, !production);
+  // Demo features (seeded users, TOTP helper, demo customer picker) are opt-in only.
+  const demoMode = bool(env.DEMO_MODE, false);
   if (production && demoMode && !bool(env.ALLOW_DEMO_IN_PRODUCTION, false)) {
+    // Use NODE_ENV=uat for hosted demo/UAT environments instead.
     throw new Error('DEMO_MODE must not be enabled in production');
+  }
+
+  const databaseUrl = readSecret(env, 'DATABASE_URL') || null;
+  if (production && !databaseUrl && !bool(env.ALLOW_MEMORY_STORE, false)) {
+    throw new Error('DATABASE_URL is required in production (the in-memory store loses all data on restart)');
   }
 
   const cfg = {
@@ -66,7 +73,7 @@ function loadConfig(env = process.env) {
     production,
     port: int(env.PORT, 3000),
     publicBaseUrl: env.PUBLIC_BASE_URL || `http://localhost:${int(env.PORT, 3000)}`,
-    databaseUrl: readSecret(env, 'DATABASE_URL') || null,
+    databaseUrl,
     databaseSsl: bool(env.DATABASE_SSL, production),
     dbPoolMax: int(env.DB_POOL_MAX, 10),
     jwtSecret: secret('JWT_SECRET', 48),
@@ -81,11 +88,15 @@ function loadConfig(env = process.env) {
     bodyLimitBytes: int(env.BODY_LIMIT_BYTES, 1024 * 1024),
     logLevel: env.LOG_LEVEL || (production ? 'info' : 'debug'),
     demoMode,
+    demoPassword: readSecret(env, 'DEMO_PASSWORD') || null,
     seedRecords: int(env.SEED_RECORDS, 2500),
     seed: int(env.SEED, 20261007),
     simToday: env.SIM_TODAY || null,
     rulesDir: env.RULES_DIR || 'config/rules',
     trustProxy: bool(env.TRUST_PROXY, production),
+    trustProxyHops: int(env.TRUST_PROXY_HOPS, 1),
+    metricsToken: readSecret(env, 'METRICS_TOKEN') || null,
+    linkTtlDays: int(env.LINK_TTL_DAYS, 30),
     warnings,
   };
   return cfg;

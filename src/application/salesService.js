@@ -92,6 +92,15 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
       return (await quotes.find({ where: { profile_id: profileId, status: 'open' }, orderBy: ['created_at', 'desc'], limit: 10 })).filter((x) => x.expiresAt > now);
     },
 
+    /** Record the vehicle inspection required by MOTOR_PD before the customer can pay. */
+    async recordInspection(id, { passed, evidence }, actor) {
+      const q = await service.getQuote(id);
+      if (q.status !== 'open') throw errors.rule(`Quote is ${q.status}`);
+      const saved = await quotes.update({ ...q, inspection: { passed, evidence, by: actor.id, at: clock.now().toISOString() } });
+      await audit.record({ actor: actor.id, action: 'quote.inspection_recorded', entityType: 'quote', entityId: id, details: { passed } });
+      return saved;
+    },
+
     async markSent(id, actor) {
       const q = await service.getQuote(id);
       if (q.status !== 'open') throw errors.rule(`Quote is ${q.status}`);
@@ -113,11 +122,28 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
     async purchase(input, actor) {
       const orderId = `O-${crypto.createHash('sha256').update(`${input.quoteId}:${input.idempotencyKey}`).digest('hex').slice(0, 20)}`;
       const existing = await orders.get(orderId);
-      if (existing) return { order: existing, idempotentReplay: true };
+      if (existing) {
+        if (existing.status !== 'completed') throw errors.conflict(`A previous attempt with this Idempotency-Key ended as ${existing.status} — retry with a new key`, { orderId, status: existing.status });
+        return { order: existing, idempotentReplay: true };
+      }
 
-      const q = await service.getQuote(input.quoteId);
-      if (q.status !== 'open') throw errors.rule(`Quote is ${q.status}`);
-      if (new Date(q.expiresAt) < clock.now()) throw errors.rule('Quote expired — please re-quote');
+      const q0 = await service.getQuote(input.quoteId);
+      if (q0.status !== 'open') throw errors.rule(`Quote is ${q0.status}`);
+      if (new Date(q0.expiresAt) < clock.now()) throw errors.rule('Quote expired — please re-quote');
+      const catalogue = await rules.get('products');
+      const needsInspection = q0.lines.filter((l) => catalogue.products.find((p) => p.code === l.product)?.requiresInspection);
+      if (needsInspection.length && !q0.inspection?.passed) {
+        throw errors.rule('Physical damage cover needs a vehicle inspection first — a TASCO assessor will contact you', { products: needsInspection.map((l) => l.product) });
+      }
+      // Atomically claim the quote (optimistic lock): concurrent purchases with different
+      // idempotency keys cannot both reach the payment step.
+      let q;
+      try {
+        q = await quotes.update({ ...q0, status: 'paying', payingOrderId: orderId });
+      } catch (e) {
+        if (e.code === 'CONFLICT') throw errors.conflict('This quote is already being paid');
+        throw e;
+      }
       const profile = await profiles.get(q.profileId);
 
       const order = {
@@ -138,6 +164,7 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
         }
       } catch (e) {
         await orders.upsert({ ...order, status: 'payment_failed', error: e.message });
+        await quotes.upsert({ ...q, status: 'open', payingOrderId: null }); // release the quote for a retry
         await audit.record({ actor: actor.id, action: 'order.payment_failed', entityType: 'order', entityId: orderId, details: { reason: e.message } });
         throw e;
       }
@@ -158,9 +185,26 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
           issued.push(rec);
         }
       } catch (e) {
-        // Compensate: refund and flag for reconciliation. Issued lines (if any) stay and are reconciled by ops.
-        if (payment.status !== 'partner_collected') await gateways.payment.port.refund({ transactionId: payment.transactionId, amount: q.total }).catch(() => {});
-        await orders.upsert({ ...order, status: 'issuance_failed_refunded', paymentRef: payment.transactionId, error: e.message, policies: issued.map((p) => p.id) });
+        // Saga compensation: cancel any lines already issued, then refund in full.
+        // Anything that cannot be compensated is left in a *_failed state for reconciliation.
+        const cancelFailures = [];
+        for (const pol of issued) {
+          try {
+            await gateways.policyAdmin.exec(() => gateways.policyAdmin.port.cancelPolicy({ policyNo: pol.policyNo, reason: 'order issuance failed' }));
+            await policies.upsert({ ...pol, status: 'cancelled', cancelledAt: clock.now().toISOString(), cancelReason: 'order issuance failed' });
+          } catch (ce) { cancelFailures.push({ policy: pol.id, error: ce.message }); }
+        }
+        let refund = { status: payment.status === 'partner_collected' ? 'not_applicable' : 'pending' };
+        if (payment.status !== 'partner_collected') {
+          try {
+            const r = await gateways.payment.exec(() => gateways.payment.port.refund({ transactionId: payment.transactionId, amount: q.total }));
+            refund = { status: 'refunded', refundId: r.refundId };
+          } catch (re) { refund = { status: 'refund_failed', error: re.message }; }
+        }
+        const status = refund.status === 'refund_failed' || cancelFailures.length ? 'compensation_failed' : 'issuance_failed_refunded';
+        await orders.upsert({ ...order, status, paymentRef: payment.transactionId, error: e.message, policies: issued.map((p) => p.id), refund, cancelFailures });
+        metrics?.inc('orders_compensation_total', { status });
+        await quotes.upsert({ ...q, status: 'open', payingOrderId: null });
         await audit.record({ actor: actor.id, action: 'order.issuance_failed', entityType: 'order', entityId: orderId, details: { reason: e.message } });
         throw e;
       }

@@ -12,7 +12,7 @@
 
 | Endpoint | Content | Exposure |
 |---|---|---|
-| `GET /metrics` | Prometheus text format 0.0.4, **per process**: counters and histograms below, plus `process_resident_memory_bytes` and `process_uptime_seconds` | **Unauthenticated (KI-14).** Scrape in-cluster via pod IP; block `/metrics` at the ingress; NetworkPolicy allows only the Prometheus namespace |
+| `GET /metrics` | Prometheus text format 0.0.4, **per process**: counters and histograms below, plus `process_resident_memory_bytes` and `process_uptime_seconds` | Protected by `METRICS_TOKEN` when set: Prometheus scrapes with `authorization: {type: Bearer, credentials_file: …}`. **Open when unset (KI-14):** always set it, block `/metrics` at the ingress, and let the NetworkPolicy allow only the Prometheus namespace |
 | `GET /health/live` | `{status:"ok"}` | Liveness probe |
 | `GET /health/ready` | `{status, store, db}`; 503 when not ready | Readiness probe; external synthetic |
 | `GET /api/ops/status` | Circuit state per integration, active rule versions and checksums, `eventBacklog` by status, audit count | Staff with `ops:read`. Use for humans and dashboards' links, not as a scrape target |
@@ -152,7 +152,7 @@ Golden signals mapping:
 |---|---|---|---|---|---|
 | ALR-20 | DeadLetterEvents | `sum by (type) (increase(events_processed_total{status="dead_letter"}[15m])) > 0` | — | page (business hours) / ticket (night) | RB-06 |
 | ALR-21 | OutboxBacklog | `tasco_db_domain_events{status="pending"} > 10000 or tasco_db_domain_events_oldest_pending_seconds > 300` | 10m | ticket (page if > 30 min) | RB-06 |
-| ALR-22 | EventsStuckProcessing | `tasco_db_domain_events{status="processing"} > 0` sustained (no app metric; KI-03) | 15m | ticket | RB-06 |
+| ALR-22 | EventsStuckProcessing | `tasco_db_domain_events{status="processing"} > 0` sustained. The Postgres relay re-claims after 5 min, so persistence means no relay is running | 15m | ticket | RB-06 |
 | ALR-23 | EventRetryChurn | `sum by (type) (rate(events_processed_total{status="pending"}[10m])) > 0.5` | 15m | ticket | RB-06 |
 | ALR-24 | BacklogGrowth (app-only fallback) | `sum(increase(events_published_total[30m])) - sum(increase(events_processed_total{status="done"}[30m])) > 5000` | 30m | ticket | RB-06 |
 | ALR-33 | JourneySkipSpike (log-based) | Loki ruler: `max_over_time({app="tasco-growth-platform"} \| json \| msg="journey run complete" \| unwrap skipped [1h]) / max_over_time({app="tasco-growth-platform"} \| json \| msg="journey run complete" \| unwrap due [1h]) > 0.3` | — | ticket | RB-07 |

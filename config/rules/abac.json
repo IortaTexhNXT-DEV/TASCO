@@ -1,6 +1,6 @@
 {
   "kind": "abac",
-  "description": "Attribute-based access rules evaluated after RBAC. Facts: user.{id,roles,region}, resource.{type,region,assignedTo,ownerId}, action.",
+  "description": "Attribute-based access rules evaluated after RBAC. Facts: user.{id,roles,region}, resource.{type,region,assignedTo,ownerId}, action. A policy is skipped only when the user also holds an out-of-scope role that grants the policy's permission on its own.",
   "payload": {
     "policies": [
       {
@@ -60,7 +60,8 @@
               ]
             }
           ]
-        }
+        },
+        "permission": "handoff:read"
       },
       {
         "id": "regional_data",
@@ -95,7 +96,8 @@
               ]
             }
           ]
-        }
+        },
+        "permission": "profile:read"
       },
       {
         "id": "customer_self",
@@ -116,7 +118,8 @@
               "var": "user.customerId"
             }
           ]
-        }
+        },
+        "permission": "customer:self"
       }
     ]
   }

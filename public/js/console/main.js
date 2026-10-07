@@ -1,9 +1,10 @@
-import { h, clear, append, mount } from '../shared/dom.js';
+import { h, append, mount } from '../shared/dom.js';
 import { createApi } from '../shared/api.js';
 import { t, getLang, setLang } from '../shared/i18n.js';
 import { HELP } from './help.js';
 import { toast, errorToast, loading } from './ui.js';
 import { PAGES } from './pages/index.js';
+import { qrSvg } from '../shared/qr.js';
 
 /**
  * Staff console: authentication (password + TOTP), permission-filtered
@@ -88,14 +89,18 @@ function loginView() {
     ? h('div', { class: 'stack' }, h('p', { class: 'muted small' }, t('demoHint')),
       h('div', { class: 'demo-users' }, ['campaign', 'agent.hn', 'supervisor', 'author', 'approver', 'compliance', 'steward', 'claims', 'partners', 'exec', 'auditor', 'admin', 'support'].map((u) => h('button', {
         class: 'btn small', type: 'button',
-        onclick: () => { user.value = u; pass.value = 'Tasco@Demo2026!'; form.requestSubmit(); },
+        onclick: () => { user.value = u; pass.focus(); },
       }, u))))
     : null;
 
-  async function mfaStep(mfaToken, username) {
+  async function mfaStep(mfaToken, username, otpauthUri) {
     const code = h('input', { inputmode: 'numeric', autocomplete: 'one-time-code', pattern: '\\d{6}', maxlength: '6', required: true });
     const mfaForm = h('form', { class: 'stack', novalidate: true },
       h('h2', {}, t('mfaCode')),
+      otpauthUri ? h('div', { class: 'stack' },
+        h('div', { class: 'alert info' }, 'Set up two-step sign-in: scan this code with Microsoft/Google Authenticator, then enter the 6-digit code. / Quét mã bằng ứng dụng xác thực rồi nhập mã 6 số.'),
+        h('div', { class: 'qr' }, qrSvg(otpauthUri, { label: 'Authenticator enrolment QR code' })),
+        h('details', {}, h('summary', {}, 'Cannot scan? Enter the key manually'), h('code', {}, new URL(otpauthUri).searchParams.get('secret')))) : null,
       h('div', { class: 'field' }, h('label', { for: 'mfa' }, t('mfaCode')), Object.assign(code, { id: 'mfa' })),
       err,
       h('button', { class: 'btn primary block', type: 'submit' }, t('verify')));
@@ -125,7 +130,7 @@ function loginView() {
     err.textContent = '';
     try {
       const r = await api.post('/api/auth/login', { username: user.value.trim(), password: pass.value });
-      if (r.mfaRequired) return mfaStep(r.mfaToken, user.value.trim());
+      if (r.mfaRequired) return mfaStep(r.mfaToken, user.value.trim(), r.otpauthUri);
       onSignedIn(r);
     } catch (ex) { err.textContent = ex.message; pass.value = ''; pass.focus(); }
     return undefined;
@@ -143,6 +148,7 @@ function onSignedIn(r) {
   state.user = r.user;
   try { sessionStorage.setItem('token', r.accessToken); } catch { /* ignore */ }
   toast(`${r.user.displayName}`, 'ok');
+  if (r.mustChangePassword) setTimeout(() => changePasswordDialog(true), 50);
   const current = parseRoute().name;
   const page = current && PAGES[current];
   if (!page || (page.perm && !can(page.perm))) {
@@ -176,9 +182,37 @@ function shell(route) {
     h('button', { class: 'btn ghost small', 'aria-haspopup': 'dialog', onclick: () => openHelp(helpKey) }, '?', h('span', { class: 'sr-only' }, t('help'))),
     h('button', { class: 'btn ghost small', onclick: () => { const cur = document.documentElement.dataset.theme; const next = cur === 'dark' ? 'light' : 'dark'; applyTheme(next); try { localStorage.setItem('theme', next); } catch { /* ignore */ } } }, '🌓', h('span', { class: 'sr-only' }, t('theme'))),
     h('button', { class: 'btn ghost small', onclick: () => { setLang(getLang() === 'vi' ? 'en' : 'vi'); render(); } }, t('language')),
+    h('button', { class: 'btn ghost small', onclick: () => changePasswordDialog(false) }, '🔑', h('span', { class: 'sr-only' }, 'Change password')),
     h('button', { class: 'btn small', onclick: signOut }, t('signOut')));
   const footer = h('footer', { class: 'footer-credit' }, 'Built by', h('img', { src: '/assets/iorta-technxt-logo.jpg', alt: 'iorta TechNXT' }), h('span', {}, `· ${state.meta?.today || ''} · ${state.meta?.store || ''}`));
   return { el: h('div', { class: 'shell' }, top, h('div', { class: 'layout' }, nav, h('div', {}, main, footer))), main };
+}
+
+function changePasswordDialog(forced = false) {
+  const cur = h('input', { type: 'password', autocomplete: 'current-password', id: 'cp-cur' });
+  const nw = h('input', { type: 'password', autocomplete: 'new-password', minlength: '12', id: 'cp-new' });
+  const err = h('div', { class: 'error', role: 'alert' });
+  const dlg = h('dialog', { 'aria-labelledby': 'cp-title' });
+  const form = h('form', { class: 'stack' },
+    h('h2', { id: 'cp-title' }, forced ? 'Please set your own password' : 'Change password'),
+    h('div', { class: 'field' }, h('label', { for: 'cp-cur' }, 'Current password'), cur),
+    h('div', { class: 'field' }, h('label', { for: 'cp-new' }, 'New password (≥ 12 characters)'), nw),
+    err,
+    h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'submit' }, 'Save'), forced ? null : h('button', { class: 'btn', type: 'button', onclick: () => dlg.close() }, t('cancel'))));
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/api/auth/password', { currentPassword: cur.value, newPassword: nw.value });
+      dlg.close();
+      toast('Password changed — please sign in again', 'ok');
+      signOutLocal();
+    } catch (ex) { err.textContent = `${ex.message}${Array.isArray(ex.details) ? `: ${ex.details.join('; ')}` : ''}`; }
+  });
+  dlg.append(form);
+  if (forced) dlg.addEventListener('cancel', (e) => e.preventDefault());
+  dlg.addEventListener('close', () => dlg.remove());
+  document.body.append(dlg);
+  dlg.showModal();
 }
 
 function openHelp(key) {

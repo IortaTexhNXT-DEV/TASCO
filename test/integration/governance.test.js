@@ -58,8 +58,11 @@ test('identity: login, MFA, lockout, password change, user admin', async () => {
   await assert.rejects(c.services.identity.verifyMfa({ mfaToken: mfa.mfaToken, code: '000000' }), /Invalid code/);
   await assert.rejects(c.services.identity.verifyMfa({ mfaToken: 'bad', code: '123456' }), /expired/);
   const secret = await c.services.identity.getTotpSecretForDemo('approver');
-  const ok = await c.services.identity.verifyMfa({ mfaToken: mfa.mfaToken, code: totp(secret) });
+  const code = totp(secret);
+  const ok = await c.services.identity.verifyMfa({ mfaToken: mfa.mfaToken, code });
   assert.ok(ok.accessToken);
+  const again = await c.services.identity.login({ username: 'approver', password: 'Tasco@Demo2026!' });
+  await assert.rejects(c.services.identity.verifyMfa({ mfaToken: again.mfaToken, code }), /Invalid code/, 'TOTP codes cannot be replayed');
   await assert.rejects(c.services.identity.login({ username: 'nobody', password: 'x' }), /Invalid username or password/);
   for (let i = 0; i < 5; i++) await assert.rejects(c.services.identity.login({ username: 'exec', password: 'wrong' }));
   await assert.rejects(c.services.identity.login({ username: 'exec', password: 'Tasco@Demo2026!' }), /locked/);
@@ -74,18 +77,34 @@ test('identity: login, MFA, lockout, password change, user admin', async () => {
   await assert.rejects(c.services.identity.update('nope', {}, admin), /not found/);
   await assert.rejects(c.services.identity.update(created.user.id, { roles: ['god'] }, admin), /Unknown role/);
   const me = (await c.services.identity.list()).find((u) => u.username === 'admin');
-  await assert.rejects(c.services.identity.update(me.id, { roles: ['executive'] }, { ...admin, id: me.id }), /own admin role/);
+  await assert.rejects(c.services.identity.update(me.id, { roles: ['executive'] }, { ...admin, id: me.id }), /own roles/);
+  await assert.rejects(c.services.identity.update(created.user.id, { roles: ['admin', 'rule_approver'] }, admin), /Separation of duties/);
+  await assert.rejects(c.services.identity.createUser({ username: 'sod', password: 'long enough pw', displayName: 'S', roles: ['rule_author', 'rule_approver'] }, admin), /Separation of duties/);
+  assert.equal(created.totpSecret, undefined, 'admin never sees MFA seeds');
   const camp = (await c.services.identity.list()).find((u) => u.username === 'campaign');
+  const before = await c.services.identity.login({ username: 'campaign', password: 'Tasco@Demo2026!' });
+  await new Promise((r) => setTimeout(r, 1100));
   await c.services.identity.changePassword(camp.id, { currentPassword: 'Tasco@Demo2026!', newPassword: 'A much longer pass 1' });
+  assert.equal(await c.services.identity.authenticate(before.accessToken), null, 'password change revokes existing tokens');
+  await assert.rejects(c.services.identity.changePassword(camp.id, { currentPassword: 'A much longer pass 1', newPassword: 'A much longer pass 1' }), /Password policy/);
   await assert.rejects(c.services.identity.changePassword(camp.id, { currentPassword: 'wrong', newPassword: 'whatever long' }), /incorrect/);
   await assert.rejects(c.services.identity.changePassword(camp.id, { currentPassword: 'A much longer pass 1', newPassword: 'short' }), /Password policy/);
   assert.equal(await c.services.identity.authenticate('garbage'), null);
 });
 
-test('MFA is enforced for privileged roles even if not enrolled', async () => {
+test('privileged roles must self-enrol MFA; lockout also covers the MFA step', async () => {
   const admin = ACTOR('admin-y', ['admin']);
   await c.services.identity.createUser({ username: 'steward2', password: 'long enough pw', displayName: 'S', roles: ['data_steward'], enableMfa: false }, admin);
-  await assert.rejects(c.services.identity.login({ username: 'steward2', password: 'long enough pw' }), /MFA enrolment required/);
+  const r = await c.services.identity.login({ username: 'steward2', password: 'long enough pw' });
+  assert.equal(r.mfaEnrolment, true);
+  assert.match(r.otpauthUri, /^otpauth:\/\/totp\//);
+  const secret = new URL(r.otpauthUri).searchParams.get('secret');
+  const done = await c.services.identity.verifyMfa({ mfaToken: r.mfaToken, code: totp(secret) });
+  assert.equal(done.mustChangePassword, true, 'admin-set passwords must be changed');
+  assert.equal((await c.services.identity.list()).find((u) => u.username === 'steward2').mfaEnabled, true);
+  const r2 = await c.services.identity.login({ username: 'steward2', password: 'long enough pw' });
+  for (let i = 0; i < 5; i++) await assert.rejects(c.services.identity.verifyMfa({ mfaToken: r2.mfaToken, code: '000000' }));
+  await assert.rejects(c.services.identity.verifyMfa({ mfaToken: r2.mfaToken, code: totp(secret, Date.now() + 30000) }), /locked/);
 });
 
 test('access policy: RBAC deny-by-default, ABAC region and assignment, PII masking', async () => {

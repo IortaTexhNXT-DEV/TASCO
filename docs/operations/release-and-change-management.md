@@ -14,7 +14,7 @@ The platform separates **code** from **business rules**. They have different ris
 
 | | Code / configuration change | Business-rule change |
 |---|---|---|
-| What | `src/**`, `db/migrations/*.sql`, `config/security/rbac.json` (security config is code), `Dockerfile`, `deploy/**`, environment variables and secrets, dependencies | Any of the 20 rule kinds stored in the `rulesets` table: `scoring`, `nba`, `journeys`, `triggers`, `benefits`, `contact_policy`, `copy_guard`, `content.messages`, `content.voicebot`, `products`, `tariff.*`, `rating.*`, `commission`, `enrichment`, `abac`, `retention`, `costs`, `referral` |
+| What | `src/**`, `db/migrations/*.sql`, `config/security/rbac.json` (security config is code), `Dockerfile`, `deploy/**`, environment variables and secrets, dependencies | Any of the 21 rule kinds stored in the `rulesets` table: `scoring`, `nba`, `journeys`, `triggers`, `benefits`, `contact_policy`, `copy_guard`, `content.messages`, `content.voicebot`, `products`, `tariff.*`, `rating.*`, `commission`, `enrichment`, `abac`, `retention`, `costs`, `referral`, `service_levels` (quote TTL, claim acknowledgement SLA, evidence confidences) |
 | Path | Git PR → CI gates → release tag → CAB → deployment | Rules studio: draft → validate → simulate → submit → **approve by a different person** (maker-checker) → active within ~15 s on all replicas |
 | Who | Developers; release manager deploys | `rule_author` drafts; `rule_approver` or `compliance_officer` (MFA) approves |
 | Evidence | PR review, CI results, release notes | Audit trail (`rules.draft_created`, `rules.submitted`, `rules.approved`/`rejected`), checksum, simulation result, approval comment |
@@ -120,7 +120,7 @@ The change record contains: description, risk and impact, linked tickets, releas
    - *Expand*: add tables, nullable columns and indexes (`CREATE INDEX CONCURRENTLY` in a dedicated migration for large tables. Note that `migrate()` wraps each file in a transaction, so `CONCURRENTLY` must instead go in a manual DBA step referenced by the change).
    - *Migrate data*: in batches via a job, not inside the DDL migration.
    - *Contract* (drop or rename): only in a later release, once no running version uses the old structure.
-3. **Schema registry parity:** `src/adapters/persistence/schema.js` (collections, index columns, blind indexes) must match the SQL. A unit test checks parity (`test/unit/schema.test.js`).
+3. **Schema registry parity:** `src/adapters/persistence/schema.js` (collections, index columns, blind indexes) must match the SQL. A unit test checks parity (`test/unit/platform.test.js`, "schema drift guard").
 4. Migrations are idempotent where possible (`IF NOT EXISTS`), reviewed by the DBA, timed on PERF data (6 M rows), and run by the **migration Job** before the rollout (`MIGRATE_ON_START=false` in Kubernetes, KI-30).
 5. Destructive data changes (deletes, PII-touching updates) need a fresh PITR restore point noted in the change record and DPO consultation where personal data is affected.
 
@@ -132,7 +132,7 @@ The platform has no separate feature-flag service. Exposure is controlled throug
 |---|---|---|
 | Turn a product on/off, or per channel | `products.products[].status`, `.channels[]` | Hide `MOTOR_PD` from `partner_api` until the inspection flow is live |
 | Bundles | `products.bundles[].status` | Activate a TNDS + PA bundle |
-| Benefits to customers | `benefits.items[].legalStatus` (`approved` only reaches customers) | `loyalty_points` stays `pending_legal_review` until Legal approves |
+| Benefits to customers | `benefits.items[].legalStatus` (only `approved` reaches customers) and `available` (`false` hides an approved item that is not yet operational, e.g. `auto_renew`) | `loyalty_points` stays `pending_legal_review` until Legal approves |
 | Referral programme | `referral.enabled` | Disabled until legal approval |
 | Journey targeting / regional rollout | `journeys.journeys[].audience`, `.steps[]`, `onlyTiers` | Pilot: restrict the audience to `region` ∈ {Hà Nội, TP. Hồ Chí Minh} |
 | Event triggers | `triggers.triggers[]` | Enable `long_trip` at W2 |

@@ -1,4 +1,4 @@
-import { h, clear, mount, fmtVnd, fmtDate } from '../shared/dom.js';
+import { h, mount, fmtVnd, fmtDate } from '../shared/dom.js';
 import { createApi, idempotencyKey } from '../shared/api.js';
 import { qrSvg } from '../shared/qr.js';
 
@@ -91,7 +91,7 @@ function viewRenew() {
     h('h2', {}, 'Chọn bảo hiểm'),
     h('div', { class: 'option selected' }, h('span', { 'aria-hidden': 'true' }, '✓'), h('div', {}, h('strong', {}, 'Bảo hiểm TNDS bắt buộc'), h('div', { class: 'small muted' }, 'Bắt buộc theo luật. Phí theo quy định Nhà nước.'), h('div', { class: 'field', style: 'margin-top:8px' }, h('label', { for: 'term' }, 'Thời hạn'), term))),
     opt(pa, 'Thêm: Tai nạn người ngồi trên xe', 'TNDS chỉ bảo vệ bên thứ ba — bảo vệ thêm bạn và người thân (20 triệu/người).'),
-    opt(pdBox, 'Thêm: Vật chất xe', 'Chi trả thiệt hại cho chính xe của bạn.'),
+    opt(pdBox, 'Thêm: Vật chất xe', 'Chi trả thiệt hại cho chính xe của bạn. Cần giám định xe trước khi thanh toán — tư vấn viên TASCO sẽ liên hệ.'),
     h('div', { class: 'field' }, h('label', { for: 'val' }, 'Giá trị xe (nếu chọn vật chất xe)'), value),
     h('button', { class: 'btn primary block', type: 'submit' }, 'Xem phí'));
   body.append(form);
@@ -116,7 +116,7 @@ function viewRenew() {
             mount(body, h('section', { class: 'card stack', role: 'status' }, h('h2', {}, '🎉 Thành công!'), h('p', {}, 'Giấy chứng nhận điện tử đã được cấp. Bạn có thể xuất trình mã QR khi được kiểm tra.'),
               r.policies.map((p) => h('div', { class: 'stack' }, h('strong', {}, `${p.productNameVi || p.product} · ${p.certNo}`), h('div', { class: 'qr' }, qrSvg(p.certificateUrl, { label: `QR ${p.certNo}` })))),
               h('a', { class: 'btn block', href: '#/home' }, 'Về trang chủ')));
-          } catch (ex) { toast(ex.message, 'danger'); ev.target.disabled = false; }
+          } catch (ex) { toast(ex.status === 422 && pdBox.checked ? 'Vật chất xe cần giám định trước. Bạn có thể bỏ chọn để mua TNDS ngay, tư vấn viên sẽ liên hệ về vật chất xe.' : ex.message, 'danger'); ev.target.disabled = false; }
         } }, 'Thanh toán bằng ví VETC')));
     } catch (ex) { toast(ex.message, 'danger'); }
   });

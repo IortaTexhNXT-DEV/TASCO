@@ -114,18 +114,34 @@ function createJourneyService({ store, rules, audit, events, clock, logger, metr
      * Execute all touchpoints due up to `date` (default: today). Contact-window
      * checks use `at` (default now) so the run can be scheduled within hours.
      */
-    async runDue({ date, at, actor = 'scheduler', limit = 5000 } = {}) {
+    async runDue({ date, at, actor = 'scheduler', limit = 1000 } = {}) {
       const today = date || clock.today();
       const now = at ? new Date(at) : clock.now();
       const policy = await rules.get('contact_policy');
-      const due = await touchpoints.find({ where: { status: 'scheduled', due_date: { lte: today } }, orderBy: ['due_date', 'asc'], limit });
-      const summary = { due: due.length, done: 0, skipped: 0, cancelled: 0, byChannel: {}, byJourney: {} };
-      for (const tp of due) {
-        const res = await executeTouchpoint(tp, policy, now, today);
-        await touchpoints.upsert({ ...tp, status: res.status, channel: res.channel || null, result: res, executedAt: now.toISOString() });
-        summary[res.status]++;
-        if (res.channel) summary.byChannel[res.channel] = (summary.byChannel[res.channel] || 0) + 1;
-        summary.byJourney[tp.journey] = (summary.byJourney[tp.journey] || 0) + 1;
+      const summary = { due: 0, done: 0, skipped: 0, cancelled: 0, deferred: 0, byChannel: {}, byJourney: {} };
+      const seen = new Set();
+      // Page through everything due (keyset by due date; processed rows leave the 'scheduled' set).
+      for (;;) {
+        const batch = (await touchpoints.find({ where: { status: 'scheduled', due_date: { lte: today } }, orderBy: ['due_date', 'asc'], limit: Math.min(limit, 1000) }))
+          .filter((tp) => !seen.has(tp.id));
+        if (!batch.length) break;
+        for (const tp of batch) {
+          seen.add(tp.id);
+          summary.due++;
+          const res = await executeTouchpoint(tp, policy, now, today);
+          // Blocked only by the time-of-day window → keep it scheduled for the next in-window run.
+          const onlyWindow = res.status === 'skipped' && res.reason && res.reason.split(' | ').every((r) => r.includes('outside allowed contact hours'));
+          if (onlyWindow) {
+            summary.deferred++;
+            await touchpoints.upsert({ ...tp, lastAttemptAt: now.toISOString(), lastResult: res });
+            continue;
+          }
+          await touchpoints.upsert({ ...tp, status: res.status, channel: res.channel || null, result: res, executedAt: now.toISOString() });
+          summary[res.status]++;
+          if (res.channel) summary.byChannel[res.channel] = (summary.byChannel[res.channel] || 0) + 1;
+          summary.byJourney[tp.journey] = (summary.byJourney[tp.journey] || 0) + 1;
+        }
+        if (summary.due >= limit * 100) break; // hard safety stop
       }
       await audit.record({ actor, action: 'journeys.run', entityType: 'job', details: { date: today, ...summary } });
       logger?.info('journey run complete', { date: today, ...summary });

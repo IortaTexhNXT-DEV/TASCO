@@ -55,6 +55,9 @@ async function startServer(c) {
     const r = await call('POST', '/api/auth/login', { body: { username, password } });
     if (r.body.mfaRequired) {
       const secret = await c.services.identity.getTotpSecretForDemo(username);
+      // Tests sign the same user in many times within one 30 s step; clear replay state (test-only).
+      const u = await c.services.identity.byUsername(username);
+      await c.store.collection('users').upsert({ ...u, lastTotpStep: null });
       const m = await call('POST', '/api/auth/mfa', { body: { mfaToken: r.body.mfaToken, code: totp(secret) } });
       return m.body.accessToken;
     }

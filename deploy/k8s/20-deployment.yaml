@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tasco-growth-api
+  namespace: tasco-growth
+  labels: { app: tasco-growth-api }
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  strategy: { type: RollingUpdate, rollingUpdate: { maxSurge: 1, maxUnavailable: 0 } }
+  selector: { matchLabels: { app: tasco-growth-api } }
+  template:
+    metadata:
+      labels: { app: tasco-growth-api }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "8080", prometheus.io/path: /metrics }
+    spec:
+      serviceAccountName: tasco-growth-api
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000, seccompProfile: { type: RuntimeDefault } }
+      topologySpreadConstraints:
+        - { maxSkew: 1, topologyKey: topology.kubernetes.io/zone, whenUnsatisfiable: ScheduleAnyway, labelSelector: { matchLabels: { app: tasco-growth-api } } }
+      containers:
+        - name: api
+          image: REGISTRY/tasco-growth-platform:IMAGE_TAG   # pinned by digest in CD
+          imagePullPolicy: IfNotPresent
+          ports: [{ name: http, containerPort: 8080 }]
+          envFrom: [{ configMapRef: { name: tasco-growth-config } }]
+          env:
+            - { name: DATABASE_URL_FILE, value: /run/secrets/tasco/DATABASE_URL }
+            - { name: JWT_SECRET_FILE, value: /run/secrets/tasco/JWT_SECRET }
+            - { name: DATA_KEYS_FILE, value: /run/secrets/tasco/DATA_KEYS }
+            - { name: BLIND_INDEX_KEY_FILE, value: /run/secrets/tasco/BLIND_INDEX_KEY }
+            - { name: METRICS_TOKEN_FILE, value: /run/secrets/tasco/METRICS_TOKEN }
+          resources:
+            requests: { cpu: 250m, memory: 256Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          readinessProbe: { httpGet: { path: /health/ready, port: http }, periodSeconds: 5, failureThreshold: 3 }
+          livenessProbe: { httpGet: { path: /health/live, port: http }, periodSeconds: 10, failureThreshold: 3 }
+          startupProbe: { httpGet: { path: /health/live, port: http }, periodSeconds: 2, failureThreshold: 30 }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+          volumeMounts:
+            - { name: secrets, mountPath: /run/secrets/tasco, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: secrets, secret: { secretName: tasco-growth-secrets, defaultMode: 0400 } }
+        - { name: tmp, emptyDir: { sizeLimit: 64Mi } }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: tasco-growth-api, namespace: tasco-growth }
+automountServiceAccountToken: false

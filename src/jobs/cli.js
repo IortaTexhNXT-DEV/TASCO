@@ -15,7 +15,11 @@ const { buildRoutes } = require('../adapters/http/routes');
  */
 const JOBS = {
   async migrate(c) { if (!c.store.migrate) return { skipped: 'in-memory store' }; return { applied: await c.store.migrate() }; },
-  async seed(c) { if (c.store.migrate) await c.store.migrate(); return seedDemo(c); },
+  async seed(c) {
+    if (!c.config.demoMode) throw new Error('seed creates demo users and synthetic data — only allowed with DEMO_MODE=true (never in production)');
+    if (c.store.migrate) await c.store.migrate();
+    return seedDemo(c);
+  },
   async rules(c) { return { loaded: await seedRules(c) }; },
   async journeys(c) { const r = await c.services.journeys.runDue({ actor: 'cron' }); await c.events.drain(); return r; },
   async recompute(c) { const r = await c.services.leads.recompute(null, { actor: 'cron' }); return r; },

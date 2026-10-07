@@ -46,7 +46,7 @@ async function seedDemo(c, { records } = {}) {
   await seedRules(c);
   if (!(await store.collection('users').count())) {
     for (const u of DEMO_USERS) {
-      await services.identity.createUser({ username: u.username, password: DEMO_PASSWORD, displayName: u.displayName, roles: u.roles, region: u.region || 'ALL', enableMfa: !!u.mfa }, system);
+      await services.identity.createUser({ username: u.username, password: config.demoPassword || DEMO_PASSWORD, displayName: u.displayName, roles: u.roles, region: u.region || 'ALL', enableMfa: !!u.mfa, preEnrolled: true }, system);
     }
   }
   if (!(await store.collection('partners').count())) {

@@ -36,8 +36,9 @@ function createAccessPolicy({ rbac, rules }) {
       for (const p of abac.policies) {
         if (p.resource !== resource.type || !p.actions.includes(action)) continue;
         if (!principal.roles.some((r) => p.appliesToRoles.includes(r))) continue;
-        // Users holding any role outside the policy's scope are not restricted by it.
-        if (principal.roles.some((r) => !p.appliesToRoles.includes(r) && (rbac.roles[r] || []).length)) continue;
+        // Skip only if another (out-of-scope) role independently grants the same permission —
+        // adding an unrelated role (e.g. executive) never widens data access.
+        if (p.permission && principal.roles.some((r) => !p.appliesToRoles.includes(r) && (rbac.roles[r] || []).includes(p.permission))) continue;
         if (!truthy(apply(p.allow, facts))) throw errors.forbidden(`Policy ${p.id} denies ${action} on this ${resource.type}`);
       }
     },

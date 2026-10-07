@@ -43,7 +43,7 @@ flowchart LR
 | G-2 | UAT accepted (overall + every persona); compliance scenarios passed without waiver | UAT sign-off sheet | TASCO Business Owner |
 | G-3 | Security sign-off (pen test: no open critical/high) | CISO memo | TASCO CISO |
 | G-4 | Compliance and legal sign-offs: content inventory, contact policy, tariffs, ZNS templates approved by Zalo, PDP/DPIA | Memos | Compliance / Legal / DPO |
-| G-5 | Sev 1 known issues fixed and regression-tested: **KI-01** (seed guard), **KI-02** (partial issuance/refund), **KI-09** (voice campaign contact policy), **KI-28** (in-memory store in prod) | PRs + TCs | Dev lead |
+| G-5 | Sev 1 known issues fixed and regression-tested: **KI-01** (seed guard), **KI-02** (partial issuance/refund), **KI-28** (in-memory store in prod); Sev 2 compliance issue **KI-33** (`at` time override) fixed; KI-09 regression (TC-135) green | PRs + TCs | Dev lead |
 | G-6 | Partners ready in PROD: VETC wallet + SSO + app deep link + push, TASCO core issuance, Zalo OA/ZNS, SMS brandname, voice vendor; DR egress allow-listed | Partner confirmations | Integration lead |
 | G-7 | Operational readiness: on-call live, runbook tabletop done, dashboards and alerts live, synthetics green for 48 h in PROD | Ops sign-off | L2 lead |
 | G-8 | Dress rehearsal of cutover and rollback completed in PREPROD within the planned times | Rehearsal report | Cutover manager |

@@ -17,9 +17,11 @@ function inContactWindow(policy, date) {
 }
 
 function checkCopy(guard, text) {
-  const raw = String(text || '').toLowerCase();
-  const plain = stripDiacritics(text);
-  const hits = guard.bannedPhrases.filter((p) => raw.includes(p.toLowerCase()) || plain.includes(stripDiacritics(p)));
+  // Normalise case, diacritics and whitespace so "giảm  giá", "giam gia" and "cash back" are all caught.
+  const raw = String(text || '').toLowerCase().replace(/\s+/g, ' ');
+  const plain = stripDiacritics(text).replace(/\s+/g, ' ');
+  const squashed = plain.replace(/[\s.\-_]/g, '');
+  const hits = guard.bannedPhrases.filter((p) => raw.includes(p.toLowerCase()) || plain.includes(stripDiacritics(p)) || squashed.includes(stripDiacritics(p).replace(/[\s.\-_]/g, '')));
   return { ok: hits.length === 0, violations: hits };
 }
 

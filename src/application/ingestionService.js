@@ -32,7 +32,7 @@ function createIngestionService({ store, rules, audit, events, clock, logger }) 
         const existing = await profiles.get(p.id);
         // Customer/bot-declared facts and consents captured on the platform survive rebuilds.
         if (existing) {
-          if (existing.policy?.expiryConfidence > p.policy.expiryConfidence && ['customer_declared', 'voice_bot', 'tasco_issued'].includes(existing.policy.expiryMethod)) {
+          if (existing.policy?.expiryConfidence > p.policy.expiryConfidence && ['customer_declared', 'voice_bot', 'tasco_issued', 'data_steward'].includes(existing.policy.expiryMethod)) {
             p.policy = existing.policy;
           }
           if (existing.consentOverrides) { p.consent = { ...p.consent, ...existing.consentOverrides }; p.consentOverrides = existing.consentOverrides; }

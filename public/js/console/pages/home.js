@@ -1,4 +1,4 @@
-import { h, clear, mount, fmtNum, fmtVnd } from '../../shared/dom.js';
+import { h, mount, fmtNum, fmtVnd } from '../../shared/dom.js';
 import { kpi, pageHead, table } from '../ui.js';
 
 const JOURNEY_LABELS = {

@@ -41,7 +41,8 @@ function createInsightsService({ store, rules, audit, clock }) {
       const ordersByChannel = await c('orders').countBy('channel', { status: 'completed' });
       const expiring30 = await c('leads').count({ days_to_expiry: { gte: 0, lte: 30 } });
       const lapsed = await c('leads').count({ days_to_expiry: { lt: 0, gte: -60 } });
-      const usableExpiry = await c('profiles').count({ dq_score: { gte: 50 } });
+      // Usable = profiles whose expiry evidence meets the MDM threshold (no open reliable_expiry issue).
+      const usableExpiry = profilesN - await c('dq_issues').count({ type: 'reliable_expiry', status: 'open' });
       const totalCalls = Object.values(calls).reduce((s, v) => s + v, 0);
       const botCost = totalCalls * costs.voiceBotPerMinute * costs.avgBotCallMinutes;
       const humanEquivalent = totalCalls * costs.telesalesPerMinute * costs.avgTelesalesCallMinutes;

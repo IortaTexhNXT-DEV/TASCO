@@ -81,14 +81,14 @@ flowchart TB
 
 ### 2.3 API and contract tests — `test/api/*.test.js` (`npm run test:api`)
 
-- **Target:** the 73 routes in `src/adapters/http/routes.js` (6 public, 55 staff, 8 customer, 4 partner) over real HTTP. Each test starts `createHttpApp(container)` on an ephemeral port.
+- **Target:** every route in `src/adapters/http/routes.js` (76 at the time of writing: 6 public, 57 staff, 9 customer, 4 partner; tests derive the list from the route table so the count can change) over real HTTP. Each test starts `createHttpApp(container)` on an ephemeral port.
 - **Contract:** `GET /api/openapi.json` is generated from the route table, so contract tests check that the document:
   - lists every route;
   - declares `security` per audience (`bearerAuth` or `partnerApiKey`);
-  - marks `Idempotency-Key` as required on the three idempotent routes;
+  - marks `Idempotency-Key` as required on the two order routes (`/api/customer/orders`, `/api/partner/v1/orders`);
   - sets `additionalProperties: false` on request bodies.
 - `npm run job -- openapi` writes `docs/api/openapi.json`. CI diffs it against the committed copy, and partners get a change notice when it differs (see [release and change management](../operations/release-and-change-management.md)).
-- **Authorisation matrix:** for every route × every role in `rbac.json`, the expected outcome (2xx, 401 or 403) is asserted table-driven from the `perm` field. The matrix has 73 routes × 15 roles.
+- **Authorisation matrix:** for every route × every role in `rbac.json`, the expected outcome (2xx, 401 or 403) is asserted table-driven from the `perm` field. The matrix covers every route × 15 roles (76 × 15 at the time of writing).
 - **Negative paths:** 400 (validation, unknown property), 404, 405, 409, 413, 415, 422, 423 and 429.
 
 ### 2.4 System integration testing (SIT) — VETC, TASCO and Zalo sandboxes
@@ -153,8 +153,8 @@ Abuse-case coverage maps to concrete controls in the code:
 
 | Control in code | Abuse case IDs (catalogue) |
 |---|---|
-| `verifyJwt` rejects `alg` other than HS256, bad signature, expired, wrong audience | TC-013–TC-016 |
-| Lockout after `LOCKOUT_MAX_FAILURES` (5) for `LOCKOUT_MINUTES` (15) → 423 `ACCOUNT_LOCKED` | TC-005, TC-006 |
+| `verifyJwt` rejects `alg` other than HS256, bad signature, expired, wrong audience; tokens issued before a password, role or status change are rejected (`tokensValidAfter`) | TC-013–TC-016, TC-011 |
+| Lockout after `LOCKOUT_MAX_FAILURES` (5) failures across password and TOTP steps, for `LOCKOUT_MINUTES` (15) → 423 `ACCOUNT_LOCKED`; TOTP replay rejected | TC-005, TC-006, TC-020 |
 | Login rate limit `RATE_LIMIT_LOGIN_MAX` (10/min per IP) → 429 with `Retry-After: 60` | TC-121 |
 | Global rate limit `RATE_LIMIT_MAX` (300/min per IP; certificate verification costs 2) → 429 | TC-122 |
 | Body limit `BODY_LIMIT_BYTES` (1 MiB) → 413; non-JSON content type → 415 | TC-118, TC-119 |
@@ -174,7 +174,7 @@ Abuse-case coverage maps to concrete controls in the code:
 | Zalo ZNS or SMS down | Notification port throws | Message stored `status:"failed"`; the next channel in the step is tried; `messages_total{status="failed"}` rises |
 | Voice-AI down | Telephony port throws | Breaker `voice-ai` (timeout 30 s, no retries); touchpoint execution errors |
 | Event handler failure | Subscriber throws | Event goes back to `pending`, `attempts` increments; after 5 attempts → `dead_letter`; `events_processed_total{status="dead_letter"}` |
-| Process crash mid-relay | `kill -9` during relay | Events stuck in `processing` (KI-03); test confirms the gap and the manual recovery in RB-06 |
+| Process crash mid-relay | `kill -9` during relay | Postgres: events left in `processing` are re-claimed after 5 min and handlers already completed (`handled[]`) are skipped; in-memory store: no re-claim (dev only) |
 | Postgres primary failover | Managed failover / `pg_terminate_backend` | `/health/ready` → 503 while `SELECT 1` fails; pool reconnects; no 500 storm after recovery |
 | Pod termination | `kubectl delete pod` under load | `SIGTERM` → readiness false → server closes in ≤ 25 s → exit 0; no failed in-flight requests if `terminationGracePeriodSeconds` ≥ 30 |
 | Replica scale-out during relay | 3 replicas relaying | Postgres `FOR UPDATE SKIP LOCKED` prevents double claim; handlers are idempotent |
@@ -199,12 +199,14 @@ Abuse-case coverage maps to concrete controls in the code:
 | Contact window 08:00–20:00 ICT (UTC+7) for marketing | `contact_policy.json`, `inContactWindow` | Boundary values 07:59, 08:00, 19:59, 20:00 ICT | TC-050–TC-052 |
 | Consent (marketing, call) and DNC | `consentRequired`, `consent.dnc` | No marketing without consent; no calls without `call` consent; DNC suppresses everything | TC-053–TC-055 |
 | Frequency caps | 1 per day and 3 per week for marketing; 2 call attempts per week | Cap boundaries; service messages bypass caps (`serviceMessagesBypassCaps`) | TC-056–TC-058 |
-| Maker-checker | `rulesService.approve/reject` | Author cannot approve or reject own draft; only the author can submit | TC-090–TC-092 |
+| Maker-checker and separation of duties | `rulesService.approve/reject`; `rbac.json` `separationOfDuties` (e.g. `rule_author` + `rule_approver`/`compliance_officer`, `admin` + business roles cannot be combined) | Author cannot approve or reject own draft; only the author can submit; conflicting role combinations refused | TC-090–TC-092 |
 | Commission caps | `commission.json` `statutoryCaps`; validator + runtime `commissionFor` | Draft above cap rejected; runtime caps applied | TC-084, TC-085 |
 | PII masking and minimisation | `maskProfile`, `profile:read_pii`, handoff summary, public certificate verification | Masked for roles without PII permission; certificate verification shows masked plate and no name | TC-031, TC-074 |
 | Benefits pending legal review | `benefits.json` `legalStatus`, `benefitsFor(audience)` | `loyalty_points` never reaches customers; staff see it flagged | TC-041 |
 | Data subject rights | `/api/dsar/*`, `/api/customer/data-export` | Export complete; erasure blocked while a policy is active | TC-105–TC-107 |
 | Voice bot disclosure and plate-first | `content.voicebot.json`, `voicebot.js` | Bot never reads the full plate; discloses automation; opt-out honoured | TC-064–TC-069 |
+| Staff never take payment | `salesService.purchase` (customer actor only, or partner-collected) | Staff cannot debit a wallet; assisted sales send the quote to the customer's app | TC-156, TC-157 |
+| No time override in production | `at` parameter on journeys and voice campaign | Contact window evaluated on the real clock (KI-33) | TC-162 |
 
 ### 2.12 Data quality and reconciliation testing
 
@@ -218,9 +220,10 @@ Abuse-case coverage maps to concrete controls in the code:
 - `db/migrations/*.sql` is applied by `store.migrate()` in a transaction per file, recorded in `schema_migrations`. Tests:
   1. Fresh database: all migrations apply.
   2. Re-run is a no-op.
-  3. Schema parity: every collection, index column and blind-index column in `schema.js` exists in the SQL (`test/unit/schema.test.js`).
+  3. Schema parity: every collection, index column and blind-index column in `schema.js` exists in the SQL (`test/unit/platform.test.js`, "schema drift guard").
   4. Upgrade from the previous release's schema with production-like volume (PERF environment) within the maintenance budget.
   5. **Applied migration files are immutable.** CI fails if a file already in `main` changes (see release policy).
+  6. Concurrency and integrity: two migrators started together are serialised by advisory lock 724002, and the objects from `002_integrity_hardening.sql` exist (one active rule set per kind; `audit_log` TRUNCATE blocked).
 - **Data migration (initial load):** the pilot cohort and later the full 6M base are loaded through `POST /api/data/ingest` or a batch job using the same `ingestionService`. Counts and samples are reconciled against source extracts (catalogue TC-112).
 
 ---
@@ -243,7 +246,7 @@ flowchart TB
 | Gate | Command / tool | Blocking on PR | Blocking on release tag |
 |---|---|---|---|
 | Lint | `npm run lint` | Yes | Yes |
-| Unit + integration + API | `npm test` | Yes | Yes |
+| Unit + integration + API + security | `npm test` (now also runs `test/security`) | Yes | Yes |
 | Coverage | `npm run test:coverage`: lines ≥ 80 %, functions ≥ 80 %, branches ≥ 70 % (excludes `src/jobs/cli.js`, `src/server.js`, `postgresStore.js`, which `test:pg` covers) | Yes | Yes |
 | Postgres tests | `npm run test:pg` against a Postgres service container (`TEST_DATABASE_URL`) | Yes | Yes |
 | Security tests | `npm run test:security` | Yes | Yes |
@@ -363,25 +366,25 @@ Each defect records: environment, build/commit, `X-Request-Id` (the API returns 
 
 ## Appendix A — Known issues register (from code review, 2026-10-07)
 
-These items were found while deriving the tests. They are logged as defects (Sev as proposed) and referenced by test cases, runbooks and the readiness checklist. IDs are stable.
+These items were found while deriving the tests. The code was being changed in parallel while this register was written. Statuses were re-verified against the working tree at the time of writing ("Fixed in working tree" = fixed but not yet released), and the QA lead re-verifies them at each release. They are logged as defects (Sev as proposed) and referenced by test cases, runbooks and the readiness checklist. IDs are stable.
 
 | ID | Sev (proposed) | Area | Finding | Evidence | Recommendation |
 |---|---|---|---|---|---|
 | KI-01 | 1 | Security | `npm run job -- seed` (`src/jobs/cli.js` → `seedDemo`) is **not guarded by `DEMO_MODE`**. Run against a production DB, it creates 14 demo users with the published demo password. | `cli.js` `JOBS.seed`; the `seed.js` header claims a guard that only `server.js` applies | Refuse in `cli.js` unless `config.demoMode`; add a CI test; exclude the `seed` CronJob/Job from prod manifests |
-| KI-02 | 1 | Sales | On a multi-line order where issuance fails after line 1, the **full amount is refunded but already-issued policies stay `active`**. The refund error is swallowed (`.catch(() => {})`) and the refund bypasses the circuit breaker. Reconciliation does not inspect `issuance_failed_refunded` or `payment_failed` orders. | `salesService.purchase` compensation block; `opsService.reconcile` | Cancel issued lines via `cancelPolicy` or refund only the unissued part; record refund failure (`refund_failed` status); extend reconciliation; see RB-11 |
-| KI-03 | 2 | Events | Events claimed as `processing` by a replica that crashes are **never reclaimed**. `dead_letter` events have **no replay tool**: the relay only claims `pending`. | `claimEvents` (both stores); `outboxEventBus.relay` | Add a reaper (`processing` older than N min → `pending`) and an ops endpoint/job to requeue dead letters; interim SQL in RB-06 |
+| KI-02 | 1 | Sales | On a multi-line order where issuance fails after line 1, the **full amount is refunded but already-issued policies stay `active`**. The refund error is swallowed (`.catch(() => {})`) and the refund bypasses the circuit breaker. Partner orders (`partner_collected`) are not refunded at all, so the partner holds the premium for a failed order. Reconciliation does not inspect `issuance_failed_refunded` or `payment_failed` orders. | `salesService.purchase` compensation block; `opsService.reconcile` | Cancel issued lines via `cancelPolicy` or refund only the unissued part; record refund failure (`refund_failed` status); extend reconciliation; see RB-11 |
+| KI-03 | 3 (partly fixed) | Events | Originally events claimed as `processing` by a crashed replica were never reclaimed. The Postgres store now re-claims `processing` events older than 5 minutes (index `ix_domain_events_status_occurred`, migration 002); the in-memory store does not. `dead_letter` events still have **no replay tool**: the relay only claims `pending` | `claimEvents`; `outboxEventBus.relay` | Add an ops endpoint/job to requeue dead letters; interim SQL in RB-06 |
 | KI-04 | 2 | Performance | HTTP handlers call `c.events.drain()` inline (orders, partner quotes, ingest, voice turns, consent, expiry, journeys run, ecosystem events). `drain` processes **the global backlog** (up to 50 × 500 events), so one request's latency depends on everybody's events. | `routes.js` | Drain only the events published by the request (by correlation id), or rely on the background relay; perf plan PERF-S5 measures the impact |
 | KI-05 | 2 | Journeys | `runDue` handles **at most 5,000 touchpoints per run**. At 6M vehicles the steady state is about 115k touchpoints/day. Touchpoints blocked by the contact window are marked `skipped` **permanently** (not deferred). A CronJob scheduled in UTC outside 01:00–13:00 UTC skips all marketing steps. | `journeyService.runDue`, `executeTouchpoint`, `inContactWindow` | Page through all due items; defer window-blocked items; schedule runs at 08:30 ICT; see RB-07 and the perf plan capacity model |
-| KI-06 | 2 | Security | `POST /api/auth/mfa` does **not check `lockedUntil` or `status`**. Failed codes increment `failedLogins`, but the lock is enforced only at password step 1. A holder of a valid 5-minute `mfaToken` can keep guessing, bounded only by the per-IP login rate limit (10/min). | `identityService.verifyMfa` | Enforce lock and status in `verifyMfa`; bind the mfaToken to a single use |
+| KI-06 | — **Fixed in working tree** | Security | Originally `POST /api/auth/mfa` did not check `lockedUntil` or `status`, so a holder of a valid 5-minute `mfaToken` could keep guessing codes. The current `verifyMfa` checks status and lock, counts failures across both factors and rejects TOTP replay (`lastTotpStep`) | `identityService.verifyMfa` | Regression TC-020 |
 | KI-07 | 3 | Security / scale | Token revocation (`logout`) and rate limiting are **in-process per replica** (documented in code). With N replicas the effective limits are N×, and a logged-out token stays valid on other replicas until `exp` (30 min). | `identityService` `revoked` Map; `security.createRateLimiter` | Shared cache (Redis) or gateway/WAF rate limits; short JWT TTL |
-| KI-08 | 3 | Security | Signed renewal links (`links.sign`) **have no expiry** and are keyed from `JWT_SECRET`. Rotating the JWT secret invalidates every link already sent; a leaked link stays valid until rotation. | `container.js` `links` | Add `exp` to the link and a separate `LINK_KEY` |
-| KI-09 | 1 | Compliance | `POST /api/voice/campaign` calls `voice.autoCall` after checking only `consent.call`, `dnc`, phone and owner type. It **bypasses `canContact`**: contact window, weekly call cap and marketing caps. | `routes.js` voice campaign handler | Route through `canContact` with call history; block outside 08:00–20:00 ICT |
-| KI-10 | 3 | Access control | The ABAC region restriction is applied only in `GET /api/customers/:id`. These routes skip it: `GET /api/customers/:id/lineage`, `POST /api/voice/sessions` (any region), `GET /api/voice/sessions/:id` (any transcript), `GET /api/policies?profileId=` and `GET /api/claims`. The ABAC policy `customer_self` is defined but unused. Ownership is enforced in code instead. | `routes.js`, `abac.json` | Apply `access.check` consistently; remove or use `customer_self` |
-| KI-11 | 3 | API | A malformed percent-encoding in a path parameter (e.g. `/api/customers/%E0%A4%A`) makes `decodeURIComponent` throw `URIError`, which returns **500 `INTERNAL_ERROR`** instead of 400. | `router.match` | Catch and return 400 |
+| KI-08 | 4 (partly fixed) | Security | Signed renewal links now carry an expiry (`LINK_TTL_DAYS`, default 30) but are still keyed from `JWT_SECRET`. Rotating the JWT secret invalidates every link already sent | `container.js` `links` | Separate `LINK_KEY` |
+| KI-09 | 1 → **Fixed in working tree** | Compliance | Originally `POST /api/voice/campaign` checked only `consent.call`, `dnc`, phone and owner type, **bypassing `canContact`** (contact window, call cap). The current code routes each call through `voice.canCall` (consent, DNC, window, caps), records the call as a marketing contact, and returns `skipped` reasons. Residual: the new `at` body parameter overrides the clock (KI-33) | `routes.js` voice campaign, `voiceService.canCall` | Keep TC-135 as a regression test |
+| KI-10 | 3 (partly fixed) | Access control | ABAC region checks now apply to `GET /api/customers/:id`, `GET /api/customers/:id/lineage`, `PATCH /api/customers/:id/expiry` and `POST /api/quotes/:id/send`. These still skip it: `POST /api/voice/sessions` (any region), `GET /api/voice/sessions/:id` (any transcript), `GET /api/policies?profileId=` and `GET /api/claims`. The ABAC policy `customer_self` is defined but unused (ownership is enforced in code) | `routes.js`, `abac.json` | Apply `access.check` consistently; remove or use `customer_self` |
+| KI-11 | — **Fixed in working tree** | API | A malformed percent-encoding in a path parameter used to return 500; the router now returns 400 "Malformed path parameter" | `router.match`, `app.js` | Regression TC-129 |
 | KI-12 | 3 | Performance | Full scans: `GET /api/audit/verify` loads the whole `audit_log`. `insights.sumOrders`, `leads.recompute(all)` and `ops.reconcile` page with `OFFSET` (O(n²) at 6M rows). | `postgresStore.audit.verify`, `insightsService`, `leadService`, `opsService` | Incremental verification checkpoint; keyset pagination; SQL aggregates |
 | KI-13 | 2 | Compliance | Retention: only `source_records` and `voice_sessions` deletes are executed. Profile anonymisation, message, order and certificate archival are "executed by archival pipeline", which does not exist yet. `domain_events`, `job_runs` and `quotes` have no retention rule. | `opsService.applyRetention`, `retention.json` | Build the archival job or record a legal waiver before go-live |
-| KI-14 | 3 | Security | `/metrics` and `/api/openapi.json` are unauthenticated. | `app.js` | Block `/metrics` at ingress (scrape in-cluster only, NetworkPolicy) |
-| KI-15 | 3 | Front-end | At review time `public/` held only `assets/` and `vendor/`. `index.html`, `app/index.html` and `verify.html` were not present, so `/verify/<certNo>` (the QR target in `certificateUrl`) returned 404 unless the UX workstream delivers the pages. | `app.js` `serveStatic` | Confirm in the release build (readiness PRC-FUNC-04) |
+| KI-14 | 4 (mitigated) | Security | `/metrics` can now be protected with `METRICS_TOKEN` (bearer); when unset it is open. `/api/openapi.json` is public by design | `app.js` | Set `METRICS_TOKEN` in every environment and still block `/metrics` at ingress |
+| KI-15 | — **Resolved** | Front-end | At first review `public/` lacked `index.html`, `app/` and `verify.html`, so `/verify/<certNo>` (the QR target) returned 404. The UX workstream has since added them; confirm in the release image (PRC-FUNC-04) | `public/` | Smoke test SYN-09 |
 | KI-16 | 4 | API | `POST /api/data/ingest` allows 5,000 records, but the body limit is 1 MiB: large batches get 413. | `routes.js`, `config.bodyLimitBytes` | Document a ≤ 2,000-record batch size or raise the limit per route |
 | KI-17 | 4 | Observability | `/metrics` has no `# TYPE`/`# HELP` lines and no gauges for circuit state, outbox backlog or DB pool. Counters are per process and reset on restart. | `shared/metrics.js` | Add gauges; alert rules use `rate()`/`increase()` (see monitoring doc) |
 | KI-18 | 2 | Sales | A wallet debit that **times out on our side but is captured by VETC** leaves the order in `payment_failed` with no refund. There is no settlement-file reconciliation adapter. | `salesService.purchase`; sandbox wallet has no statement API | Daily settlement reconciliation against the VETC statement; see RB-11 |
@@ -389,12 +392,14 @@ These items were found while deriving the tests. They are logged as defects (Sev
 | KI-20 | 4 | Sales | Two **concurrent** purchases with the same `Idempotency-Key` race on `orders.insert`. The loser gets **409 `CONFLICT`**, not an idempotent replay. A sequential retry correctly replays. | `salesService.purchase` | Return the stored order on conflict |
 | KI-21 | 4 | Rules | The commission validator checks caps only for rules whose `when` names the product literally. Runtime `commissionFor` still caps (flag `capped`). Products absent from `statutoryCaps` get a **0 % cap** (silently zero commission). | `validators.js` `commission`; `rating.commissionFor` | Validate every product × partner type combination |
 | KI-22 | 4 | Security | The request body is read and parsed **before** authentication, so an unauthenticated caller can make the server buffer up to 1 MiB. A wrong content type returns 415 before 401. | `app.js` `handle` order | Authenticate before reading the body for non-public routes |
-| KI-23 | 4 | Security | Customer tokens (1 h) cannot be revoked (no customer logout). | `customerService.issueCustomerToken` | Add revocation, or a short TTL with refresh |
+| KI-23 | 4 | Security | Customer tokens (1 h) cannot be revoked by the customer (no customer logout). Erased data subjects lose their sessions (checked in `authenticate`) | `customerService.issueCustomerToken` | Add revocation, or a short TTL with refresh |
 | KI-24 | 4 | Rollout | Journey audiences can target `region`, `category` and other facts, but **no fact supports a percentage cohort** (e.g. a hash bucket of the plate), so "% of base" rollout needs a code change. | `domain/leads.factsFor` | Add a `cohortBucket` fact (0–99) |
 | KI-25 | 2 | Voice bot | `extractPlateFromSpeech` cannot parse Vietnamese tens words ("mươi", "trăm"), yet the bot's own `plateRetry` line tells customers to say "ba mươi A, một hai ba bốn năm". Verified: that utterance returns `null`, while "ba không A …" and "30A 123 45" work. Real callers following the prompt fail verification → `unverified` outcomes. | `domain/identity.js`, `content.voicebot.json` | Support tens and hundreds in the number parser, or change the prompt to digit-by-digit; SIT with real ASR (TC-154) |
 | KI-26 | 3 | Compliance | The copy guard matches substrings literally after lowercasing and diacritic stripping. Whitespace and punctuation variants ("giảm  giá", "cash back", "chiết-khấu") pass. | `contactPolicy.checkCopy`, `validators.copyViolations` | Normalise whitespace and punctuation before matching; extend the banned list |
 | KI-27 | 3 | Identity ops | There is **no admin API to unlock an account, reset MFA (lost authenticator) or reset a forgotten password**. `PATCH /api/users/:id` only changes roles, region and status. Support needs direct DB changes (SOP-08). | `routes.js`, `identityService.update` | Add admin unlock and MFA-reset endpoints with audit; in production federate to the TASCO IdP (ADR-007) |
 | KI-28 | 1 | Configuration | With `NODE_ENV=production` and **no `DATABASE_URL`**, the server boots on the **in-memory store** (verified). All data is lost on restart, and replicas do not share state. `/health/ready` still returns 200 with `store:"memory"`. | `shared/config.js`, `bootstrap/container.js` | Refuse to boot in production without `DATABASE_URL` (unless an explicit override is set); readiness check PRC-OPS-02 |
-| KI-29 | 2 | Privacy | DSAR erasure does not anonymise **handoffs** (`name`, `phoneMasked`, talking points) or **claims** (`description`, `location`), and does not touch quotes (plate). | `customerService.erase` | Extend erasure; keep claims only under a documented legal basis |
-| KI-30 | 3 | Deployment | `MIGRATE_ON_START` defaults to true. When several replicas start together, the migrations race: the loser fails on the `schema_migrations` primary key and the pod crash-loops once. | `server.js`, `postgresStore.migrate` | Set `MIGRATE_ON_START=false` in Kubernetes and run the migration Job before rollout; add an advisory lock in `migrate()` |
+| KI-29 | — **Fixed in working tree** | Privacy | DSAR erasure originally skipped handoffs and claims. The current `customerService.erase` also clears handoff `name`/`phoneMasked`/notes, claim `description`/`location` and voice-session signals. Quotes keep the plate (non-PII on its own; legal to confirm) | `customerService.erase` | Regression TC-107 |
+| KI-30 | — **Fixed in working tree** | Deployment | Concurrent `MIGRATE_ON_START` on several replicas used to race on `schema_migrations`; `migrate()` now takes advisory lock 724002. Running migrations from a dedicated Job before rollout remains the recommended practice | `postgresStore.migrate` | Keep `MIGRATE_ON_START=false` in Kubernetes |
 | KI-31 | 3 | Sales | Re-sending a purchase with the **same `Idempotency-Key` after a failure** returns HTTP 200 with the failed order (`idempotentReplay:true`, `status:"payment_failed"` or `"issuance_failed_refunded"`). Verified. A client that checks only the HTTP status shows success. The quote stays `open`, so a **new** key is needed to retry. | `salesService.purchase` | Return the original error on replay of a failed order; document in the partner API guide |
+| KI-32 | 4 | Access control | `POST /api/quotes/:id/send` calls `sales.markSent` (updates the quote, writes audit `quote.sent_to_customer`) **before** the ABAC region check. An out-of-region agent gets 403, but the quote is already marked as sent. | `routes.js` quote send | Authorise before mutating |
+| KI-33 | 2 | Compliance | `POST /api/journeys/run` and `POST /api/voice/campaign` accept an `at` timestamp that **replaces the real clock for the contact-window check**. An operator can send marketing or place calls at 21:00 ICT by passing a daytime `at`. | `journeyService.runDue`, voice campaign handler | Accept `at` only when `DEMO_MODE` or in tests; production uses the real clock |

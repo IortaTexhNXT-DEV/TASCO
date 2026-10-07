@@ -43,7 +43,7 @@ function buildWhere(where, startIdx = 1) {
 
 function createPostgresStore({ codec, databaseUrl, ssl, poolMax = 10, logger, pool: injectedPool }) {
   // Loaded lazily so the in-memory mode has no runtime dependency on pg.
-  const { Pool } = require('pg'); // eslint-disable-line global-require
+  const { Pool } = require('pg');  
   const pool = injectedPool || new Pool({
     connectionString: databaseUrl,
     max: poolMax,
@@ -222,7 +222,9 @@ function createPostgresStore({ codec, databaseUrl, ssl, poolMax = 10, logger, po
       return withTx(async (tq) => {
         const r = await tq(
           `UPDATE domain_events SET status = 'processing', data = jsonb_set(data, '{status}', '"processing"'), updated_at = now()
-           WHERE id IN (SELECT id FROM domain_events WHERE status = 'pending' ORDER BY occurred_at ASC LIMIT $1 FOR UPDATE SKIP LOCKED)
+           WHERE id IN (SELECT id FROM domain_events
+                        WHERE status = 'pending' OR (status = 'processing' AND updated_at < now() - interval '5 minutes')
+                        ORDER BY occurred_at ASC LIMIT $1 FOR UPDATE SKIP LOCKED)
            RETURNING data, version`,
           [limit],
         );
@@ -230,6 +232,17 @@ function createPostgresStore({ codec, databaseUrl, ssl, poolMax = 10, logger, po
       });
     },
     async migrate() {
+      // Serialise concurrent migrators (several pods starting at once).
+      const client = await pool.connect();
+      try {
+        await client.query('SELECT pg_advisory_lock(724002)');
+        return await this._migrate();
+      } finally {
+        await client.query('SELECT pg_advisory_unlock(724002)').catch(() => {});
+        client.release();
+      }
+    },
+    async _migrate() {
       await q('CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
       const done = new Set((await q('SELECT name FROM schema_migrations')).rows.map((r) => r.name));
       const files = fs.readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
@@ -248,8 +261,11 @@ function createPostgresStore({ codec, databaseUrl, ssl, poolMax = 10, logger, po
     async ping() { await q('SELECT 1'); return true; },
     async close() { await pool.end(); },
     async reset() {
-      const { COLLECTIONS } = require('./schema'); // eslint-disable-line global-require
-      await q(`TRUNCATE ${Object.keys(COLLECTIONS).join(', ')}, audit_log`);
+      const { COLLECTIONS } = require('./schema');  
+      await withTx(async (tq) => {
+        await tq("SET LOCAL tasco.allow_audit_truncate = 'on'");
+        await tq(`TRUNCATE ${Object.keys(COLLECTIONS).join(', ')}, audit_log`);
+      });
     },
     _pool: pool,
   };

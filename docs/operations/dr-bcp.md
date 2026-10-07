@@ -25,7 +25,7 @@ Key architectural facts that make recovery simpler:
 
 | Business service | Components | Impact of outage | Tolerable downtime (MTPD) | Tier |
 |---|---|---|---|---|
-| Customer renewal / purchase (quote → pay → issue → e-certificate) | `/api/customer/*`, `/api/orders`, wallet, TASCO core | Lost premium (renewals on expiry day go to competitors); customer trust; driving uninsured is an offence for the customer | 4 h | **Tier 1** |
+| Customer renewal / purchase (quote → pay → issue → e-certificate) | `/api/customer/*`, `/api/partner/v1/orders`, wallet, TASCO core | Lost premium (renewals on expiry day go to competitors); customer trust; driving uninsured is an offence for the customer | 4 h | **Tier 1** |
 | Certificate verification (QR) | `GET /api/public/certificates/:certNo`, `/verify/*` | Customers cannot prove cover at roadside or inspection checks | 4 h | **Tier 1** |
 | Partner API | `/api/partner/v1/*` | Partner sales stop; SLA penalties (contractual) | 4 h | **Tier 1** |
 | Telesales console and handoffs | `/api/handoffs`, `/api/leads`, `/api/customers/:id`, `/api/quotes` | Hot leads go cold; agents idle | 8 h | Tier 2 |

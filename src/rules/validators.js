@@ -23,9 +23,11 @@ function walk(node, path, errors) {
 }
 
 function copyViolations(text, banned) {
-  const raw = String(text || '').toLowerCase();
-  const plain = stripDiacritics(text);
-  return banned.filter((p) => raw.includes(p.toLowerCase()) || plain.includes(stripDiacritics(p)));
+  // Normalise case, diacritics and whitespace so "giảm  giá", "giam gia" and "cash back" are all caught.
+  const raw = String(text || '').toLowerCase().replace(/\s+/g, ' ');
+  const plain = stripDiacritics(text).replace(/\s+/g, ' ');
+  const squashed = plain.replace(/[\s.\-_]/g, '');
+  return banned.filter((p) => raw.includes(p.toLowerCase()) || plain.includes(stripDiacritics(p)) || squashed.includes(stripDiacritics(p).replace(/[\s.\-_]/g, '')));
 }
 
 /** Collect every customer-facing string in a content payload. */

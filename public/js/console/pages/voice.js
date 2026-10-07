@@ -1,4 +1,4 @@
-import { h, clear, mount } from '../../shared/dom.js';
+import { h, mount } from '../../shared/dom.js';
 import { pageHead, field, toast, errorToast, tierBadge, statusBadge } from '../ui.js';
 
 const QUICK = ['30A 123 45', 'đúng rồi', 'phí bao nhiêu tiền vậy', 'sao biết số tôi, lừa đảo à', 'gửi link qua zalo cho tôi', 'tôi muốn mua ngay', 'tôi đã gia hạn rồi', 'đang lái xe, gọi lại sau', 'đừng gọi nữa'];

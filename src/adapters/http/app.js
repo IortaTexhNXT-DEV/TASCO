@@ -38,8 +38,10 @@ function createHttpApp(c) {
 
   const clientIp = (req) => {
     if (config.trustProxy) {
-      const xff = req.headers['x-forwarded-for'];
-      if (xff) return String(xff).split(',')[0].trim();
+      // Take the address appended by our own proxy chain (right-most hops), never the
+      // client-supplied left-most value, which is trivially spoofable.
+      const xff = String(req.headers['x-forwarded-for'] || '').split(',').map((s) => s.trim()).filter(Boolean);
+      if (xff.length) return xff[Math.max(0, xff.length - config.trustProxyHops)];
     }
     return req.socket.remoteAddress || 'unknown';
   };
@@ -143,6 +145,7 @@ function createHttpApp(c) {
       }
       if (pathname === '/metrics') {
         routeLabel = 'metrics';
+        if (config.metricsToken && req.headers.authorization !== `Bearer ${config.metricsToken}`) throw errors.unauthenticated();
         res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4' });
         res.end(metrics.render());
         return;
@@ -157,6 +160,7 @@ function createHttpApp(c) {
       const m = router.match(req.method, pathname);
       if (!m) throw errors.notFound('Endpoint');
       if (m.methodNotAllowed) throw new AppError('METHOD_NOT_ALLOWED', 'Method not allowed', 405);
+      if (m.badRequest) throw errors.validation('Malformed path parameter');
       const { route, params } = m;
       routeLabel = `${route.method} ${route.path}`;
       if (route.demoOnly && !config.demoMode) throw errors.notFound('Endpoint');
@@ -171,6 +175,7 @@ function createHttpApp(c) {
       const rawBody = await readBody(req);
       const principal = await authenticate(req, route);
       if (route.perm) services.access.require(principal, route.perm);
+      if (route.scope && !principal.scopes?.includes(route.scope)) throw errors.forbidden(`API key lacks scope ${route.scope}`);
 
       const query = route.query ? validate(Object.fromEntries(url.searchParams), route.query) : {};
       const body = route.body ? validate(rawBody || {}, route.body) : undefined;

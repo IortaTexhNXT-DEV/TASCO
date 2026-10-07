@@ -1,4 +1,4 @@
-import { h, clear, mount, fmtNum, fmtVnd, fmtDate, fmtDateTime } from '../../shared/dom.js';
+import { h, mount, fmtVnd, fmtDate, fmtDateTime } from '../../shared/dom.js';
 import { pageHead, tierBadge, statusBadge, table, field, select, toast, errorToast } from '../ui.js';
 
 function reasonsList(lead) {
@@ -9,7 +9,7 @@ function reasonsList(lead) {
 }
 
 function quoteBuilder(ctx, profile, lead, refresh) {
-  const { api, can } = ctx;
+  const { api } = ctx;
   const out = h('div', { class: 'stack' });
   const pd = h('input', { type: 'checkbox', id: 'opt-pd' });
   const pa = h('input', { type: 'checkbox', id: 'opt-pa', checked: true });
@@ -37,6 +37,11 @@ function quoteBuilder(ctx, profile, lead, refresh) {
         h('p', {}, h('strong', {}, `Total: ${fmtVnd(q.total)}`), q.bundle ? h('span', { class: 'badge info', style: 'margin-left:8px' }, q.bundle) : null),
         h('p', { class: 'small muted' }, `Included value: ${q.benefits.map((b) => b.title).join(' · ')}`),
         h('p', { class: 'small muted' }, 'Payment happens only in the customer\'s VETC app — never on the phone.'),
+        q.lines.some((l) => l.product === 'MOTOR_PD') ? h('button', { class: 'btn', onclick: async (ev) => {
+          const evidence = window.prompt('Inspection evidence (assessor, photos reference)');
+          if (!evidence) return;
+          try { await api.post(`/api/quotes/${encodeURIComponent(q.id)}/inspection`, { passed: true, evidence }); toast('Inspection recorded', 'ok'); ev.target.disabled = true; } catch (ex) { errorToast(ex); }
+        } }, 'Record vehicle inspection (physical damage)') : null,
         h('button', { class: 'btn accent', onclick: async (ev) => {
           ev.target.disabled = true;
           try {

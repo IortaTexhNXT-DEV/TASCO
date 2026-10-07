@@ -1,4 +1,4 @@
-import { h, clear, mount, fmtDate } from '../../shared/dom.js';
+import { h, mount, fmtDate } from '../../shared/dom.js';
 import { pageHead, table, statusBadge, field, select, toast, errorToast } from '../ui.js';
 
 export default {

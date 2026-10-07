@@ -33,6 +33,9 @@ test('extractPlateFromSpeech understands digits and spoken Vietnamese numbers', 
   assert.equal(extractPlateFromSpeech('biển số của tôi là 30A 123 45'), '30A12345');
   assert.equal(extractPlateFromSpeech('ba không A một hai ba bốn năm'), '30A12345');
   assert.equal(extractPlateFromSpeech('xe tôi là 51G 678 90 nhé'), '51G67890');
+  assert.equal(extractPlateFromSpeech('ba mươi A, một hai ba bốn năm'), '30A12345', 'script example parses');
+  assert.equal(extractPlateFromSpeech('năm mươi mốt G sáu bảy tám chín không'), '51G67890');
+  assert.equal(extractPlateFromSpeech('59X1 123 45'), '59X112345', 'motorbike plate');
   assert.equal(extractPlateFromSpeech('tôi không nhớ'), null);
   assert.equal(extractPlateFromSpeech(''), null);
 });

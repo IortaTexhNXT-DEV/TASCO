@@ -31,7 +31,7 @@ flowchart LR
 
 ### 1.1 UAT user accounts
 
-UAT has **named** accounts created by the admin through `POST /api/users`, not the demo users. MFA is enrolled for `admin`, `rule_approver`, `compliance_officer` and `data_steward` (enforced by `MFA_REQUIRED_ROLES`). Regions follow the pilot: telesales agents and supervisors are region-bound (`Hà Nội`, `TP. Hồ Chí Minh`).
+UAT has **named** accounts created by the admin through `POST /api/users`, not the demo users. MFA is mandatory for `admin`, `rule_approver`, `compliance_officer` and `data_steward` (`MFA_REQUIRED_ROLES`). Each user self-enrols their authenticator at first sign-in and must change the initial password. Regions follow the pilot: telesales agents and supervisors are region-bound (`Hà Nội`, `TP. Hồ Chí Minh`).
 
 ### 1.2 UAT data
 
@@ -76,7 +76,7 @@ Status values in the execution log: Not run / Pass / Pass with minor defects / F
 | ID | Scenario | Acceptance criteria | Related TCs |
 |---|---|---|---|
 | UAT-TS-01 | Agent claims a hot handoff from the voice bot, reads the summary and talking points, calls the customer and sends the one-tap link | Summary has a masked phone, plate verified by the customer, and price and trust signals; the claim sets `assignedTo`; the note is saved; status moves to `won` after purchase | TC-070, TC-025 |
-| UAT-TS-02 | Agent quotes TNDS + PA per seat over the phone and completes the order on the customer's behalf | Regulated TNDS premium exact; no discount wording anywhere; order idempotent on double click; e-certificate QR verifies | TC-072, TC-073, TC-074 |
+| UAT-TS-02 | Agent quotes TNDS + PA per seat over the phone and **sends the quote** to the customer's VETC app / Zalo; the customer confirms and pays in the app while on the call | Regulated TNDS premium exact; no discount wording anywhere; the agent has no way to take payment; the customer pays once (idempotent on double tap); e-certificate QR verifies | TC-072, TC-073, TC-074, TC-156, TC-157 |
 | UAT-TS-03 | Agent in Hà Nội tries to open a TP.HCM customer | Access denied with a clear message | TC-024 |
 | UAT-TS-04 | Supervisor reassigns work between agents and sees the whole squad queue | Assignment works for the supervisor only; audit entry created | TC-026 |
 | UAT-TS-05 | Agent runs a console voice-bot session to rehearse the script | Script is disclosure-first and plate-first; the transcript shows vi + en gloss | TC-064, TC-148 |
@@ -85,7 +85,7 @@ Status values in the execution log: Not run / Pass / Pass with minor defects / F
 
 | ID | Scenario | Acceptance criteria | Related TCs |
 |---|---|---|---|
-| UAT-VB-01 | Campaign over 20 hot leads with the real voice vendor on test SIMs | Calls only within 08:00–20:00 ICT and only with call consent (**KI-09 must be fixed before this passes**); outcomes recorded; handoffs created | TC-135, TC-154 |
+| UAT-VB-01 | Campaign over 20 hot leads with the real voice vendor on test SIMs | Calls only within 08:00–20:00 ICT and only with call consent (enforced via `voice.canCall`, KI-09 fixed; operators must not pass `at`, see KI-33); outcomes recorded; handoffs created | TC-135, TC-154 |
 | UAT-VB-02 | Tester says a wrong plate | Call ends politely; no personal data disclosed; DQ issue raised | TC-066 |
 | UAT-VB-03 | Tester asks to stop calls | Opt-out confirmed by the bot; the profile becomes DNC; no further calls or marketing | TC-068 |
 | UAT-VB-04 | Tester says the plate the way the bot instructs ("ba mươi A, …") | Verified (**KI-25 must be fixed**) | TC-065 |
@@ -108,7 +108,7 @@ Status values in the execution log: Not run / Pass / Pass with minor defects / F
 |---|---|---|---|
 | UAT-RU-01 | Author changes the scoring weights, simulates on UAT-REF-01..04, submits; the approver approves | Simulation shows current versus candidate; approval activates the new version; the previous version is retired; audit trail complete; replicas pick it up within 15 s | TC-093, TC-097, TC-099 |
 | UAT-RU-02 | Author tries to add "giảm giá" or "hoàn tiền" wording to a template or benefit | Rejected with a clear copy-guard error | TC-095 |
-| UAT-RU-03 | Author tries to approve their own change (user holding both roles) | Refused (maker-checker) | TC-090 |
+| UAT-RU-03 | Admin tries to give one person both author and approver roles; author tries to approve their own change | Role combination refused (separation of duties); approval refused (no permission / maker-checker) | TC-027, TC-090 |
 | UAT-RU-04 | Wrong rule activated → rollback | Rollback creates a draft that needs approval; the old behaviour returns after approval | TC-094 |
 | UAT-RU-05 | Commission rule above the statutory cap | Rejected | TC-084 |
 
@@ -166,7 +166,7 @@ Status values in the execution log: Not run / Pass / Pass with minor defects / F
 | E3 | UAT data loaded, including reference profiles; `SIM_TODAY` set and documented | Data load checklist |
 | E4 | Named accounts created, MFA enrolled, region assignments confirmed | Admin export of `GET /api/users` |
 | E5 | Testers trained (1 h per persona) on the manuals | Attendance list |
-| E6 | Known issues KI-01, KI-02, KI-06, KI-09 and KI-25 fixed, or explicitly accepted by the Business Owner for UAT | KI register |
+| E6 | Known issues KI-01, KI-02, KI-25, KI-28 and KI-33 fixed, or explicitly accepted by the Business Owner for UAT (KI-06, KI-09 and KI-29 already fixed: regression only) | KI register |
 | E7 | Zalo ZNS templates approved for UAT (or a test OA in use); VETC test wallets funded | Partner confirmations |
 
 ## 4. Exit criteria

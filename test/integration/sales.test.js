@@ -104,7 +104,10 @@ test('partner channel: onboarding a new vehicle, commission within statutory cap
   await c.services.ingestion.ingest([{ recordId: 'PR-1', source: 'partner_showroom', partnerId: 'P-SHOWROOM-01', plateRaw: '30K-555.66', phoneRaw: '0912000111', fullName: 'Lê Mới', seatsDeclared: 5, usageDeclared: 'personal', ownerType: 'individual' }], { actor: principal.id, sourceName: 'P-SHOWROOM-01' });
   await c.events.drain();
   const q = await c.services.sales.quote({ profileId: '30K55566', products: [{ code: 'TNDS_CAR' }, { code: 'MOTOR_PD', options: { sumInsured: 800000000 } }], channel: 'partner_api', partnerId: 'P-SHOWROOM-01' }, principal);
+  await assert.rejects(c.services.sales.purchase({ quoteId: q.id, idempotencyKey: 'partner-000' }, principal), /inspection/);
+  await c.services.sales.recordInspection(q.id, { passed: true, evidence: 'showroom PDI photos' }, ACTOR('assessor', ['telesales_supervisor']));
   const r = await c.services.sales.purchase({ quoteId: q.id, idempotencyKey: 'partner-001' }, principal);
+  assert.match(r.order.paymentRef, /^PARTNER-/, 'partner-collected premium, no wallet debit');
   await c.events.drain();
   const tnds = r.order.commission.find((x) => x.product === 'TNDS_CAR');
   assert.equal(tnds.rate, 0.05);
@@ -122,4 +125,35 @@ test('partner channel: onboarding a new vehicle, commission within statutory cap
   assert.match(created.id, /^P-/);
   assert.ok((await c.services.partners.list({ type: 'bank' })).length >= 2);
   await assert.rejects(c.services.partners.get('NOPE'), /not found/);
+});
+
+test('saga compensation: partial issuance cancels issued lines and refunds; failed keys cannot be replayed as success', async () => {
+  const other = await findProfile(c, (x) => x.ownerType === 'individual' && x.vehicle.category === 'car_under6' && x.policy.insurer !== 'TASCO' && !x.anonymised && x.id !== p.id);
+  const q = await c.services.sales.quote({ profileId: other.id, products: [{ code: 'TNDS_CAR' }, { code: 'PA_SEAT', options: { sumInsuredPerSeat: 10000000 } }], channel: 'vetc_app' }, customer(other.id));
+  const realCore = c.gateways.policyAdmin.port;
+  let n = 0;
+  const cancelled = [];
+  c.gateways.policyAdmin.port = {
+    issuePolicy: async (x) => { n++; if (n === 2) throw errors.validation('line 2 rejected'); return realCore.issuePolicy(x); },
+    cancelPolicy: async (x) => { cancelled.push(x.policyNo); return { status: 'cancelled' }; },
+  };
+  await assert.rejects(c.services.sales.purchase({ quoteId: q.id, idempotencyKey: 'saga-0001' }, customer(other.id)), /line 2 rejected/);
+  c.gateways.policyAdmin.port = realCore;
+  assert.equal(cancelled.length, 1, 'issued line was cancelled');
+  const [o] = await c.services.sales.listOrders({ profileId: other.id, status: 'issuance_failed_refunded' });
+  assert.equal(o.refund.status, 'refunded');
+  const pol = await c.store.collection('policies').get(o.policies[0]);
+  assert.equal(pol.status, 'cancelled');
+  await assert.rejects(c.services.sales.purchase({ quoteId: q.id, idempotencyKey: 'saga-0001' }, customer(other.id)), /previous attempt/i);
+  const ok = await c.services.sales.purchase({ quoteId: q.id, idempotencyKey: 'saga-0002' }, customer(other.id));
+  assert.equal(ok.order.status, 'completed', 'quote released for a clean retry');
+});
+
+test('copy guard catches whitespace and spacing evasions', () => {
+  const { checkCopy } = require('../../src/domain/contactPolicy');
+  const guard = { bannedPhrases: ['giảm giá', 'cashback'] };
+  assert.equal(checkCopy(guard, 'Giảm   giá hôm nay').ok, false);
+  assert.equal(checkCopy(guard, 'cash back 5%').ok, false);
+  assert.equal(checkCopy(guard, 'c.a.s.h-back').ok, false);
+  assert.equal(checkCopy(guard, 'Gia hạn bảo hiểm').ok, true);
 });

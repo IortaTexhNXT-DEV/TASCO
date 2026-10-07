@@ -69,6 +69,7 @@ const DIGIT_WORDS = {
 function extractPlateFromSpeech(text) {
   const tokens = stripDiacritics(text).replace(/[.,\-–]/g, ' ').split(/\s+/).filter(Boolean);
   const mapped = tokens.map((t) => {
+    if (t === 'muoi' || t === 'chuc') return t;
     if (DIGIT_WORDS[t] !== undefined) return DIGIT_WORDS[t];
     // Digit groups, short letter series ("a", "ld") or mixed tokens like "30a".
     if (/^\d+$/.test(t) || /^[a-z]{1,2}$/.test(t) || /^\d+[a-z]{1,2}\d*$/.test(t)) {
@@ -77,11 +78,18 @@ function extractPlateFromSpeech(text) {
     }
     return ' ';
   });
+  // Tens: "ba mươi" → 30, "ba mươi hai" → 32 (spoken province codes).
+  for (let i = 0; i < mapped.length; i++) {
+    if (tokens[i] !== 'muoi' && tokens[i] !== 'chuc') continue;
+    const prevIsDigit = i > 0 && /^\d$/.test(mapped[i - 1]);
+    const nextIsDigit = i + 1 < mapped.length && /^\d$/.test(mapped[i + 1]);
+    mapped[i] = prevIsDigit && !nextIsDigit ? '0' : prevIsDigit ? '' : ' ';
+  }
   // Try every contiguous window of tokens, longest first, for a valid plate.
   for (let len = Math.min(mapped.length, 14); len >= 1; len--) {
     for (let i = 0; i + len <= mapped.length; i++) {
       const candidate = mapped.slice(i, i + len).join('');
-      if (candidate.includes(' ')) continue;
+      if (candidate.includes(' ') || /muoi|chuc/.test(candidate)) continue;
       const p = normalizePlate(candidate);
       if (p.valid) return p.key;
     }
