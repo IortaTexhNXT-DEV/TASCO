@@ -1,0 +1,12 @@
+{
+  "kind": "triggers",
+  "description": "Event-driven moments of truth. When an ecosystem event arrives, matching triggers create an immediate touchpoint (respecting contact policy).",
+  "payload": {
+    "triggers": [
+      { "id": "tag_activated", "event": "vetc.tag_activated", "action": "enrol_journey", "journey": "new_vehicle", "desc": "New ETC tag ≈ newly bought or newly registered car" },
+      { "id": "inspection_booked", "event": "vetc.inspection_booked", "action": "send", "channels": ["app_push", "zalo_zns"], "marketing": false, "template": "inspection_tnds_check", "when": { "<": [{ "var": "days" }, 60] }, "desc": "Inspection requires valid TNDS" },
+      { "id": "wallet_topup", "event": "vetc.wallet_topped_up", "action": "send", "channels": ["app_push"], "marketing": true, "template": "first_reminder", "when": { "and": [{ "<=": [{ "var": "days" }, 30] }, { ">=": [{ "var": "days" }, -30] }] }, "desc": "Customer is in the app with funds — best moment for one-tap renewal" },
+      { "id": "long_trip", "event": "vetc.long_trip_started", "action": "send", "channels": ["app_push"], "marketing": true, "template": "value_reminder", "when": { "and": [{ "<": [{ "var": "days" }, 0] }, { ">=": [{ "var": "days" }, -60] }] }, "desc": "Uninsured vehicle starting a long highway trip" }
+    ]
+  }
+}

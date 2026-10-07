@@ -1,0 +1,160 @@
+{
+  "kind": "nba",
+  "description": "Next-best-action decision table (first hit wins). Facts: tier, score, days, expiryConfidence, consent.*, channels.*, ownerType, hasPhone, crossSellEligible.",
+  "payload": {
+    "hitPolicy": "first",
+    "rules": [
+      {
+        "id": "dnc",
+        "when": {
+          "var": "consent.dnc"
+        },
+        "then": {
+          "action": "suppress",
+          "label": "Do not contact",
+          "reason": "customer opted out"
+        }
+      },
+      {
+        "id": "fleet",
+        "when": {
+          "==": [
+            {
+              "var": "ownerType"
+            },
+            "company"
+          ]
+        },
+        "then": {
+          "action": "route_b2b",
+          "label": "Route to fleet / B2B team",
+          "reason": "company-owned vehicle"
+        }
+      },
+      {
+        "id": "fix_data",
+        "when": {
+          "<": [
+            {
+              "var": "expiryConfidence"
+            },
+            0.5
+          ]
+        },
+        "then": {
+          "action": "verify_expiry",
+          "label": "Ask customer to confirm expiry in-app (earns points)",
+          "reason": "expiry date not reliable — fix data before selling"
+        }
+      },
+      {
+        "id": "new_vehicle",
+        "when": {
+          "==": [
+            {
+              "var": "journey"
+            },
+            "new_vehicle"
+          ]
+        },
+        "then": {
+          "action": "welcome_new_vehicle",
+          "label": "Welcome pack: verify cover + e-certificate offer",
+          "reason": "new ETC tag {{tagAgeDays}} days ago — likely new vehicle"
+        }
+      },
+      {
+        "id": "too_early",
+        "when": {
+          ">": [
+            {
+              "var": "days"
+            },
+            45
+          ]
+        },
+        "then": {
+          "action": "nurture",
+          "label": "Schedule reminders",
+          "reason": "renewal window opens in {{days}} days"
+        }
+      },
+      {
+        "id": "uninsured",
+        "when": {
+          "==": [
+            {
+              "var": "journey"
+            },
+            "lapsed_uninsured"
+          ]
+        },
+        "then": {
+          "action": "urgent_recovery",
+          "label": "Urgent: vehicle uninsured — service notice + call",
+          "reason": "cover lapsed {{lapsedDays}} days ago"
+        }
+      },
+      {
+        "id": "hot_call",
+        "when": {
+          "and": [
+            {
+              "==": [
+                {
+                  "var": "tier"
+                },
+                "hot"
+              ]
+            },
+            {
+              "var": "consent.call"
+            },
+            {
+              "var": "hasPhone"
+            }
+          ]
+        },
+        "then": {
+          "action": "voice_bot",
+          "label": "AI voice bot call → telesales handoff",
+          "reason": "high intent and call consent on file"
+        }
+      },
+      {
+        "id": "digital",
+        "when": {
+          "or": [
+            {
+              "var": "channels.app_push"
+            },
+            {
+              "var": "channels.zalo_zns"
+            }
+          ]
+        },
+        "then": {
+          "action": "digital_reminder",
+          "label": "One-tap renew link via app / Zalo",
+          "reason": "reachable digitally"
+        }
+      },
+      {
+        "id": "sms",
+        "when": {
+          "var": "hasPhone"
+        },
+        "then": {
+          "action": "sms_reminder",
+          "label": "SMS reminder with renew link",
+          "reason": "phone only"
+        }
+      }
+    ],
+    "default": {
+      "action": "enrich",
+      "label": "Find a contact channel",
+      "reason": "no usable contact data"
+    }
+  }
+}

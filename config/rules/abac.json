@@ -1,0 +1,14 @@
+{
+  "kind": "abac",
+  "description": "Attribute-based access rules evaluated after RBAC. Facts: user.{id,roles,region}, resource.{type,region,assignedTo,ownerId}, action.",
+  "payload": {
+    "policies": [
+      { "id": "agent_own_handoffs", "resource": "handoff", "actions": ["read", "update"], "appliesToRoles": ["telesales_agent"],
+        "allow": { "or": [{ "==": [{ "var": "resource.assignedTo" }, { "var": "user.id" }] }, { "==": [{ "var": "resource.assignedTo" }, null] }] } },
+      { "id": "regional_data", "resource": "profile", "actions": ["read"], "appliesToRoles": ["telesales_agent", "telesales_supervisor"],
+        "allow": { "or": [{ "==": [{ "var": "user.region" }, "ALL"] }, { "==": [{ "var": "user.region" }, { "var": "resource.region" }] }] } },
+      { "id": "customer_self", "resource": "customer_self", "actions": ["read", "purchase"], "appliesToRoles": ["customer"],
+        "allow": { "==": [{ "var": "resource.ownerId" }, { "var": "user.customerId" }] } }
+    ]
+  }
+}

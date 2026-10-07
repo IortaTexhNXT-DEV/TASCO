@@ -1,0 +1,101 @@
+{
+  "kind": "content.voicebot",
+  "description": "Voice bot script and NLU keywords (prompt governance: versioned, maker-checker approved, copy-guarded). Placeholders resolve from call context.",
+  "payload": {
+    "disclosure": "automated_assistant",
+    "maxPlateAttempts": 3,
+    "maxClarifications": 2,
+    "intents": [
+      ["opt_out", ["dung goi", "khong goi nua", "dung lam phien", "xoa so", "huy dang ky", "stop calling", "do not call", "unsubscribe", "khong muon nhan"]],
+      ["scam_concern", ["lua dao", "scam", "tin sao duoc", "ai cho so", "lay so o dau", "sao biet so", "gia mao", "is this real", "fake"]],
+      ["human", ["nguoi that", "nhan vien", "tong dai vien", "gap nguoi", "talk to a person", "human", "agent"]],
+      ["already_renewed", ["da mua roi", "mua roi", "da gia han", "gia han roi", "co bao hiem roi", "already renewed", "already bought", "da co roi"]],
+      ["price", ["bao nhieu tien", "gia bao nhieu", "phi bao nhieu", "giam gia", "re hon", "chiet khau", "khuyen mai", "how much", "price", "discount", "cheaper"]],
+      ["callback_later", ["goi lai sau", "dang ban", "dang lai xe", "luc khac", "de sau", "call later", "busy", "driving"]],
+      ["send_link", ["gui link", "gui tin", "nhan tin", "tu mua", "qua zalo", "tren app", "tren ung dung", "send link", "send me", "myself", "in the app"]],
+      ["buy_now", ["mua ngay", "gia han ngay", "dang ky", "toi muon mua", "muon gia han", "tu van", "ok mua", "buy", "renew now", "sign me up", "interested"]],
+      ["wrong_person", ["nham so", "nham nguoi", "khong phai toi", "khong phai xe", "ban xe roi", "wrong number", "not my car", "sold the car"]],
+      ["benefits", ["loi ich", "duoc gi", "cuu ho", "quyen loi", "benefit", "what do i get", "roadside"]],
+      ["yes", ["co", "dung", "vang", "u", "uh", "ok", "duoc", "dong y", "yes", "yeah", "sure", "correct", "right"]],
+      ["no", ["khong", "chua", "thoi", "no", "nope", "not now"]]
+    ],
+    "lines": {
+      "intro": {
+        "vi": "Xin chào, đây là trợ lý tự động của VETC gọi về bảo hiểm bắt buộc TNDS cho xe của Quý khách. Cuộc gọi được ghi âm. VETC không bao giờ yêu cầu mã OTP hay thanh toán qua điện thoại. Để xác minh, Quý khách vui lòng đọc biển số xe đăng ký với VETC ạ.",
+        "en": "Hello, this is VETC's automated assistant calling about your compulsory TNDS motor insurance. This call is recorded. VETC never asks for OTPs or payment over the phone. To verify, please tell me the licence plate registered with VETC."
+      },
+      "plateRetry": {
+        "vi": "Xin lỗi, tôi chưa nghe rõ. Quý khách vui lòng đọc lại biển số xe, ví dụ \"ba mươi A, một hai ba bốn năm\" ạ.",
+        "en": "Sorry, I didn't catch that. Please say the plate again, e.g. \"30A 123 45\"."
+      },
+      "plateMismatch": {
+        "vi": "Biển số này chưa khớp với thông tin VETC đang có. Để bảo vệ thông tin của Quý khách, tôi xin phép kết thúc cuộc gọi. Quý khách có thể kiểm tra trực tiếp trong ứng dụng VETC. Cảm ơn Quý khách.",
+        "en": "That plate doesn't match our VETC record. To protect your data I'll end the call; you can check directly in the VETC app. Thank you."
+      },
+      "expiryKnown": {
+        "vi": "Cảm ơn Quý khách, đã xác minh xe {{plateMasked}}. Theo dữ liệu của VETC, bảo hiểm TNDS của xe hết hạn vào ngày {{expiryVi}}. Thông tin này có đúng không ạ?",
+        "en": "Thank you, vehicle {{plateMasked}} verified. Our records show your TNDS cover ends on {{expiry}}. Is that correct?"
+      },
+      "expiryLapsed": {
+        "vi": "Cảm ơn Quý khách, đã xác minh xe {{plateMasked}}. Theo dữ liệu của VETC, bảo hiểm TNDS của xe đã hết hạn từ ngày {{expiryVi}}. Xe đã được gia hạn chưa ạ?",
+        "en": "Thank you, vehicle {{plateMasked}} verified. Our records show your TNDS cover ended on {{expiry}}. Has it been renewed?"
+      },
+      "expiryUnknown": {
+        "vi": "Cảm ơn Quý khách, đã xác minh xe {{plateMasked}}. Quý khách có nhớ bảo hiểm TNDS hiện tại hết hạn vào tháng nào không ạ?",
+        "en": "Thank you, vehicle {{plateMasked}} verified. Do you remember which month your current TNDS cover ends?"
+      },
+      "pitch": {
+        "vi": "Quý khách có thể gia hạn ngay trong ứng dụng VETC chỉ với một chạm, thanh toán bằng ví VETC và nhận giấy chứng nhận điện tử ngay, kèm cứu hộ giao thông 24/7. Quý khách muốn nhân viên tư vấn gọi lại, hay để tôi gửi đường dẫn gia hạn vào ứng dụng VETC và Zalo ạ?",
+        "en": "You can renew in the VETC app in one tap, pay from your VETC wallet and get an e-certificate instantly, plus 24/7 roadside assistance. Would you like an advisor to call back, or shall I send the renewal link to your VETC app and Zalo?"
+      },
+      "price": {
+        "vi": "Phí bảo hiểm TNDS do Nhà nước quy định và giống nhau ở mọi công ty bảo hiểm; với loại xe của Quý khách là {{premiumVi}} đã gồm VAT. Khi mua qua VETC, Quý khách được gia hạn một chạm, giấy chứng nhận điện tử ngay và cứu hộ 24/7. Quý khách muốn tôi gửi đường dẫn gia hạn không ạ?",
+        "en": "TNDS premiums are set by regulation and are the same at every insurer; for your vehicle it is {{premium}} incl. VAT. Via VETC you get one-tap renewal, an instant e-certificate and 24/7 roadside assistance. Shall I send the renewal link?"
+      },
+      "benefits": {
+        "vi": "Khi mua qua VETC cùng Bảo hiểm TASCO, Quý khách có cứu hộ 24/7, giấy chứng nhận điện tử tra cứu bằng QR, nhắc lịch đăng kiểm và báo tai nạn nhanh trên ứng dụng. Quý khách muốn tôi gửi đường dẫn hay nhân viên gọi lại ạ?",
+        "en": "Buying via VETC with TASCO Insurance includes 24/7 roadside assistance, a QR-verifiable e-certificate, inspection reminders and in-app accident reporting. Link or advisor callback?"
+      },
+      "trust": {
+        "vi": "Quý khách hoàn toàn có thể kiểm tra: VETC gọi cho chủ tài khoản thu phí không dừng đã đăng ký số điện thoại này. Tôi sẽ không hỏi OTP hay thông tin thẻ. Mọi thanh toán chỉ thực hiện trong ứng dụng VETC chính thức. Quý khách muốn tôi gửi thông báo vào ứng dụng VETC để tự kiểm tra không ạ?",
+        "en": "You can verify this: VETC is calling the toll account holder who registered this number. I will never ask for OTPs or card details. Payment only happens inside the official VETC app. Shall I send a notice to your VETC app so you can check?"
+      },
+      "handoff": {
+        "vi": "Cảm ơn Quý khách. Nhân viên tư vấn của VETC sẽ gọi lại từ tổng đài chính thức. Tôi cũng đã gửi thông báo xác nhận vào ứng dụng VETC. Chúc Quý khách thượng lộ bình an!",
+        "en": "Thank you. A VETC advisor will call back from the official hotline. I've also sent a confirmation to your VETC app. Safe travels!"
+      },
+      "link": {
+        "vi": "Tôi đã gửi đường dẫn gia hạn vào ứng dụng VETC và Zalo OA chính thức của VETC. Quý khách chỉ cần mở ứng dụng, kiểm tra thông tin và xác nhận. Chúc Quý khách thượng lộ bình an!",
+        "en": "I've sent the renewal link to your VETC app and VETC's official Zalo OA. Open the app, check the details and confirm. Safe travels!"
+      },
+      "callback": {
+        "vi": "Dạ, tôi sẽ gọi lại vào lúc khác. Nếu Quý khách đang lái xe, xin hãy tập trung lái an toàn. Chào Quý khách!",
+        "en": "Of course, I'll call back another time. If you're driving, please focus on the road. Goodbye!"
+      },
+      "alreadyRenewed": {
+        "vi": "Cảm ơn Quý khách đã cho biết. Quý khách mua ở công ty bảo hiểm nào và hết hạn khi nào ạ? Thông tin này giúp VETC nhắc đúng lúc vào năm sau.",
+        "en": "Thanks for letting me know. Which insurer, and when does it expire? This helps VETC remind you at the right time next year."
+      },
+      "alreadyRenewedThanks": {
+        "vi": "Cảm ơn Quý khách, VETC đã ghi nhận. Chúc Quý khách thượng lộ bình an!",
+        "en": "Thank you, noted. Safe travels!"
+      },
+      "optOut": {
+        "vi": "VETC đã ghi nhận yêu cầu, Quý khách sẽ không nhận cuộc gọi tư vấn nữa. Xin lỗi vì đã làm phiền. Chào Quý khách!",
+        "en": "Understood — you won't receive further sales calls. Sorry to bother you. Goodbye!"
+      },
+      "wrongPerson": {
+        "vi": "Xin lỗi vì sự nhầm lẫn. VETC sẽ cập nhật lại thông tin. Chào Quý khách!",
+        "en": "Sorry for the mix-up. VETC will update its records. Goodbye!"
+      },
+      "clarify": {
+        "vi": "Xin lỗi, Quý khách muốn nhân viên tư vấn gọi lại, hay để tôi gửi đường dẫn gia hạn vào ứng dụng VETC ạ?",
+        "en": "Sorry — would you like an advisor callback, or the renewal link in your VETC app?"
+      },
+      "goodbye": {
+        "vi": "Cảm ơn Quý khách đã dành thời gian. Chào Quý khách!",
+        "en": "Thank you for your time. Goodbye!"
+      }
+    }
+  }
+}

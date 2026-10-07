@@ -1,0 +1,13 @@
+{
+  "kind": "costs",
+  "description": "Unit-cost assumptions (VND) for the business-case dashboard. Replace with contracted rates.",
+  "payload": {
+    "voiceBotPerMinute": 1500,
+    "avgBotCallMinutes": 1.6,
+    "telesalesPerMinute": 6000,
+    "avgTelesalesCallMinutes": 4.5,
+    "zalo_zns": 300,
+    "sms": 700,
+    "app_push": 0
+  }
+}

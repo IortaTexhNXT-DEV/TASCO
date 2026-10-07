@@ -1,0 +1,15 @@
+{
+  "kind": "retention",
+  "description": "Data retention and archival policy per entity (days). Legal hold overrides deletion.",
+  "payload": {
+    "policies": [
+      { "entity": "source_records", "retainDays": 365, "action": "delete" },
+      { "entity": "profiles", "retainDays": 1825, "action": "anonymise", "trigger": "no active policy and no activity" },
+      { "entity": "voice_sessions", "retainDays": 180, "action": "delete", "note": "recordings + transcripts" },
+      { "entity": "messages", "retainDays": 365, "action": "archive" },
+      { "entity": "orders", "retainDays": 3650, "action": "archive", "note": "financial records" },
+      { "entity": "certificates", "retainDays": 3650, "action": "archive" },
+      { "entity": "audit_log", "retainDays": 3650, "action": "archive", "note": "append-only, never deleted early" }
+    ]
+  }
+}

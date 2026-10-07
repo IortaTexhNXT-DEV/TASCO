@@ -1,0 +1,36 @@
+{
+  "name": "tasco-growth-platform",
+  "version": "1.0.0",
+  "description": "TASCO Insurance × VETC motor insurance growth platform (new business, renewal, partners) — built by iorta TechNXT",
+  "private": true,
+  "license": "UNLICENSED",
+  "author": "iorta TechNXT",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/jobs/cli.js migrate",
+    "seed": "node src/jobs/cli.js seed",
+    "job": "node src/jobs/cli.js",
+    "lint": "eslint .",
+    "test": "node --test --test-reporter=spec \"test/unit/**/*.test.js\" \"test/integration/**/*.test.js\" \"test/api/**/*.test.js\"",
+    "test:unit": "node --test \"test/unit/**/*.test.js\"",
+    "test:api": "node --test \"test/api/**/*.test.js\"",
+    "test:pg": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/tasco_test} node --test \"test/pg/**/*.test.js\"",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=80 --test-coverage-branches=70 --test-coverage-functions=80 --test-coverage-exclude=\"test/**\" --test-coverage-exclude=\"src/jobs/cli.js\" --test-coverage-exclude=\"src/server.js\" --test-coverage-exclude=\"src/adapters/persistence/postgresStore.js\" \"test/unit/**/*.test.js\" \"test/integration/**/*.test.js\" \"test/api/**/*.test.js\"",
+    "test:perf": "node test/perf/load.js",
+    "test:security": "node --test \"test/security/**/*.test.js\"",
+    "audit": "npm audit --omit=dev --audit-level=high"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^17.13.0"
+  }
+}

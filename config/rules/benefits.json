@@ -1,0 +1,91 @@
+{
+  "kind": "benefits",
+  "description": "Value-beyond-discount catalogue: services, convenience and relevant cover upgrades. Eligibility and relevance are JSON Logic over profile facts. Only legalStatus=approved items reach customers.",
+  "payload": {
+    "maxShown": 3,
+    "items": [
+      {
+        "id": "roadside_24_7", "type": "service", "provider": "Tasco ecosystem", "legalStatus": "approved",
+        "title": "24/7 roadside assistance", "titleVi": "Cứu hộ giao thông 24/7",
+        "desc": "Towing, jump-start, flat tyre and lock-out help anywhere on the VETC highway network.",
+        "descVi": "Kéo xe, kích bình, thay lốp, mở khóa trên toàn mạng lưới cao tốc VETC.",
+        "relevance": { "clamp": [{ "+": [0.4, { "/": [{ "var": "longTripsKm90d" }, 3000] }, { "/": [{ "var": "tollTrips30d" }, 60] }] }, 0, 1] },
+        "why": { "if": [{ ">": [{ "var": "longTripsKm90d" }, 1000] }, { "cat": ["drives ", { "var": "longTripsKm90d" }, " km on highways per quarter"] }, "peace of mind on every trip"] }
+      },
+      {
+        "id": "e_certificate", "type": "service", "provider": "TASCO Insurance", "legalStatus": "approved",
+        "title": "Instant e-certificate + QR check", "titleVi": "Giấy chứng nhận điện tử + mã QR",
+        "desc": "Certificate in the app the moment you pay; police and inspectors verify it by QR. No paper to lose.",
+        "descVi": "Nhận giấy chứng nhận điện tử ngay sau khi thanh toán, tra cứu bằng QR.",
+        "relevance": 0.7, "why": "proof of cover always on your phone"
+      },
+      {
+        "id": "auto_renew", "type": "service", "provider": "VETC + TASCO", "legalStatus": "approved",
+        "title": "Never-lapse auto renewal", "titleVi": "Tự động gia hạn, không lo quá hạn",
+        "desc": "Opt in once; we remind you 7 days before and renew from your VETC wallet only after you confirm.",
+        "descVi": "Đăng ký một lần; nhắc trước 7 ngày và chỉ gia hạn từ ví VETC khi bạn xác nhận.",
+        "relevance": { "if": [{ "var": "autoTopUp" }, 0.9, 0.5] },
+        "why": { "if": [{ "var": "autoTopUp" }, "already uses wallet auto top-up", "one less thing to remember"] }
+      },
+      {
+        "id": "inspection_assist", "type": "service", "provider": "VETC", "legalStatus": "approved",
+        "title": "Inspection (đăng kiểm) reminder & booking", "titleVi": "Nhắc lịch và đặt lịch đăng kiểm",
+        "desc": "We track your inspection date and help book a slot — valid TNDS is required at inspection.",
+        "descVi": "Nhắc và hỗ trợ đặt lịch đăng kiểm — bắt buộc có bảo hiểm TNDS khi đăng kiểm.",
+        "relevance": { "if": [{ "==": [{ "var": "expiryMethod" }, "inspection_cycle"] }, 0.85, 0.45] },
+        "why": "avoid queues and failed inspections"
+      },
+      {
+        "id": "claims_fast_lane", "type": "service", "provider": "TASCO Insurance", "legalStatus": "approved",
+        "title": "Claims fast-lane in the app", "titleVi": "Báo tai nạn nhanh trên ứng dụng",
+        "desc": "Report an accident with photos and GPS location from the VETC app; a TASCO assessor calls back.",
+        "descVi": "Báo tai nạn kèm ảnh và vị trí trên ứng dụng VETC; giám định viên TASCO gọi lại.",
+        "relevance": { "clamp": [{ "+": [0.35, { "/": [{ "var": "tollTrips30d" }, 50] }] }, 0, 1] },
+        "why": "help when it matters most"
+      },
+      {
+        "id": "loyalty_points", "type": "loyalty", "provider": "VETC", "legalStatus": "pending_legal_review",
+        "title": "VETC loyalty points", "titleVi": "Tích điểm VETC",
+        "desc": "Earn non-cash points for VETC services when you renew or verify your data.",
+        "descVi": "Tích điểm (không quy đổi tiền mặt) cho dịch vụ VETC khi gia hạn hoặc cập nhật thông tin.",
+        "relevance": { "clamp": [{ "+": [0.3, { "/": [{ "var": "appSessions30d" }, 15] }] }, 0, 1] },
+        "why": "active VETC app user"
+      },
+      {
+        "id": "multi_year", "type": "convenience", "provider": "TASCO Insurance", "legalStatus": "approved",
+        "title": "Multi-year cover aligned to inspection cycle", "titleVi": "Bảo hiểm nhiều năm theo chu kỳ đăng kiểm",
+        "desc": "Buy 2–3 years at the regulated pro-rata premium and skip yearly renewals.",
+        "descVi": "Mua 2–3 năm theo biểu phí quy định, không cần gia hạn hằng năm.",
+        "eligible": { "==": [{ "var": "ownerType" }, "individual"] },
+        "relevance": { "if": [{ ">": [{ "var": "walletBalance" }, 1000000] }, 0.6, 0.25] },
+        "why": "same regulated price per year, fewer renewals"
+      },
+      {
+        "id": "upsell_pa_seat", "type": "cover_upgrade", "product": "PA_SEAT", "provider": "TASCO Insurance", "legalStatus": "approved",
+        "title": "Protect your passengers (accident cover per seat)", "titleVi": "Bảo vệ người ngồi trên xe",
+        "desc": "TNDS covers third parties only. Add accident cover for you and your passengers from the same checkout.",
+        "descVi": "TNDS chỉ bảo vệ bên thứ ba. Thêm bảo hiểm tai nạn cho bạn và người ngồi trên xe ngay khi thanh toán.",
+        "eligible": { "in": [{ "var": "category" }, ["car_under6", "car_6_11", "pickup_van", "commercial_under6", "commercial_6_8"]] },
+        "relevance": { "if": [{ ">=": [{ "var": "seats" }, 7] }, 0.8, 0.55] },
+        "why": { "if": [{ ">=": [{ "var": "seats" }, 7] }, "family-size vehicle — passengers are not covered by TNDS", "TNDS does not cover you or your passengers"] }
+      },
+      {
+        "id": "upsell_motor_pd", "type": "cover_upgrade", "product": "MOTOR_PD", "provider": "TASCO Insurance", "legalStatus": "approved",
+        "title": "Cover damage to your own car", "titleVi": "Bảo hiểm vật chất cho xe của bạn",
+        "desc": "TNDS pays for damage you cause to others, not your car. Get a physical-damage quote in two taps.",
+        "descVi": "TNDS không chi trả thiệt hại cho xe của bạn. Nhận báo giá bảo hiểm vật chất xe chỉ với hai chạm.",
+        "eligible": { "and": [{ "==": [{ "var": "ownerType" }, "individual"] }, { "!": [{ "in": [{ "var": "category" }, ["truck_8_15t", "truck_over15t"]] }] }] },
+        "relevance": { "if": [{ "<=": [{ "var": "vehicleAge" }, 5] }, 0.75, 0.35] },
+        "why": { "if": [{ "<=": [{ "var": "vehicleAge" }, 5] }, "newer vehicle — repair costs are high", "protect your own vehicle"] }
+      },
+      {
+        "id": "fleet_dashboard", "type": "service", "provider": "VETC + TASCO", "legalStatus": "approved",
+        "title": "Fleet renewal dashboard & consolidated invoice", "titleVi": "Quản lý gia hạn đội xe & hóa đơn gộp",
+        "desc": "One view of every vehicle’s cover and one VAT invoice for the fleet.",
+        "descVi": "Theo dõi bảo hiểm toàn đội xe và nhận một hóa đơn VAT gộp.",
+        "eligible": { "==": [{ "var": "ownerType" }, "company"] },
+        "relevance": 0.95, "why": "company-owned vehicle"
+      }
+    ]
+  }
+}

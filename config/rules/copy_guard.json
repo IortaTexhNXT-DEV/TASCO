@@ -1,0 +1,8 @@
+{
+  "kind": "copy_guard",
+  "description": "Words that must never appear in customer-facing copy for price-regulated products (no unlawful discounts/rebates — Law on Insurance Business 08/2022/QH15).",
+  "payload": {
+    "appliesTo": "priceRegulated",
+    "bannedPhrases": ["giảm giá", "chiết khấu", "hoàn tiền", "khuyến mãi phí", "rẻ hơn", "discount", "cashback", "rebate", "% off", "cheaper", "lower premium", "price cut"]
+  }
+}

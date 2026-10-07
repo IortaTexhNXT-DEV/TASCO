@@ -1,0 +1,20 @@
+{
+  "description": "Role → permission mapping (RBAC). Changed only through code review + CAB (security config, not business rules). Segregation of duties: the platform admin cannot author/approve rules or see customer PII.",
+  "roles": {
+    "admin": ["users:manage", "ops:read", "ops:run_jobs", "audit:read", "rules:read", "dashboard:read"],
+    "executive": ["dashboard:read"],
+    "campaign_manager": ["dashboard:read", "leads:read", "leads:recompute", "journeys:run", "profile:read", "voice:operate", "rules:read", "handoff:read"],
+    "telesales_agent": ["handoff:read", "handoff:work", "profile:read", "profile:read_pii", "quote:create", "policy:issue", "policy:read", "voice:operate", "leads:read"],
+    "telesales_supervisor": ["handoff:read", "handoff:work", "handoff:assign", "profile:read", "profile:read_pii", "quote:create", "policy:issue", "policy:read", "dashboard:read", "leads:read", "voice:operate"],
+    "rule_author": ["rules:read", "rules:author", "dashboard:read"],
+    "rule_approver": ["rules:read", "rules:approve", "audit:read", "dashboard:read"],
+    "compliance_officer": ["rules:read", "rules:approve", "audit:read", "dashboard:read", "dsar:manage", "profile:read"],
+    "data_steward": ["dq:read", "dq:resolve", "profile:read", "profile:read_pii", "profile:update", "data:ingest", "leads:read", "dashboard:read"],
+    "claims_handler": ["claims:read", "claims:update", "policy:read", "profile:read"],
+    "partner_manager": ["partners:manage", "dashboard:read", "policy:read"],
+    "auditor": ["audit:read", "rules:read", "dashboard:read"],
+    "support_engineer": ["ops:read", "ops:run_jobs"],
+    "customer": ["customer:self"],
+    "partner_api": ["partner:transact"]
+  }
+}

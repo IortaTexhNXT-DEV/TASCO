@@ -1,0 +1,22 @@
+{
+  "kind": "rating.motor_pd",
+  "description": "ILLUSTRATIVE voluntary physical-damage rates (percent of sum insured) by vehicle age and use. TASCO actuarial owns the real filed rates; replace via the rules console (maker-checker).",
+  "payload": {
+    "currency": "VND",
+    "vatRate": 0.1,
+    "minPremium": 1000000,
+    "maxSumInsured": 5000000000,
+    "deductibleOptions": [0, 500000, 1000000],
+    "rateTable": {
+      "hitPolicy": "first",
+      "rules": [
+        { "id": "commercial", "when": { "==": [{ "var": "usage" }, "commercial"] }, "then": { "rate": 0.022 } },
+        { "id": "age_0_3", "when": { "<=": [{ "var": "vehicleAge" }, 3] }, "then": { "rate": 0.015 } },
+        { "id": "age_4_6", "when": { "<=": [{ "var": "vehicleAge" }, 6] }, "then": { "rate": 0.017 } },
+        { "id": "age_7_10", "when": { "<=": [{ "var": "vehicleAge" }, 10] }, "then": { "rate": 0.019 } }
+      ],
+      "default": { "rate": 0.021 }
+    },
+    "deductibleRelief": { "0": 0, "500000": 0.05, "1000000": 0.1 }
+  }
+}

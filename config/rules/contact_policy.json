@@ -1,0 +1,17 @@
+{
+  "kind": "contact_policy",
+  "description": "Anti-spam and consent policy (Decree 91/2020/ND-CP, PDPL). Conservative defaults — TASCO/VETC legal to confirm.",
+  "payload": {
+    "timezoneOffsetHours": 7,
+    "contactWindow": { "startHour": 8, "endHour": 20 },
+    "maxMarketingContactsPerDay": 1,
+    "maxMarketingContactsPerWeek": 3,
+    "maxCallAttemptsPerWeek": 2,
+    "consentRequired": {
+      "marketing": ["marketing"],
+      "voice_bot": ["call"],
+      "telesales": ["call"]
+    },
+    "serviceMessagesBypassCaps": true
+  }
+}

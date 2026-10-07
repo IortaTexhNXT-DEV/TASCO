@@ -1,0 +1,5 @@
+{
+  "kind": "referral",
+  "description": "Customer referral programme — non-cash VETC service credit only, never premium reduction. Disabled until legal approval.",
+  "payload": { "enabled": false, "legalStatus": "pending_legal_review", "rewardType": "vetc_points", "pointsPerReferral": 200, "maxReferralsPerMonth": 5 }
+}

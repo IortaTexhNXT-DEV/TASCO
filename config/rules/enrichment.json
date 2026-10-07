@@ -1,0 +1,51 @@
+{
+  "kind": "enrichment",
+  "description": "Master-data rules: source survivorship trust, expiry inference evidence weights and vehicle category inference.",
+  "payload": {
+    "sourceTrust": {
+      "tasco_core": 1.0,
+      "vetc_app_purchase": 0.95,
+      "vetc_account": 0.85,
+      "customer_declared": 0.75,
+      "partner_inspection_center": 0.65,
+      "partner_bank": 0.6,
+      "partner_showroom": 0.6,
+      "partner_fleet": 0.6,
+      "partner_agent": 0.5,
+      "telesales_csv": 0.4,
+      "default": 0.4
+    },
+    "expiryEvidence": {
+      "verified_certificate": { "confidence": 1.0 },
+      "customer_declared": { "confidence": 0.75 },
+      "partner_policy_record": { "confidence": 0.7, "scaleBySourceTrust": true, "trustReference": 0.6 },
+      "inspection_cycle": { "confidence": 0.5, "offsetDays": 365 },
+      "tag_anniversary": { "confidence": 0.25 }
+    },
+    "corroboration": { "windowDays": 21, "boostPerAgreement": 0.15, "maxConfidence": 0.95 },
+    "rollForwardFloorDays": 60,
+    "usableExpiryConfidence": 0.5,
+    "categoryTable": {
+      "hitPolicy": "first",
+      "rules": [
+        { "id": "truck_heavy", "when": { "and": [{ "!=": [{ "var": "seats" }, null] }, { "<=": [{ "var": "seats" }, 2] }, { ">=": [{ "var": "tollClass" }, 4] }] }, "then": { "category": "truck_over15t", "confidence": 0.7, "basis": "toll class 4–5 + 2 seats" } },
+        { "id": "truck_class3", "when": { "and": [{ "!=": [{ "var": "seats" }, null] }, { "<=": [{ "var": "seats" }, 2] }, { "==": [{ "var": "tollClass" }, 3] }] }, "then": { "category": "truck_8_15t", "confidence": 0.7, "basis": "toll class 3 + 2 seats" } },
+        { "id": "truck_class2", "when": { "and": [{ "!=": [{ "var": "seats" }, null] }, { "<=": [{ "var": "seats" }, 2] }, { "==": [{ "var": "tollClass" }, 2] }] }, "then": { "category": "truck_3_8t", "confidence": 0.7, "basis": "toll class 2 + 2 seats" } },
+        { "id": "truck_light", "when": { "and": [{ "!=": [{ "var": "seats" }, null] }, { "<=": [{ "var": "seats" }, 2] }] }, "then": { "category": "truck_under3t", "confidence": 0.65, "basis": "toll class 1 + 2 seats" } },
+        { "id": "car_small_comm", "when": { "and": [{ "!=": [{ "var": "seats" }, null] }, { "<": [{ "var": "seats" }, 6] }, { "var": "commercial" }] }, "then": { "category": "commercial_under6", "confidence": 0.85, "basis": "declared seats + commercial use" } },
+        { "id": "car_small", "when": { "and": [{ "!=": [{ "var": "seats" }, null] }, { "<": [{ "var": "seats" }, 6] }] }, "then": { "category": "car_under6", "confidence": 0.85, "basis": "declared seats" } },
+        { "id": "car_mid_comm", "when": { "and": [{ "!=": [{ "var": "seats" }, null] }, { "<=": [{ "var": "seats" }, 8] }, { "var": "commercial" }] }, "then": { "category": "commercial_6_8", "confidence": 0.8, "basis": "declared seats + commercial use" } },
+        { "id": "car_mid", "when": { "and": [{ "!=": [{ "var": "seats" }, null] }, { "<=": [{ "var": "seats" }, 11] }] }, "then": { "category": "car_6_11", "confidence": 0.85, "basis": "declared seats" } },
+        { "id": "car_bus_small", "when": { "and": [{ "!=": [{ "var": "seats" }, null] }, { "<=": [{ "var": "seats" }, 24] }] }, "then": { "category": "car_12_24", "confidence": 0.8, "basis": "declared seats" } },
+        { "id": "car_bus_large", "when": { "!=": [{ "var": "seats" }, null] }, "then": { "category": "car_over24", "confidence": 0.8, "basis": "declared seats" } },
+        { "id": "toll1_comm", "when": { "and": [{ "==": [{ "var": "tollClass" }, 1] }, { "var": "commercial" }] }, "then": { "category": "commercial_under6", "confidence": 0.5, "basis": "toll class 1 + commercial owner" } },
+        { "id": "toll1", "when": { "==": [{ "var": "tollClass" }, 1] }, "then": { "category": "car_under6", "confidence": 0.55, "basis": "toll class 1 (most common: car < 6 seats)" } },
+        { "id": "toll2", "when": { "==": [{ "var": "tollClass" }, 2] }, "then": { "category": "car_12_24", "confidence": 0.35, "basis": "toll class 2 (12–30 seats or 2–4 t truck)" } },
+        { "id": "toll3", "when": { "==": [{ "var": "tollClass" }, 3] }, "then": { "category": "truck_8_15t", "confidence": 0.35, "basis": "toll class 3" } },
+        { "id": "toll45", "when": { ">=": [{ "var": "tollClass" }, 4] }, "then": { "category": "truck_over15t", "confidence": 0.4, "basis": "toll class 4–5" } }
+      ],
+      "default": { "category": "car_under6", "confidence": 0.3, "basis": "default (most common vehicle type)" }
+    },
+    "dataQuality": { "completenessWeight": 0.5, "expiryWeight": 0.35, "categoryWeight": 0.15, "categoryMinConfidence": 0.6 }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "kind": "journeys",
+  "description": "Journey engine: each journey has an audience (JSON Logic over lead facts), an anchor date and timed steps. Covers retention AND new business. A vehicle is placed in the FIRST matching journey (priority order). Steps stop as soon as the vehicle is insured with TASCO.",
+  "payload": {
+    "catchUpDays": 2,
+    "journeys": [
+      {
+        "id": "lapsed_uninsured", "name": "Uninsured vehicle recovery", "objective": "new_business", "priority": 1,
+        "audience": { "and": [{ "!=": [{ "var": "days" }, null] }, { "<": [{ "var": "days" }, 0] }, { ">=": [{ "var": "days" }, -60] }, { ">=": [{ "var": "expiryConfidence" }, 0.5] }] },
+        "anchor": "today",
+        "steps": [
+          { "offset": 0, "step": "lapsed_notice", "channels": ["app_push", "zalo_zns", "sms"], "marketing": false, "template": "lapsed_notice" },
+          { "offset": 2, "step": "voice_bot", "channels": ["voice_bot"], "marketing": true, "onlyTiers": ["hot", "warm"] },
+          { "offset": 5, "step": "telesales", "channels": ["telesales"], "marketing": true, "onlyTiers": ["hot"] }
+        ]
+      },
+      {
+        "id": "new_vehicle", "name": "New vehicle onboarding", "objective": "new_business", "priority": 2,
+        "audience": { "and": [{ "!=": [{ "var": "tagAgeDays" }, null] }, { "<=": [{ "var": "tagAgeDays" }, 60] }, { "!=": [{ "var": "insurer" }, "TASCO"] }] },
+        "anchor": "tagActivatedAt",
+        "steps": [
+          { "offset": 1, "step": "welcome", "channels": ["app_push", "zalo_zns"], "marketing": false, "template": "new_vehicle_welcome" },
+          { "offset": 7, "step": "verify_expiry", "channels": ["app_push", "zalo_zns"], "marketing": false, "template": "verify_expiry" },
+          { "offset": 14, "step": "value_reminder", "channels": ["app_push", "zalo_zns"], "marketing": true, "template": "value_reminder" }
+        ]
+      },
+      {
+        "id": "renewal", "name": "TASCO renewal (retention)", "objective": "retention", "priority": 3,
+        "audience": { "==": [{ "var": "insurer" }, "TASCO"] },
+        "anchor": "expiry",
+        "steps": [
+          { "offset": -45, "step": "verify_expiry", "channels": ["app_push", "zalo_zns"], "marketing": false, "template": "verify_expiry" },
+          { "offset": -30, "step": "first_reminder", "channels": ["app_push", "zalo_zns", "sms"], "marketing": true, "template": "first_reminder" },
+          { "offset": -21, "step": "value_reminder", "channels": ["zalo_zns", "app_push"], "marketing": true, "template": "value_reminder" },
+          { "offset": -14, "step": "voice_bot", "channels": ["voice_bot"], "marketing": true, "onlyTiers": ["hot", "warm"] },
+          { "offset": -7, "step": "urgent_reminder", "channels": ["app_push", "zalo_zns", "sms"], "marketing": true, "template": "urgent_reminder" },
+          { "offset": -3, "step": "telesales", "channels": ["telesales"], "marketing": true, "onlyTiers": ["hot"] },
+          { "offset": 0, "step": "expiry_day", "channels": ["app_push", "zalo_zns", "sms"], "marketing": false, "template": "expiry_day" }
+        ]
+      },
+      {
+        "id": "conquest", "name": "Conquest (insured elsewhere or unknown insurer)", "objective": "new_business", "priority": 4,
+        "audience": { "!=": [{ "var": "insurer" }, "TASCO"] },
+        "anchor": "expiry",
+        "steps": [
+          { "offset": -45, "step": "verify_expiry", "channels": ["app_push", "zalo_zns"], "marketing": false, "template": "verify_expiry" },
+          { "offset": -30, "step": "first_reminder", "channels": ["app_push", "zalo_zns", "sms"], "marketing": true, "template": "conquest_reminder" },
+          { "offset": -21, "step": "value_reminder", "channels": ["zalo_zns", "app_push"], "marketing": true, "template": "value_reminder" },
+          { "offset": -14, "step": "voice_bot", "channels": ["voice_bot"], "marketing": true, "onlyTiers": ["hot"] },
+          { "offset": -7, "step": "urgent_reminder", "channels": ["app_push", "zalo_zns"], "marketing": true, "template": "urgent_reminder" }
+        ]
+      }
+    ],
+    "crossSell": {
+      "id": "cross_sell", "name": "Cover upgrade after purchase", "objective": "cross_sell",
+      "steps": [
+        { "offset": 1, "step": "cross_sell", "channels": ["app_push", "zalo_zns"], "marketing": true, "template": "cross_sell" }
+      ]
+    }
+  }
+}

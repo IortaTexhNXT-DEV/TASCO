@@ -1,0 +1,16 @@
+{
+  "kind": "tariff.tnds_motorbike",
+  "description": "Regulated annual TNDS premiums for motorbikes, VND excluding VAT (Decree 67/2023/ND-CP). Confirm with TASCO underwriting.",
+  "payload": {
+    "currency": "VND",
+    "vatRate": 0.1,
+    "proRata": "days_over_365",
+    "minTermYears": 1,
+    "maxTermYears": 3,
+    "categories": {
+      "moto_under50cc": { "label": "Motorbike ≤ 50cc", "labelVi": "Xe máy dưới 50cc", "annual": 55000 },
+      "moto_over50cc": { "label": "Motorbike > 50cc", "labelVi": "Xe máy trên 50cc", "annual": 60000 },
+      "moto_3wheel": { "label": "Three-wheeler", "labelVi": "Xe mô tô ba bánh", "annual": 290000 }
+    }
+  }
+}

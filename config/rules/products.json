@@ -1,0 +1,113 @@
+{
+  "kind": "products",
+  "description": "Product catalogue sold through the platform. Adding a product is configuration, not code: give it a rating method and the rule kind holding its rates.",
+  "payload": {
+    "products": [
+      {
+        "code": "TNDS_CAR",
+        "name": "Compulsory motor third-party liability (car)",
+        "nameVi": "Bảo hiểm TNDS bắt buộc ô tô",
+        "line": "motor",
+        "compulsory": true,
+        "rating": {
+          "method": "tariff_table",
+          "ruleKind": "tariff.tnds_car"
+        },
+        "priceRegulated": true,
+        "channels": [
+          "vetc_app",
+          "zalo",
+          "telesales",
+          "voice_bot",
+          "partner_api"
+        ],
+        "certificate": "electronic",
+        "status": "active"
+      },
+      {
+        "code": "TNDS_MOTORBIKE",
+        "name": "Compulsory motor third-party liability (motorbike)",
+        "nameVi": "Bảo hiểm TNDS bắt buộc xe máy",
+        "line": "motor",
+        "compulsory": true,
+        "rating": {
+          "method": "tariff_table",
+          "ruleKind": "tariff.tnds_motorbike"
+        },
+        "priceRegulated": true,
+        "channels": [
+          "vetc_app",
+          "zalo"
+        ],
+        "certificate": "electronic",
+        "status": "active"
+      },
+      {
+        "code": "MOTOR_PD",
+        "name": "Voluntary motor physical damage",
+        "nameVi": "Bảo hiểm vật chất xe ô tô",
+        "line": "motor",
+        "compulsory": false,
+        "rating": {
+          "method": "rate_on_sum_insured",
+          "ruleKind": "rating.motor_pd"
+        },
+        "priceRegulated": false,
+        "requiresInspection": true,
+        "channels": [
+          "vetc_app",
+          "telesales",
+          "partner_api"
+        ],
+        "certificate": "electronic",
+        "status": "active"
+      },
+      {
+        "code": "PA_SEAT",
+        "name": "Driver & passenger personal accident",
+        "nameVi": "Bảo hiểm tai nạn lái phụ xe và người ngồi trên xe",
+        "line": "personal_accident",
+        "compulsory": false,
+        "rating": {
+          "method": "per_seat",
+          "ruleKind": "rating.pa_seat"
+        },
+        "priceRegulated": false,
+        "channels": [
+          "vetc_app",
+          "zalo",
+          "telesales",
+          "voice_bot",
+          "partner_api"
+        ],
+        "certificate": "electronic",
+        "status": "active"
+      }
+    ],
+    "bundles": [
+      {
+        "code": "SAFE_DRIVE",
+        "name": "Safe Drive bundle: TNDS + driver & passenger accident",
+        "nameVi": "Gói An Tâm Lái: TNDS + tai nạn người ngồi trên xe",
+        "products": [
+          "TNDS_CAR",
+          "PA_SEAT"
+        ],
+        "pricing": "sum_of_components",
+        "status": "active"
+      },
+      {
+        "code": "FULL_MOTOR",
+        "name": "Full motor: TNDS + physical damage + accident",
+        "nameVi": "Gói Toàn Diện: TNDS + vật chất xe + tai nạn",
+        "products": [
+          "TNDS_CAR",
+          "MOTOR_PD",
+          "PA_SEAT"
+        ],
+        "pricing": "sum_of_components",
+        "status": "active"
+      }
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "kind": "tariff.tnds_car",
+  "description": "Regulated annual TNDS premiums for cars, VND excluding VAT. Source: Decree 67/2023/ND-CP Appendix I. TASCO underwriting must confirm before go-live.",
+  "payload": {
+    "currency": "VND",
+    "vatRate": 0.1,
+    "proRata": "days_over_365",
+    "minTermYears": 1,
+    "maxTermYears": 3,
+    "categories": {
+      "car_under6": { "label": "Car < 6 seats (non-commercial)", "labelVi": "Xe dưới 6 chỗ (không kinh doanh)", "annual": 437000 },
+      "car_6_11": { "label": "Car 6–11 seats (non-commercial)", "labelVi": "Xe 6–11 chỗ (không kinh doanh)", "annual": 794000 },
+      "car_12_24": { "label": "Car 12–24 seats (non-commercial)", "labelVi": "Xe 12–24 chỗ (không kinh doanh)", "annual": 1270000 },
+      "car_over24": { "label": "Car > 24 seats (non-commercial)", "labelVi": "Xe trên 24 chỗ (không kinh doanh)", "annual": 1825000 },
+      "pickup_van": { "label": "Pickup / minivan", "labelVi": "Xe bán tải / minivan", "annual": 437000 },
+      "commercial_under6": { "label": "Commercial car < 6 seats", "labelVi": "Xe kinh doanh dưới 6 chỗ", "annual": 756000 },
+      "commercial_6_8": { "label": "Commercial car 6–8 seats", "labelVi": "Xe kinh doanh 6–8 chỗ", "annual": 1080000 },
+      "truck_under3t": { "label": "Truck < 3 tonnes", "labelVi": "Xe tải dưới 3 tấn", "annual": 853000 },
+      "truck_3_8t": { "label": "Truck 3–8 tonnes", "labelVi": "Xe tải 3–8 tấn", "annual": 1660000 },
+      "truck_8_15t": { "label": "Truck 8–15 tonnes", "labelVi": "Xe tải 8–15 tấn", "annual": 2746000 },
+      "truck_over15t": { "label": "Truck > 15 tonnes", "labelVi": "Xe tải trên 15 tấn", "annual": 3200000 }
+    }
+  }
+}

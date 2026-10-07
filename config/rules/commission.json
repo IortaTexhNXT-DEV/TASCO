@@ -1,0 +1,17 @@
+{
+  "kind": "commission",
+  "description": "Partner commission rules by product and partner type, as a share of net premium. Statutory caps apply (Ministry of Finance circular on insurance agent commission) — TASCO finance/legal to confirm figures.",
+  "payload": {
+    "statutoryCaps": { "TNDS_CAR": 0.05, "TNDS_MOTORBIKE": 0.05, "MOTOR_PD": 0.1, "PA_SEAT": 0.2 },
+    "table": {
+      "hitPolicy": "first",
+      "rules": [
+        { "id": "tnds_any", "when": { "in": [{ "var": "product" }, ["TNDS_CAR", "TNDS_MOTORBIKE"]] }, "then": { "rate": 0.05 } },
+        { "id": "pd_showroom", "when": { "and": [{ "==": [{ "var": "product" }, "MOTOR_PD"] }, { "==": [{ "var": "partnerType" }, "showroom"] }] }, "then": { "rate": 0.1 } },
+        { "id": "pd_other", "when": { "==": [{ "var": "product" }, "MOTOR_PD"] }, "then": { "rate": 0.08 } },
+        { "id": "pa", "when": { "==": [{ "var": "product" }, "PA_SEAT"] }, "then": { "rate": 0.15 } }
+      ],
+      "default": { "rate": 0 }
+    }
+  }
+}

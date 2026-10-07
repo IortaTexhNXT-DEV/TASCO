@@ -1,0 +1,66 @@
+{
+  "kind": "scoring",
+  "description": "Explainable lead score. Each factor is a JSON Logic expression returning 0..1 plus a reason expression; score = sum(weight * value) damped by expiry confidence.",
+  "payload": {
+    "tiers": { "hot": 70, "warm": 45 },
+    "damping": { "base": 0.6, "byExpiryConfidence": 0.4 },
+    "factors": [
+      {
+        "key": "urgency", "weight": 35, "label": "Renewal urgency",
+        "value": { "if": [
+          { "==": [{ "var": "days" }, null] }, 0.2,
+          { "<": [{ "var": "days" }, -60] }, 0.2,
+          { "<": [{ "var": "days" }, 0] }, 0.95,
+          { "<=": [{ "var": "days" }, 14] }, 1,
+          { "<=": [{ "var": "days" }, 30] }, 0.85,
+          { "<=": [{ "var": "days" }, 45] }, 0.6,
+          { "<=": [{ "var": "days" }, 90] }, 0.3,
+          0.05 ] },
+        "reason": { "if": [
+          { "==": [{ "var": "days" }, null] }, "expiry unknown",
+          { "<": [{ "var": "days" }, -60] }, { "cat": ["lapsed ", { "-": [{ "var": "days" }] }, " days (likely renewed elsewhere)"] },
+          { "<": [{ "var": "days" }, 0] }, { "cat": ["cover lapsed ", { "-": [{ "var": "days" }] }, " days ago — driving uninsured"] },
+          { "cat": ["expires in ", { "var": "days" }, " days"] } ] }
+      },
+      {
+        "key": "expiryConfidence", "weight": 15, "label": "Data confidence",
+        "value": { "var": "expiryConfidence" },
+        "reason": { "cat": ["expiry from ", { "var": "expiryMethodLabel" }, " (", { "round": [{ "*": [{ "var": "expiryConfidence" }, 100] }] }, "%)"] }
+      },
+      {
+        "key": "engagement", "weight": 20, "label": "Engagement",
+        "value": { "+": [
+          { "*": [0.55, { "clamp": [{ "/": [{ "var": "appSessions30d" }, 10] }, 0, 1] }] },
+          { "*": [0.45, { "clamp": [{ "/": [{ "var": "tollTrips30d" }, 20] }, 0, 1] }] } ] },
+        "reason": { "cat": [{ "var": "appSessions30d" }, " app sessions, ", { "var": "tollTrips30d" }, " toll trips in 30 days"] }
+      },
+      {
+        "key": "reachability", "weight": 15, "label": "Reachability",
+        "value": { "clamp": [{ "+": [
+          { "if": [{ "var": "channels.app_push" }, 0.4, 0] },
+          { "if": [{ "var": "channels.zalo_zns" }, 0.3, 0] },
+          { "if": [{ "and": [{ "var": "channels.voice_bot" }, { "var": "consent.call" }] }, 0.3, { "var": "channels.sms" }, 0.1, 0] } ] }, 0, 1] },
+        "reason": { "cat": [
+          "reachable via",
+          { "if": [{ "var": "channels.app_push" }, " push", ""] },
+          { "if": [{ "var": "channels.zalo_zns" }, " Zalo", ""] },
+          { "if": [{ "and": [{ "var": "channels.voice_bot" }, { "var": "consent.call" }] }, " phone(call consent)", { "var": "channels.sms" }, " SMS", ""] } ] }
+      },
+      {
+        "key": "affinity", "weight": 15, "label": "Relationship",
+        "value": { "clamp": [{ "+": [0.3,
+          { "if": [{ "var": "priorVetcInsurancePurchase" }, 0.35, 0] },
+          { "if": [{ "==": [{ "var": "insurer" }, "TASCO"] }, 0.2, 0] },
+          { "if": [{ ">=": [{ "var": "walletBalance" }, { "var": "premium" }] }, 0.2, 0] },
+          { "if": [{ "var": "autoTopUp" }, 0.1, 0] },
+          { "*": [-0.25, { "var": "complaints12m" }] } ] }, 0, 1] },
+        "reason": { "cat": [
+          { "if": [{ "var": "priorVetcInsurancePurchase" }, "bought in VETC app before; ", ""] },
+          { "if": [{ "==": [{ "var": "insurer" }, "TASCO"] }, "current TASCO customer; ", ""] },
+          { "if": [{ ">=": [{ "var": "walletBalance" }, { "var": "premium" }] }, "wallet covers premium (one-tap pay); ", ""] },
+          { "if": [{ "var": "complaints12m" }, "recent complaint(s); ", ""] } ] }
+      }
+    ],
+    "zeroWhen": { "var": "consent.dnc" }
+  }
+}

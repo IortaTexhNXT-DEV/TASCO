@@ -1,0 +1,10 @@
+{
+  "kind": "rating.pa_seat",
+  "description": "ILLUSTRATIVE driver & passenger personal-accident pricing per seat. Replace with TASCO filed rates.",
+  "payload": {
+    "currency": "VND",
+    "vatExempt": true,
+    "sumInsuredOptions": [10000000, 20000000, 50000000, 100000000],
+    "ratePerSeat": 0.001
+  }
+}
