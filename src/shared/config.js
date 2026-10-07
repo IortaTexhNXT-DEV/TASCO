@@ -26,6 +26,51 @@ function int(v, dflt) {
   return Number.isFinite(n) && v !== '' && v !== undefined ? n : dflt;
 }
 
+/** Production guard: TASCO core must price quotes unless local rating is explicitly allowed. */
+function assertProductionRating({ ratingSource, allowLocalRating, coreBaseUrl, coreClientId, coreClientSecret }) {
+  if (ratingSource === 'rules' && !allowLocalRating) {
+    throw new Error('RATING_SOURCE=rules (local rule-set rating) is not allowed in production — TASCO core is the system of record for rating. Set RATING_SOURCE=core or core_with_fallback, or ALLOW_LOCAL_RATING=true to override explicitly.');
+  }
+  if (ratingSource !== 'rules' && !coreBaseUrl && !allowLocalRating) {
+    throw new Error(`TASCO_CORE_BASE_URL is required in production with RATING_SOURCE=${ratingSource} (without it the simulated core would be used)`);
+  }
+  if (coreBaseUrl && coreBaseUrl.startsWith('http://')) throw new Error('TASCO_CORE_BASE_URL must use https in production');
+  if (coreBaseUrl && (!coreClientId || !coreClientSecret)) {
+    throw new Error('TASCO_CORE_CLIENT_ID and TASCO_CORE_CLIENT_SECRET (or TASCO_CORE_CLIENT_SECRET_FILE) are required in production when TASCO_CORE_BASE_URL is set');
+  }
+}
+
+function ratingConfig(env, production, warnings) {
+  // Rating: TASCO core is the system of record for products and premiums.
+  //   rules              – local rule sets (sandbox / demo; current behaviour)
+  //   core               – TASCO core prices every quote; fail closed (503) when core is down
+  //   core_with_fallback – core first; if core is unreachable, a local *indicative* price
+  //                        that cannot be paid until re-rated by core
+  const ratingSource = (env.RATING_SOURCE || 'rules').trim().toLowerCase();
+  const RATING_SOURCES = ['rules', 'core', 'core_with_fallback'];
+  if (!RATING_SOURCES.includes(ratingSource)) throw new Error(`RATING_SOURCE must be one of ${RATING_SOURCES.join(', ')} (got ${ratingSource})`);
+  const allowLocalRating = bool(env.ALLOW_LOCAL_RATING, false);
+  const coreBaseUrl = (env.TASCO_CORE_BASE_URL || '').trim().replace(/\/+$/, '') || null;
+  if (coreBaseUrl && !/^https?:\/\//.test(coreBaseUrl)) throw new Error('TASCO_CORE_BASE_URL must be an http(s) URL');
+  const coreClientSecret = readSecret(env, 'TASCO_CORE_CLIENT_SECRET') || null;
+  const coreClientId = env.TASCO_CORE_CLIENT_ID || null;
+  if (production) assertProductionRating({ ratingSource, allowLocalRating, coreBaseUrl, coreClientId, coreClientSecret });
+  if (ratingSource !== 'rules' && !coreBaseUrl) warnings.push(`RATING_SOURCE=${ratingSource} without TASCO_CORE_BASE_URL — using the simulated TASCO core (sandbox/UAT only)`);
+
+  return {
+    ratingSource,
+    allowLocalRating,
+    tascoCore: {
+      baseUrl: coreBaseUrl,
+      tokenUrl: (env.TASCO_CORE_TOKEN_URL || '').trim() || (coreBaseUrl ? `${coreBaseUrl}/oauth2/token` : null),
+      clientId: coreClientId,
+      clientSecret: coreClientSecret,
+      scope: env.TASCO_CORE_SCOPE || 'rating:quote products:read',
+      timeoutMs: int(env.TASCO_CORE_TIMEOUT_MS, 5000),
+    },
+  };
+}
+
 function loadConfig(env = process.env) {
   const nodeEnv = env.NODE_ENV || 'development';
   const production = nodeEnv === 'production';
@@ -68,6 +113,8 @@ function loadConfig(env = process.env) {
     throw new Error('DATABASE_URL is required in production (the in-memory store loses all data on restart)');
   }
 
+  const rating = ratingConfig(env, production, warnings);
+
   const cfg = {
     nodeEnv,
     production,
@@ -101,6 +148,7 @@ function loadConfig(env = process.env) {
     trustProxyHops: int(env.TRUST_PROXY_HOPS, 1),
     metricsToken: readSecret(env, 'METRICS_TOKEN') || null,
     linkTtlDays: int(env.LINK_TTL_DAYS, 30),
+    ...rating,
     warnings,
   };
   return cfg;

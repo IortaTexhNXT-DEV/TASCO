@@ -32,6 +32,7 @@ spec:
             - { name: DATA_KEYS_FILE, value: /run/secrets/tasco/DATA_KEYS }
             - { name: BLIND_INDEX_KEY_FILE, value: /run/secrets/tasco/BLIND_INDEX_KEY }
             - { name: METRICS_TOKEN_FILE, value: /run/secrets/tasco/METRICS_TOKEN }
+            - { name: TASCO_CORE_CLIENT_SECRET_FILE, value: /run/secrets/tasco/TASCO_CORE_CLIENT_SECRET }
           resources:
             requests: { cpu: 250m, memory: 256Mi }
             limits: { cpu: "1", memory: 512Mi }

@@ -34,7 +34,7 @@ function createTascoCoreGateway({ publicBaseUrl }) {
   let seq = 100000;
   return {
     name: 'tasco-core',
-    async issuePolicy({ product, plate, holderName, startDate, endDate, premiumNet, vat, orderId }) {
+    async issuePolicy({ product, plate, holderName, startDate, endDate, premiumNet, vat, orderId, coreQuoteRef = null }) {
       seq++;
       const certNo = `TAS-${product.replace(/_/g, '').slice(0, 6)}-${new Date().getUTCFullYear()}-${seq}`;
       return {
@@ -48,6 +48,7 @@ function createTascoCoreGateway({ publicBaseUrl }) {
         premiumNet,
         vat,
         orderId,
+        coreQuoteRef, // a real core binds exactly the quote it priced
         certificateUrl: `${publicBaseUrl}/verify/${encodeURIComponent(certNo)}`,
         issuedAt: new Date().toISOString(),
       };

@@ -14,3 +14,8 @@ data:
   RATE_LIMIT_MAX: "300"
   RATE_LIMIT_LOGIN_MAX: "10"
   DEMO_MODE: "false"
+  # TASCO core is the system of record for products and rating (fail closed if unavailable).
+  RATING_SOURCE: core
+  TASCO_CORE_BASE_URL: https://core-api.tascoinsurance.com.vn   # adjust to the TASCO core API gateway
+  TASCO_CORE_CLIENT_ID: tasco-growth-platform
+  TASCO_CORE_TIMEOUT_MS: "5000"

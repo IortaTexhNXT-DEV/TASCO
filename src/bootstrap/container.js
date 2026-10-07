@@ -13,6 +13,8 @@ const { createMemoryStore } = require('../adapters/persistence/memoryStore');
 const { createOutboxEventBus } = require('../adapters/messaging/outboxEventBus');
 const { createVetcWalletGateway, createTascoCoreGateway, createNotificationGateway } = require('../adapters/integrations/mockGateways');
 const { createSimulatedCaller } = require('../adapters/integrations/simulatedCaller');
+const { createTascoCoreRatingClient } = require('../adapters/integrations/tascoCoreRatingClient');
+const { createSimulatedTascoCore } = require('../adapters/integrations/simulatedTascoCore');
 const { createAuditService } = require('../application/auditService');
 const { createRulesService } = require('../application/rulesService');
 const { createIngestionService } = require('../application/ingestionService');
@@ -20,6 +22,8 @@ const { createLeadService } = require('../application/leadService');
 const { createJourneyService } = require('../application/journeyService');
 const { createVoiceService } = require('../application/voiceService');
 const { createSalesService } = require('../application/salesService');
+const { createRatingService } = require('../application/ratingService');
+const { createCatalogueService } = require('../application/catalogueService');
 const { createPartnerService } = require('../application/partnerService');
 const { createClaimsService } = require('../application/claimsService');
 const { createCustomerService } = require('../application/customerService');
@@ -69,6 +73,7 @@ async function createContainer(config, { logSink, store: injectedStore } = {}) {
       zalo_zns: breaker('zalo-zns', createNotificationGateway({ channel: 'zalo_zns' })),
       sms: breaker('sms', createNotificationGateway({ channel: 'sms' })),
     },
+    ...coreGateways({ config, rules, clock, logger, metrics, breaker }),
   };
 
   // Signed deep links (no enumerable ids in customer-facing URLs).
@@ -92,6 +97,8 @@ async function createContainer(config, { logSink, store: injectedStore } = {}) {
 
   const deps = { store, rules, audit, events, clock, logger, metrics, gateways, config, links, rbac };
   const voice = createVoiceService(deps);
+  const rating = createRatingService(deps);
+  const ops = createOpsService(deps);
   const services = {
     rules,
     audit,
@@ -99,19 +106,43 @@ async function createContainer(config, { logSink, store: injectedStore } = {}) {
     leads: createLeadService(deps),
     voice,
     journeys: createJourneyService({ ...deps, voice }),
-    sales: createSalesService(deps),
+    sales: createSalesService({ ...deps, rating }),
+    rating,
     partners: createPartnerService(deps),
     claims: createClaimsService(deps),
     customers: createCustomerService(deps),
     identity: createIdentityService(deps),
     access: createAccessPolicy(deps),
     insights: createInsightsService(deps),
-    ops: createOpsService(deps),
+    ops,
+    catalogue: createCatalogueService({ ...deps, ops }),
   };
 
   registerSubscribers({ events, services, store, clock, rules, config });
 
   return { config, logger, metrics, clock, store, events, gateways, links, rbac, services };
+}
+
+/**
+ * TASCO core rating + product catalogue ports. With TASCO_CORE_BASE_URL the real
+ * HTTP client is used (it carries its own retry/circuit breakers, so `exec` is a
+ * pass-through); without it the simulated core keeps sandbox/UAT working.
+ */
+function coreGateways({ config, rules, clock, logger, metrics, breaker }) {
+  const core = config.tascoCore || {};
+  if (core.baseUrl) {
+    const client = createTascoCoreRatingClient({ ...core, logger, metrics });
+    const direct = (name, state) => ({ name, port: client, exec: (fn) => fn(), state, mode: client.mode, endpoint: client.endpoint });
+    return {
+      coreRating: direct('tasco-core-rating', client.circuit.rating),
+      productCatalogue: direct('tasco-core-catalogue', client.circuit.catalogue),
+    };
+  }
+  const sim = createSimulatedTascoCore({ rules, clock });
+  return {
+    coreRating: { ...breaker('tasco-core-rating', sim, { timeoutMs: core.timeoutMs || 5000, retries: 1 }), mode: sim.mode, endpoint: null },
+    productCatalogue: { ...breaker('tasco-core-catalogue', sim, { timeoutMs: 30000, retries: 1 }), mode: sim.mode, endpoint: null },
+  };
 }
 
 /** Event-driven reactions (idempotent handlers). */

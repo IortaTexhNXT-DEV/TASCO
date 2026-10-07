@@ -52,7 +52,10 @@ const SPECIFIC = {
       if (!prod.code || !/^[A-Z][A-Z0-9_]{1,40}$/.test(prod.code)) e.push(`bad product code ${prod.code}`);
       if (codes.has(prod.code)) e.push(`duplicate product ${prod.code}`);
       codes.add(prod.code);
-      if (!['tariff_table', 'rate_on_sum_insured', 'per_seat'].includes(prod.rating?.method)) e.push(`${prod.code}: unknown rating method`);
+      // 'core' = priced by TASCO core only (product synced from the core catalogue, no local rates).
+      if (!['tariff_table', 'rate_on_sum_insured', 'per_seat', 'core'].includes(prod.rating?.method)) e.push(`${prod.code}: unknown rating method`);
+      else if (prod.rating.method !== 'core' && !prod.rating.ruleKind) e.push(`${prod.code}: rating.ruleKind required`);
+      if (!Array.isArray(prod.channels)) e.push(`${prod.code}: channels[] required`);
     }
     for (const b of p.bundles || []) for (const c of b.products) if (!codes.has(c)) e.push(`bundle ${b.code} references unknown product ${c}`);
   },

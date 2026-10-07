@@ -11,7 +11,7 @@ const { buildRoutes } = require('../adapters/http/routes');
 
 /**
  * Batch / scheduled jobs (Kubernetes CronJobs, Railway cron, or manual):
- *   migrate | seed | rules | journeys | recompute | reconcile | retention | relay | openapi
+ *   migrate | seed | rules | journeys | recompute | reconcile | retention | relay | sync-catalogue | openapi
  */
 const JOBS = {
   async migrate(c) { if (!c.store.migrate) return { skipped: 'in-memory store' }; return { applied: await c.store.migrate() }; },
@@ -26,6 +26,8 @@ const JOBS = {
   async reconcile(c) { return c.services.ops.reconcile('cron'); },
   async retention(c) { return c.services.ops.applyRetention('cron'); },
   async relay(c) { return { processed: await c.events.drain() }; },
+  /** Pull TASCO core's product catalogue → propose a `products` rule-set version (maker-checker; never auto-activated). */
+  async 'sync-catalogue'(c) { return c.services.catalogue.sync('cron'); },
   async openapi(c) {
     const spec = buildOpenApi(createRouter(buildRoutes()).routes, { version: require('../../package.json').version, serverUrl: c.config.publicBaseUrl });
     const out = path.join(ROOT, 'docs', 'api', 'openapi.json');

@@ -77,12 +77,7 @@ function buildRoutes() {
         const meta = { name: 'TASCO Growth Platform', version: require('../../../package.json').version, demoMode: c.config.demoMode, today: c.clock.today(), store: c.store.kind };
         if (c.config.demoMode) {
           // Demo only: a few customers per journey so the customer app can be explored without a real link.
-          const leads = c.store.collection('leads');
-          const picks = [];
-          for (const journey of ['renewal', 'lapsed_uninsured', 'new_vehicle', 'conquest']) {
-            for (const l of await leads.find({ where: { journey }, orderBy: ['score', 'desc'], limit: 2 })) picks.push({ id: l.id, plate: l.plate, journey });
-          }
-          meta.demoCustomers = picks;
+          meta.demoCustomers = await c.services.customers.demoCustomers();
         }
         return meta;
       } },
@@ -252,6 +247,13 @@ function buildRoutes() {
     { method: 'POST', path: '/api/quotes/:id/inspection', auth: 'staff', perm: 'quote:create', tag: 'Sales', summary: 'Record the vehicle inspection required for physical-damage cover',
       body: { passed: { type: 'boolean', required: true }, evidence: { type: 'string', max: 500, required: true } },
       handler: async ({ c, principal, params, body }) => c.services.sales.recordInspection(params.id, body, principal) },
+    { method: 'POST', path: '/api/quotes/:id/rerate', auth: 'staff', perm: 'quote:create', tag: 'Sales', summary: 'Re-rate an indicative quote with TASCO core (required before payment)',
+      handler: async ({ c, principal, params }) => {
+        const pending = await c.services.sales.getQuote(params.id);
+        const profile = await c.store.collection('profiles').get(pending.profileId);
+        if (profile) await c.services.access.check(principal, 'read', { type: 'profile', region: profile.province });
+        return c.services.sales.rerate(params.id, principal);
+      } },
     { method: 'POST', path: '/api/quotes/:id/send', auth: 'staff', perm: 'quote:create', tag: 'Sales', summary: 'Send a quote to the customer\'s VETC app / Zalo to confirm and pay (staff never take payment)',
       handler: async ({ c, principal, params }) => {
         const pending = await c.services.sales.getQuote(params.id);
@@ -414,15 +416,31 @@ function buildRoutes() {
     { method: 'GET', path: '/api/ops/status', auth: 'staff', perm: 'ops:read', tag: 'Operations', summary: 'Integrations, store, rules and backlog status',
       handler: async ({ c }) => ({
         store: c.store.kind,
-        integrations: [c.gateways.payment, c.gateways.policyAdmin, c.gateways.telephony, ...Object.values(c.gateways.notify)].map((g) => ({ name: g.name, circuit: g.state() })),
+        integrations: [c.gateways.payment, c.gateways.policyAdmin, c.gateways.coreRating, c.gateways.productCatalogue, c.gateways.telephony, ...Object.values(c.gateways.notify)].filter(Boolean).map((g) => ({ name: g.name, circuit: g.state() })),
         rules: await c.services.rules.snapshot(),
         eventBacklog: await c.store.collection('domain_events').countBy('status'),
         auditEntries: await c.services.audit.count(),
       }) },
     { method: 'GET', path: '/api/ops/jobs', auth: 'staff', perm: 'ops:read', tag: 'Operations', summary: 'Job history',
       handler: async ({ c }) => c.services.ops.jobRuns() },
-    { method: 'POST', path: '/api/ops/jobs/:kind', auth: 'staff', perm: 'ops:run_jobs', tag: 'Operations', summary: 'Run a job: reconciliation | retention | relay',
+    { method: 'GET', path: '/api/integrations/status', auth: 'staff', perm: 'ops:read', tag: 'Operations', summary: 'TASCO core integration: rating source, circuit states, last catalogue sync',
+      handler: async ({ c }) => {
+        const { coreRating, productCatalogue, policyAdmin } = c.gateways;
+        const source = c.config.ratingSource;
+        return {
+          rating: {
+            source,
+            failClosed: source === 'core',
+            fallbackToIndicative: source === 'core_with_fallback',
+            core: { mode: coreRating.mode, endpoint: coreRating.endpoint || null, circuit: coreRating.state() },
+          },
+          catalogue: { circuit: productCatalogue.state(), lastSync: await c.services.catalogue.lastSync() },
+          policyAdministration: { circuit: policyAdmin.state() },
+        };
+      } },
+    { method: 'POST', path: '/api/ops/jobs/:kind', auth: 'staff', perm: 'ops:run_jobs', tag: 'Operations', summary: 'Run a job: reconciliation | retention | relay | catalogue-sync',
       handler: async ({ c, principal, params }) => {
+        if (params.kind === 'catalogue-sync') return c.services.catalogue.sync(principal.id);
         if (params.kind === 'reconciliation') return c.services.ops.reconcile(principal.id);
         if (params.kind === 'retention') return c.services.ops.applyRetention(principal.id);
         if (params.kind === 'relay') return c.services.ops.recordRun('relay', principal.id, async () => ({ processed: await c.events.drain() }));
@@ -451,6 +469,12 @@ function buildRoutes() {
     { method: 'POST', path: '/api/customer/quotes', auth: 'customer', tag: 'Customer', summary: 'Quote for my vehicle',
       body: { products: PRODUCT_LINES, termYears: { type: 'integer', min: 1, max: 3 }, journey: { type: 'string', max: 40 } },
       handler: async ({ c, principal, body }) => c.services.sales.quote({ ...body, profileId: principal.customerId, channel: 'vetc_app' }, principal) },
+    { method: 'POST', path: '/api/customer/quotes/:id/rerate', auth: 'customer', tag: 'Customer', summary: 'Confirm the final TASCO price of an indicative quote',
+      handler: async ({ c, principal, params }) => {
+        const q = await c.services.sales.getQuote(params.id);
+        if (q.profileId !== principal.customerId) throw errors.notFound('Quote');
+        return c.services.sales.rerate(params.id, principal);
+      } },
     { method: 'GET', path: '/api/customer/quotes', auth: 'customer', tag: 'Customer', summary: 'Quotes waiting for my confirmation',
       handler: async ({ c, principal }) => c.services.sales.openQuotes(principal.customerId) },
     { method: 'POST', path: '/api/customer/orders', auth: 'customer', tag: 'Customer', summary: 'One-tap pay with VETC wallet (Idempotency-Key)', idempotent: true,

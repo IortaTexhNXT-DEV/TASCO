@@ -10,11 +10,17 @@ const { errors } = require('./errors');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** Machine-readable cause on upstream errors (timeout | circuit_open | …) for fallback decisions. */
+function tagged(err, reason) {
+  err.reason = reason;
+  return err;
+}
+
 function withTimeout(promise, ms, name) {
   let t;
   return Promise.race([
     promise.finally(() => clearTimeout(t)),
-    new Promise((_, rej) => { t = setTimeout(() => rej(errors.upstream(`${name} timed out after ${ms}ms`)), ms); }),
+    new Promise((_, rej) => { t = setTimeout(() => rej(tagged(errors.upstream(`${name} timed out after ${ms}ms`), 'timeout')), ms); }),
   ]);
 }
 
@@ -29,7 +35,7 @@ function createCircuitBreaker({ name, failureThreshold = 5, resetMs = 30000, tim
     if (state === 'open') {
       if (Date.now() - openedAt < resetMs) {
         metrics?.inc('integration_short_circuit_total', { integration: name });
-        throw errors.upstream(`${name} unavailable (circuit open)`);
+        throw tagged(errors.upstream(`${name} unavailable (circuit open)`), 'circuit_open');
       }
       state = 'half_open';
     }
@@ -64,4 +70,4 @@ function createCircuitBreaker({ name, failureThreshold = 5, resetMs = 30000, tim
   return { exec, state: () => state, name };
 }
 
-module.exports = { createCircuitBreaker, withTimeout, sleep };
+module.exports = { createCircuitBreaker, withTimeout, sleep, tagged };

@@ -172,7 +172,7 @@ test('config: dev defaults, secrets from files, production hard-fails', () => {
   fs.unlinkSync(tmp);
   assert.throws(() => loadConfig({ NODE_ENV: 'production' }), /Missing required secret/);
   assert.throws(() => loadConfig({ ...testEnv(), NODE_ENV: 'production', DEMO_MODE: 'false' }), /DATABASE_URL is required/);
-  const prodEnv = { ...testEnv(), NODE_ENV: 'production', DEMO_MODE: 'false', DATABASE_URL: 'postgres://x/y' };
+  const prodEnv = { ...testEnv(), NODE_ENV: 'production', DEMO_MODE: 'false', DATABASE_URL: 'postgres://x/y', RATING_SOURCE: 'core', TASCO_CORE_BASE_URL: 'https://core.example', TASCO_CORE_CLIENT_ID: 'id', TASCO_CORE_CLIENT_SECRET: 'secret' };
   const prod = loadConfig(prodEnv);
   assert.equal(prod.production, true);
   assert.equal(prod.demoMode, false);

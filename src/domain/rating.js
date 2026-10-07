@@ -17,6 +17,9 @@ function termEnd(startDate, termYears) {
   return new Date(Date.UTC(s.getUTCFullYear() + termYears, s.getUTCMonth(), s.getUTCDate()));
 }
 
+/** Products added from the TASCO core catalogue with no local rate rules: core prices them. */
+const CORE_ONLY = 'core';
+
 const METHODS = {
   /** Regulated tariff table (TNDS): annual premium by category, pro-rata by days. */
   tariff_table(rules, { category, startDate, termYears = 1 }) {
@@ -69,6 +72,7 @@ const METHODS = {
  */
 function rate(product, rules, input) {
   if (product.status !== 'active') throw errors.rule(`Product ${product.code} is not on sale`);
+  if (product.rating.method === CORE_ONLY) throw errors.rule(`${product.code} is priced by TASCO core only — no local rating is available`);
   const method = METHODS[product.rating.method];
   if (!method) throw errors.rule(`No rating method ${product.rating.method}`);
   const r = method(rules, input);
@@ -89,6 +93,26 @@ function rate(product, rules, input) {
   };
 }
 
+/**
+ * Rating facts for one product line, from the vehicle on file plus the options
+ * the customer chose. Shared by local rating and the simulated TASCO core so
+ * both price identically.
+ */
+function ratingFacts({ vehicle = {}, options = {}, termYears, startDate, today }) {
+  const o = options || {};
+  return {
+    category: o.category || vehicle.category,
+    termYears: o.termYears || termYears || 1,
+    startDate,
+    sumInsured: o.sumInsured,
+    vehicleAge: o.vehicleAge ?? (vehicle.firstRegisteredYear ? new Date(today).getUTCFullYear() - vehicle.firstRegisteredYear : 0),
+    usage: vehicle.usage,
+    deductible: o.deductible ?? 0,
+    seats: o.seats ?? vehicle.seats ?? 5,
+    sumInsuredPerSeat: o.sumInsuredPerSeat,
+  };
+}
+
 /** Cover starts the day after current cover ends, or today when lapsed / unknown. */
 function coverStartDate(expiryDate, today) {
   if (!expiryDate) return fmtDate(parseDate(today));
@@ -103,4 +127,4 @@ function commissionFor(commissionRules, { product, partnerType, premiumNet }) {
   return { rate: applied, amount: Math.round(premiumNet * applied), ruleId, capped: r > cap };
 }
 
-module.exports = { rate, coverStartDate, commissionFor, METHODS };
+module.exports = { rate, ratingFacts, coverStartDate, commissionFor, METHODS, CORE_ONLY };

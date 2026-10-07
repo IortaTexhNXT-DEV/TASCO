@@ -20,6 +20,11 @@ test('quote: regulated TNDS + add-ons, bundle detection, channel restrictions', 
   assert.equal(q.lines[1].total, 100000);
   assert.equal(q.bundle, 'SAFE_DRIVE');
   assert.ok(q.benefits.length > 0);
+  // Default RATING_SOURCE=rules: local rule sets, nothing indicative, no core reference.
+  assert.equal(q.ratingSource, 'rules');
+  assert.equal(q.indicative, false);
+  assert.equal(q.coreQuoteRef, null);
+  assert.equal(q.ratingVersion, 'rules:rating.pa_seat@1,tariff.tnds_car@1');
   await assert.rejects(c.services.sales.quote({ profileId: p.id, products: [{ code: 'TNDS_MOTORBIKE', options: { category: 'moto_over50cc' } }], channel: 'telesales' }, agent), /not sold on channel/);
   await assert.rejects(c.services.sales.quote({ profileId: p.id, products: [{ code: 'NOPE' }], channel: 'telesales' }, agent), /Unknown product/);
   await assert.rejects(c.services.sales.quote({ profileId: 'NOPE', products: [{ code: 'TNDS_CAR' }], channel: 'telesales' }, agent), /not found/);

@@ -1,7 +1,8 @@
 'use strict';
 
 const crypto = require('crypto');
-const { rate, coverStartDate, commissionFor } = require('../domain/rating');
+const { coverStartDate, commissionFor } = require('../domain/rating');
+const { createRatingService } = require('./ratingService');
 const { benefitsFor, factsFor } = require('../domain/leads');
 const { errors } = require('../shared/errors');
 const { maskPhone } = require('../shared/util');
@@ -13,7 +14,8 @@ const { maskPlate } = require('../domain/voicebot');
  * retried tap can never double-charge.
  */
 
-function createSalesService({ store, rules, audit, events, clock, logger, metrics, gateways }) {
+function createSalesService({ store, rules, audit, events, clock, logger, metrics, gateways, config, rating: ratingPort }) {
+  const rating = ratingPort || createRatingService({ rules, gateways, config, logger, metrics });
   const quotes = store.collection('quotes');
   const orders = store.collection('orders');
   const policies = store.collection('policies');
@@ -31,6 +33,38 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
     return rules.get('products');
   }
 
+  /** CoreRating port request: risk attributes only — no plate, name or phone (identity goes to core at binding). */
+  function ratingRequest(idempotencyKey, profile, input, startDate, today) {
+    const v = profile.vehicle || {};
+    return {
+      idempotencyKey, channel: input.channel, partnerId: input.partnerId || null, quoteDate: today, startDate, termYears: input.termYears,
+      holder: { type: profile.ownerType || 'individual' },
+      vehicle: { category: v.category, usage: v.usage, seats: v.seats, firstRegisteredYear: v.firstRegisteredYear },
+    };
+  }
+
+  /** Everything that must hold before a quote may be paid. */
+  async function assertPayable(q) {
+    if (q.status !== 'open') throw errors.rule(`Quote is ${q.status}`);
+    if (new Date(q.expiresAt) < clock.now()) throw errors.rule('Quote expired — please re-quote');
+    if (q.indicative) {
+      // Priced locally while TASCO core was unavailable: core has not committed to this price.
+      throw errors.rule('This price is indicative (TASCO core was unavailable when it was quoted) — it must be re-rated by TASCO core before payment', { quoteId: q.id, reason: 'indicative_quote' });
+    }
+    const cat = await rules.get('products');
+    const needsInspection = q.lines.filter((l) => cat.products.find((p) => p.code === l.product)?.requiresInspection);
+    if (needsInspection.length && !q.inspection?.passed) {
+      throw errors.rule('Physical damage cover needs a vehicle inspection first — a TASCO assessor will contact you', { products: needsInspection.map((l) => l.product) });
+    }
+  }
+
+  /** Platform quote TTL, never beyond the validity TASCO core gave its price. */
+  async function quoteExpiry(coreValidUntil) {
+    const platform = clock.now().getTime() + (await rules.get('service_levels')).quoteTtlHours * 3600000;
+    const core = coreValidUntil ? new Date(coreValidUntil).getTime() : Infinity;
+    return new Date(Math.min(platform, core)).toISOString();
+  }
+
   const service = {
     catalogue,
 
@@ -43,29 +77,21 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
       const cat = await catalogue();
       const today = clock.today();
       const startDate = coverStartDate(profile.policy.expiryDate, today);
-      const lines = [];
+      const products = [];
       for (const req of input.products) {
         const prod = await product(req.code);
         if (!prod.channels.includes(input.channel)) throw errors.rule(`${prod.code} is not sold on channel ${input.channel}`);
-        const rr = await rules.get(prod.rating.ruleKind);
-        const o = req.options || {};
-        const facts = {
-          category: o.category || profile.vehicle.category,
-          termYears: o.termYears || input.termYears || 1,
-          startDate,
-          sumInsured: o.sumInsured,
-          vehicleAge: o.vehicleAge ?? (profile.vehicle.firstRegisteredYear ? new Date(today).getUTCFullYear() - profile.vehicle.firstRegisteredYear : 0),
-          usage: profile.vehicle.usage,
-          deductible: o.deductible ?? 0,
-          seats: o.seats ?? profile.vehicle.seats ?? 5,
-          sumInsuredPerSeat: o.sumInsuredPerSeat,
-        };
-        lines.push(rate(prod, rr, facts));
+        if (prod.status !== 'active') throw errors.rule(`Product ${prod.code} is not on sale`);
+        products.push({ prod, options: req.options || {} });
       }
+      const id = `Q-${crypto.randomUUID()}`;
+      // Priced by TASCO core or local rule sets, per RATING_SOURCE (see ratingService).
+      const rated = await rating.rate({ products, request: ratingRequest(id, profile, input, startDate, today) });
+      const lines = rated.lines;
       const facts = factsFor(profile, today);
       const benefitRules = await rules.get('benefits');
       const q = {
-        id: `Q-${crypto.randomUUID()}`,
+        id,
         profileId: profile.id,
         plate: profile.plate,
         channel: input.channel,
@@ -76,14 +102,48 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
         benefits: benefitsFor(benefitRules, facts),
         bundle: cat.bundles.find((b) => b.status === 'active' && b.products.length === lines.length && b.products.every((c) => lines.some((l) => l.product === c)))?.code || null,
         status: 'open',
+        // Rating provenance: who priced this quote, and whether it can be bound as-is.
+        ratingSource: rated.ratingSource,
+        ratingVersion: rated.ratingVersion,
+        coreQuoteRef: rated.coreQuoteRef,
+        indicative: rated.indicative,
+        ratingRequest: { products: input.products.map((p) => ({ code: p.code, ...(p.options ? { options: p.options } : {}) })), termYears: input.termYears || null },
         createdBy: actor.id,
         createdAt: clock.now().toISOString(),
-        expiresAt: new Date(clock.now().getTime() + (await rules.get('service_levels')).quoteTtlHours * 3600000).toISOString(),
+        expiresAt: await quoteExpiry(rated.coreValidUntil),
       };
       await quotes.insert(q);
-      await audit.record({ actor: actor.id, action: 'quote.created', entityType: 'quote', entityId: q.id, details: { profileId: profile.id, products: lines.map((l) => l.product), total: q.total, channel: q.channel } });
+      await audit.record({ actor: actor.id, action: 'quote.created', entityType: 'quote', entityId: q.id, details: { profileId: profile.id, products: lines.map((l) => l.product), total: q.total, channel: q.channel, ratingSource: q.ratingSource, coreQuoteRef: q.coreQuoteRef, indicative: q.indicative } });
       metrics?.inc('quotes_total', { channel: q.channel });
       return q;
+    },
+
+    /**
+     * Re-price an indicative quote (issued while TASCO core was unavailable) with
+     * core. Core must answer — there is no fallback — and only then can it be paid.
+     */
+    async rerate(id, actor) {
+      const q = await service.getQuote(id);
+      if (q.status !== 'open') throw errors.rule(`Quote is ${q.status}`);
+      if (!q.indicative) throw errors.rule('Quote is already priced by TASCO core — no re-rating needed');
+      const profile = await profiles.get(q.profileId);
+      if (!profile || profile.anonymised) throw errors.notFound('Customer');
+      const today = clock.today();
+      const startDate = coverStartDate(profile.policy.expiryDate, today);
+      const reqProducts = q.ratingRequest?.products || q.lines.map((l) => ({ code: l.product }));
+      const products = [];
+      for (const r of reqProducts) products.push({ prod: await product(r.code), options: r.options || {} });
+      const rated = await rating.rate({
+        products, coreOnly: true,
+        request: ratingRequest(`${q.id}:rerate`, profile, { channel: q.channel, partnerId: q.partnerId, termYears: q.ratingRequest?.termYears || undefined }, startDate, today),
+      });
+      const total = rated.lines.reduce((s, l) => s + l.total, 0);
+      const saved = await quotes.update({
+        ...q, lines: rated.lines, total, ratingSource: rated.ratingSource, ratingVersion: rated.ratingVersion, coreQuoteRef: rated.coreQuoteRef, indicative: false,
+        previousTotal: q.total, reratedAt: clock.now().toISOString(), reratedBy: actor.id, expiresAt: await quoteExpiry(rated.coreValidUntil),
+      });
+      await audit.record({ actor: actor.id, action: 'quote.rerated', entityType: 'quote', entityId: id, details: { previousTotal: q.total, total, coreQuoteRef: rated.coreQuoteRef, ratingVersion: rated.ratingVersion } });
+      return saved;
     },
 
     /** Open (unexpired, unpaid) quotes for a customer — shown in the app for confirmation. */
@@ -128,13 +188,7 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
       }
 
       const q0 = await service.getQuote(input.quoteId);
-      if (q0.status !== 'open') throw errors.rule(`Quote is ${q0.status}`);
-      if (new Date(q0.expiresAt) < clock.now()) throw errors.rule('Quote expired — please re-quote');
-      const catalogue = await rules.get('products');
-      const needsInspection = q0.lines.filter((l) => catalogue.products.find((p) => p.code === l.product)?.requiresInspection);
-      if (needsInspection.length && !q0.inspection?.passed) {
-        throw errors.rule('Physical damage cover needs a vehicle inspection first — a TASCO assessor will contact you', { products: needsInspection.map((l) => l.product) });
-      }
+      await assertPayable(q0);
       // Atomically claim the quote (optimistic lock): concurrent purchases with different
       // idempotency keys cannot both reach the payment step.
       let q;
@@ -149,6 +203,7 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
       const order = {
         id: orderId, quoteId: q.id, profileId: q.profileId, channel: q.channel, partnerId: q.partnerId, journey: q.journey,
         amount: q.total, status: 'pending_payment', createdBy: actor.id, createdAt: clock.now().toISOString(), createdDate: clock.today(),
+        coreQuoteRef: q.coreQuoteRef || null,
       };
       await orders.insert(order);
 
@@ -175,11 +230,14 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
           const pol = await gateways.policyAdmin.exec(() => gateways.policyAdmin.port.issuePolicy({
             product: line.product, plate: q.plate, holderName: input.holderName || profile.name, startDate: line.startDate, endDate: line.endDate,
             premiumNet: line.premiumNet, vat: line.vat, orderId,
+            // Core binds the quote it priced (null for locally rated sandbox quotes).
+            coreQuoteRef: q.coreQuoteRef || null, coreLineRef: line.ratingRef || null,
           }));
           const rec = {
             id: pol.certNo, policyNo: pol.policyNo, certNo: pol.certNo, profileId: q.profileId, plate: q.plate, product: line.product, productName: line.productName, productNameVi: line.productNameVi,
             startDate: line.startDate, endDate: line.endDate, premiumNet: line.premiumNet, vat: line.vat, total: line.total,
             status: 'active', channel: q.channel, partnerId: q.partnerId, orderId, certificateUrl: pol.certificateUrl, issuedAt: pol.issuedAt, insurer: 'TASCO',
+            coreQuoteRef: q.coreQuoteRef || null,
           };
           await policies.insert(rec);
           issued.push(rec);

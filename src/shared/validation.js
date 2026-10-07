@@ -10,7 +10,7 @@ const { errors } = require('./errors');
  * Schema: { field: { type, required, min, max, enum, pattern, items, schema } }
  */
 
-function check(value, rule, path, problems) {
+function check(value, rule, path, problems, opts = {}) {
   if (value === undefined || value === null) {
     if (rule.required) problems.push(`${path} is required`);
     return value;
@@ -45,34 +45,41 @@ function check(value, rule, path, problems) {
     case 'array': {
       if (!Array.isArray(value)) { problems.push(`${path} must be an array`); return value; }
       if (rule.max !== undefined && value.length > rule.max) problems.push(`${path} must have at most ${rule.max} items`);
-      return rule.items ? value.map((v, i) => check(v, rule.items, `${path}[${i}]`, problems)) : value;
+      return rule.items ? value.map((v, i) => check(v, rule.items, `${path}[${i}]`, problems, opts)) : value;
     }
     case 'object': {
       if (typeof value !== 'object' || Array.isArray(value)) { problems.push(`${path} must be an object`); return value; }
       if (!rule.schema) return value; // free-form (e.g. rule payloads, validated by their own validator)
-      return validateObject(value, rule.schema, path, problems);
+      return validateObject(value, rule.schema, path, problems, opts);
     }
     default:
       throw new Error(`unknown rule type ${rule.type}`);
   }
 }
 
-function validateObject(obj, schema, path, problems) {
+function validateObject(obj, schema, path, problems, opts = {}) {
   const out = {};
-  for (const key of Object.keys(obj)) {
-    if (!schema[key]) problems.push(`${path ? `${path}.` : ''}${key} is not allowed`);
+  if (!opts.allowUnknown) {
+    for (const key of Object.keys(obj)) {
+      if (!schema[key]) problems.push(`${path ? `${path}.` : ''}${key} is not allowed`);
+    }
   }
   for (const [key, rule] of Object.entries(schema)) {
-    const v = check(obj[key], rule, path ? `${path}.${key}` : key, problems);
+    const v = check(obj[key], rule, path ? `${path}.${key}` : key, problems, opts);
     if (v !== undefined) out[key] = v;
     else if (rule.default !== undefined) out[key] = rule.default;
   }
   return out;
 }
 
-function validate(input, schema) {
+/**
+ * @param opts.allowUnknown  tolerant reader for *upstream responses* (e.g. TASCO
+ *   core): unknown fields are dropped instead of rejected, so a provider adding
+ *   fields never breaks us. API inputs keep the strict allow-list default.
+ */
+function validate(input, schema, opts = {}) {
   const problems = [];
-  const value = validateObject(input || {}, schema, '', problems);
+  const value = validateObject(input || {}, schema, '', problems, opts);
   if (problems.length) throw errors.validation('Request validation failed', problems);
   return value;
 }

@@ -57,6 +57,7 @@ function buildOpenApi(routes, { version, serverUrl }) {
         409: { $ref: '#/components/responses/Error' },
         422: { $ref: '#/components/responses/Error' },
         429: { $ref: '#/components/responses/Error' },
+        503: { $ref: '#/components/responses/Error' },
       },
     };
   }
