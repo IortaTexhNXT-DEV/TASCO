@@ -32,13 +32,18 @@ main { padding: var(--sp-4); min-width: 0; }
    To use official TASCO photography, add public/assets/login-hero.jpg and
    change the background-image below (keep the navy overlay for text contrast). */
 .login { min-height: 100vh; display: grid; grid-template-columns: 1fr; background: var(--surface); }
-.login-hero { display: none; position: relative; color: #fff;
-  background: linear-gradient(180deg, rgba(13, 20, 48, 0.92) 0%, rgba(13, 20, 48, 0.55) 38%, rgba(13, 20, 48, 0) 60%), url('/assets/login-hero.svg') center bottom / cover no-repeat, #213368; }
-.login-hero-inner { position: absolute; inset: 0 0 auto 0; padding: var(--sp-7); }
+.login-hero { display: none; position: relative; color: #fff; overflow: hidden;
+  background: radial-gradient(120% 60% at 50% 100%, #1b2c62 0%, rgba(27, 44, 98, 0) 70%), linear-gradient(180deg, #14204a 0%, #213368 55%, #121d45 100%); }
+.login-hero-inner { position: relative; z-index: 1; padding: var(--sp-7) var(--sp-7) var(--sp-4); }
+/* Illustration fills the space under the copy and never sits behind text. */
+.login-hero-art { flex: 1 1 0; min-height: 0; width: auto; height: auto; max-width: 100%; align-self: center; aspect-ratio: 960 / 750; display: block;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%), linear-gradient(180deg, transparent 0, #000 12%);
+  -webkit-mask-composite: source-in; mask-composite: intersect;
+  mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%), linear-gradient(180deg, transparent 0, #000 12%); }
 .login-hero-logo { height: 56px; background: #fff; padding: 8px 14px; border-radius: 10px; box-shadow: var(--shadow-2); }
 .login-kicker { margin: var(--sp-5) 0 var(--sp-2); text-transform: uppercase; letter-spacing: 0.12em; font-size: var(--fs-sm); color: #b9ecea; font-weight: 700; }
-.login-headline { font-size: clamp(1.6rem, 2.6vw, 2.4rem); line-height: 1.2; margin: 0 0 var(--sp-4); color: #fff; max-width: 18ch; }
-.login-points { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--sp-2); max-width: 46ch; }
+.login-headline { font-size: clamp(1.5rem, 2.3vw, 2.2rem); line-height: 1.2; margin: 0 0 var(--sp-4); color: #fff; max-width: 22ch; }
+.login-points { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--sp-2); max-width: 58ch; }
 .login-points li { padding-left: 28px; position: relative; color: #e9eefb; }
 .login-points li::before { content: "✓"; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--brand-teal); color: var(--brand-navy); font-weight: 800; font-size: 12px; display: grid; place-items: center; }
 .login-panel { display: flex; flex-direction: column; min-height: 100vh; padding: var(--sp-4) var(--sp-5); background: var(--surface); }
@@ -52,6 +57,6 @@ main { padding: var(--sp-4); min-width: 0; }
 .login-credit img { height: 30px; width: auto; }
 @media (min-width: 900px) {
   .login { grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr); }
-  .login-hero { display: block; }
+  .login-hero { display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
   .login-mobile-logo { visibility: hidden; }
 }

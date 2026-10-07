@@ -3,7 +3,6 @@
 const { errors } = require('../../shared/errors');
 const { normalizePlate, normalizePhone } = require('../../domain/identity');
 const { evaluateLead } = require('../../domain/leads');
-const { totp } = require('../../shared/crypto');
 
 /**
  * API route table (API-first). Each route declares:
@@ -106,9 +105,9 @@ function buildRoutes() {
       handler: async ({ c, principal, body }) => c.services.identity.changePassword(principal.id, body) },
     { method: 'GET', path: '/api/demo/totp/:username', auth: 'public', tag: 'Demo', summary: 'DEMO ONLY: current TOTP code for a seeded user', demoOnly: true,
       handler: async ({ c, params }) => {
-        const secret = await c.services.identity.getTotpSecretForDemo(params.username);
-        if (!secret) throw errors.notFound('MFA user');
-        return { code: totp(secret), validForSeconds: 30 - (Math.floor(Date.now() / 1000) % 30) };
+        const r = await c.services.identity.demoCode(params.username);
+        if (!r) throw errors.notFound('MFA user');
+        return r;
       } },
 
     // ---------- Dashboards ----------

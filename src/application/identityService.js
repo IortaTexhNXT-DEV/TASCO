@@ -2,7 +2,7 @@
 
 const crypto = require('crypto');
 const {
-  hashPassword, verifyPassword, checkPasswordPolicy, signJwt, verifyJwt, generateTotpSecret, matchTotpStep, otpauthUri,
+  hashPassword, verifyPassword, checkPasswordPolicy, signJwt, verifyJwt, generateTotpSecret, matchTotpStep, otpauthUri, totp,
 } = require('../shared/crypto');
 const { errors } = require('../shared/errors');
 
@@ -148,9 +148,12 @@ function createIdentityService({ store, audit, config, clock, rbac }) {
       if (!u || !u.totpSecret || u.status !== 'active') throw errors.unauthenticated();
       if (isLocked(u)) throw errors.locked();
       const step = matchTotpStep(u.totpSecret, code);
-      if (step === null || (u.lastTotpStep !== null && u.lastTotpStep !== undefined && step <= u.lastTotpStep)) {
-        await registerFailure(u, 'auth.mfa_failed', { ip, replay: step !== null });
-        throw errors.unauthenticated('Invalid code');
+      const replay = step !== null && u.lastTotpStep !== null && u.lastTotpStep !== undefined && step <= u.lastTotpStep;
+      if (step === null || replay) {
+        await registerFailure(u, 'auth.mfa_failed', { ip, replay });
+        throw errors.unauthenticated(replay
+          ? 'This code has already been used — wait for the next code in your authenticator app'
+          : 'Invalid code — check the 6 digits and that your phone clock is correct');
       }
       const updated = await users.update({ ...u, lastTotpStep: step, mfaEnrolled: true });
       if (!u.mfaEnrolled) await audit.record({ actor: u.id, action: 'auth.mfa_enrolled', entityType: 'user', entityId: u.id });
@@ -198,6 +201,21 @@ function createIdentityService({ store, audit, config, clock, rbac }) {
       if (!u || u.status !== 'active') return null;
       if (u.tokensValidAfter && c.iat < Math.floor(new Date(u.tokensValidAfter).getTime() / 1000)) return null;
       return { id: u.id, username: u.username, roles: u.roles, region: u.region, claims: c };
+    },
+
+    /**
+     * Demo/UAT only: the next code that will be accepted (never one already used,
+     * so back-to-back sign-ins within one 30 s window still work).
+     */
+    async demoCode(username) {
+      if (!config.demoMode) throw errors.forbidden();
+      const u = await byUsername(username);
+      if (!u?.totpSecret) return null;
+      const now = Date.now();
+      const current = Math.floor(now / 30000);
+      const next = Math.max(current, (u.lastTotpStep ?? -1) + 1);
+      if (next > current + 1) return { code: null, waitSeconds: 30 - (Math.floor(now / 1000) % 30) };
+      return { code: totp(u.totpSecret, next * 30000), validForSeconds: (next - current + 1) * 30 - (Math.floor(now / 1000) % 30) };
     },
 
     async getTotpSecretForDemo(username) {

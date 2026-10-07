@@ -62,7 +62,7 @@ test('identity: login, MFA, lockout, password change, user admin', async () => {
   const ok = await c.services.identity.verifyMfa({ mfaToken: mfa.mfaToken, code });
   assert.ok(ok.accessToken);
   const again = await c.services.identity.login({ username: 'approver', password: 'Tasco@Demo2026!' });
-  await assert.rejects(c.services.identity.verifyMfa({ mfaToken: again.mfaToken, code }), /Invalid code/, 'TOTP codes cannot be replayed');
+  await assert.rejects(c.services.identity.verifyMfa({ mfaToken: again.mfaToken, code }), /already been used/, 'TOTP codes cannot be replayed');
   await assert.rejects(c.services.identity.login({ username: 'nobody', password: 'x' }), /Invalid username or password/);
   for (let i = 0; i < 5; i++) await assert.rejects(c.services.identity.login({ username: 'exec', password: 'wrong' }));
   await assert.rejects(c.services.identity.login({ username: 'exec', password: 'Tasco@Demo2026!' }), /locked/);
@@ -222,4 +222,24 @@ test('ops: retention, DQ resolution, lineage, jobs, adoption KPIs', async () => 
   const adoption = await c.services.insights.adoption();
   assert.ok(adoption.logins >= 1);
   assert.ok(adoption.targets.avgClicksToRenew);
+});
+
+test('demo MFA helper never returns an already-used code (repeat sign-ins within 30 s)', async () => {
+  const id = c.services.identity;
+  const u = await id.byUsername('compliance');
+  await c.store.collection('users').upsert({ ...u, lastTotpStep: null, failedLogins: 0, lockedUntil: null });
+  let ok = 0;
+  for (let i = 0; i < 3; i++) {
+    const a = await id.login({ username: 'compliance', password: 'Tasco@Demo2026!' });
+    const d = await id.demoCode('compliance');
+    if (!d.code) { assert.ok(d.waitSeconds > 0); continue; }
+    await id.verifyMfa({ mfaToken: a.mfaToken, code: d.code });
+    ok++;
+  }
+  assert.ok(ok >= 2, 'two consecutive sign-ins succeed');
+  const again = await id.login({ username: 'compliance', password: 'Tasco@Demo2026!' });
+  const used = (await id.byUsername('compliance')).lastTotpStep;
+  const { totp } = require('../../src/shared/crypto');
+  await assert.rejects(id.verifyMfa({ mfaToken: again.mfaToken, code: totp(u.totpSecret, used * 30000) }), /already been used/);
+  assert.equal(await id.demoCode('nobody'), null);
 });

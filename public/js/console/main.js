@@ -98,7 +98,10 @@ function loginView() {
       err,
       h('button', { class: 'btn primary block', type: 'submit' }, t('verify')));
     if (state.meta?.demoMode) {
-      append(mfaForm, h('button', { class: 'btn ghost small', type: 'button', onclick: async () => { const r = await api.get(`/api/demo/totp/${encodeURIComponent(username)}`); code.value = r.code; } }, t('demoFillCode')));
+      append(mfaForm, h('button', { class: 'btn ghost small', type: 'button', onclick: async () => {
+        const r = await api.get(`/api/demo/totp/${encodeURIComponent(username)}`);
+        if (r.code) { code.value = r.code; err.textContent = ''; code.removeAttribute('aria-invalid'); } else err.textContent = `${t('waitForCode')} ${r.waitSeconds}s`;
+      } }, t('demoFillCode')));
     }
     mfaForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -138,7 +141,8 @@ function loginView() {
         h('img', { class: 'login-hero-logo', src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }),
         h('p', { class: 'login-kicker' }, 'TASCO Insurance × VETC'),
         h('h2', { class: 'login-headline' }, t('heroHeadline')),
-        h('ul', { class: 'login-points' }, ['heroPoint1', 'heroPoint2', 'heroPoint3'].map((k) => h('li', {}, t(k)))))),
+        h('ul', { class: 'login-points' }, ['heroPoint1', 'heroPoint2', 'heroPoint3'].map((k) => h('li', {}, t(k))))),
+      h('img', { class: 'login-hero-art', src: '/assets/login-hero.svg', alt: '' })),
     h('main', { id: 'main', class: 'login-panel' },
       h('div', { class: 'login-top' }, h('img', { class: 'login-mobile-logo', src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }), h('span', { class: 'spacer' }), langBtn),
       card,
