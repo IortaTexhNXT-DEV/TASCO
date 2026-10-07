@@ -13,7 +13,7 @@ const { AppError, errors } = require('../../shared/errors');
 
 const PUBLIC_DIR = path.join(__dirname, '..', '..', '..', 'public');
 const MIME = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json',
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2',
 };
 
@@ -49,17 +49,22 @@ function createHttpApp(c) {
       if (!['POST', 'PUT', 'PATCH'].includes(req.method)) return resolve(undefined);
       const ct = String(req.headers['content-type'] || '');
       let size = 0;
+      let tooLarge = false;
       const chunks = [];
       req.on('data', (chunk) => {
         size += chunk.length;
         if (size > config.bodyLimitBytes) {
-          reject(new AppError('PAYLOAD_TOO_LARGE', 'Request body too large', 413));
-          req.destroy();
-          return;
+          if (!tooLarge) {
+            tooLarge = true;
+            chunks.length = 0;
+            reject(new AppError('PAYLOAD_TOO_LARGE', 'Request body too large', 413));
+          }
+          return; // discard the rest; the connection is closed after the response
         }
         chunks.push(chunk);
       });
       req.on('end', () => {
+        if (tooLarge) return undefined;
         if (!size) return resolve({});
         if (!ct.startsWith('application/json')) return reject(new AppError('UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json', 415));
         try {
@@ -179,6 +184,7 @@ function createHttpApp(c) {
       send(res, 200, result === undefined ? { ok: true } : result);
     } catch (err) {
       const known = err instanceof AppError;
+      if (known && err.status === 413) res.setHeader('Connection', 'close');
       status = known ? err.status : 500;
       if (!known) logger.error('unhandled error', { err, requestId, path: pathname });
       send(res, status, { error: { code: known ? err.code : 'INTERNAL_ERROR', message: known ? err.message : 'Unexpected error — quote the request id to support', details: known ? err.details : undefined, requestId } });

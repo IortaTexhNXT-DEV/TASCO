@@ -1,0 +1,35 @@
+/** UI string catalogue (Vietnamese first, English second). Data values are not translated. */
+const STRINGS = {
+  vi: {
+    signIn: 'Đăng nhập', username: 'Tên đăng nhập', password: 'Mật khẩu', mfaCode: 'Mã xác thực 6 số', verify: 'Xác minh',
+    signOut: 'Đăng xuất', help: 'Trợ giúp', theme: 'Giao diện', language: 'English', menu: 'Menu',
+    home: 'Tổng quan', leads: 'Khách hàng tiềm năng', voice: 'Trợ lý gọi tự động', handoffs: 'Hộp việc telesales', journeys: 'Hành trình',
+    rules: 'Quy tắc nghiệp vụ', partners: 'Đối tác', claims: 'Bồi thường', dq: 'Chất lượng dữ liệu', audit: 'Nhật ký kiểm toán', users: 'Người dùng', ops: 'Vận hành',
+    groupWork: 'Công việc', groupGrowth: 'Tăng trưởng', groupGov: 'Quản trị', groupAdmin: 'Quản trị hệ thống',
+    loading: 'Đang tải…', empty: 'Không có dữ liệu', save: 'Lưu', cancel: 'Hủy', close: 'Đóng', search: 'Tìm', apply: 'Áp dụng', reset: 'Đặt lại',
+    score: 'Điểm', tier: 'Nhóm', journey: 'Hành trình', nba: 'Hành động đề xuất', expiry: 'Hết hạn', days: 'Ngày', region: 'Khu vực', plate: 'Biển số', premium: 'Phí',
+    open: 'Mở', next: 'Tiếp', previous: 'Trước', demoHint: 'Chế độ demo — chọn vai trò để đăng nhập nhanh',
+  },
+  en: {
+    signIn: 'Sign in', username: 'Username', password: 'Password', mfaCode: '6-digit authentication code', verify: 'Verify',
+    signOut: 'Sign out', help: 'Help', theme: 'Theme', language: 'Tiếng Việt', menu: 'Menu',
+    home: 'Home', leads: 'Leads', voice: 'Voice bot', handoffs: 'Telesales inbox', journeys: 'Journeys',
+    rules: 'Rules studio', partners: 'Partners', claims: 'Claims', dq: 'Data quality', audit: 'Audit', users: 'Users', ops: 'Operations',
+    groupWork: 'Work', groupGrowth: 'Growth', groupGov: 'Governance', groupAdmin: 'Administration',
+    loading: 'Loading…', empty: 'Nothing here yet', save: 'Save', cancel: 'Cancel', close: 'Close', search: 'Search', apply: 'Apply', reset: 'Reset',
+    score: 'Score', tier: 'Tier', journey: 'Journey', nba: 'Next best action', expiry: 'Expiry', days: 'Days', region: 'Region', plate: 'Plate', premium: 'Premium',
+    open: 'Open', next: 'Next', previous: 'Previous', demoHint: 'Demo mode — pick a role to sign in quickly',
+  },
+};
+
+let lang = 'vi';
+try { lang = localStorage.getItem('lang') || 'vi'; } catch { /* storage unavailable */ }
+
+export const t = (k) => STRINGS[lang][k] ?? STRINGS.en[k] ?? k;
+export const getLang = () => lang;
+export function setLang(l) {
+  lang = l;
+  document.documentElement.lang = l;
+  try { localStorage.setItem('lang', l); } catch { /* ignore */ }
+}
+document.documentElement.lang = lang;

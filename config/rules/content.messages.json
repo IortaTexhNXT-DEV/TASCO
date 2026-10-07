@@ -46,6 +46,10 @@
       "purchase_confirmation": {
         "vi": "VETC: Đã cấp giấy chứng nhận bảo hiểm {{certNo}} cho xe {{plate}}, hiệu lực đến {{expiry}}. Tra cứu: {{link}}",
         "en": "VETC: Certificate {{certNo}} issued for {{plate}}, valid until {{expiry}}. Verify: {{link}}"
+      },
+      "quote_ready": {
+        "vi": "VETC: Báo giá bảo hiểm cho xe {{plate}} đã sẵn sàng ({{premium}}). Vui lòng kiểm tra và xác nhận thanh toán trong ứng dụng VETC: {{link}}",
+        "en": "VETC: Your insurance quote for {{plate}} is ready ({{premium}}). Please review and confirm payment in the VETC app: {{link}}"
       }
     }
   }

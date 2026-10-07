@@ -42,6 +42,7 @@ function customerStrings(node, out = []) {
 }
 
 const SPECIFIC = {
+  nba: (p, e) => e.push(...validateTable(p)),
   products: (p, e) => {
     if (!Array.isArray(p.products) || !p.products.length) e.push('products[] required');
     const codes = new Set();

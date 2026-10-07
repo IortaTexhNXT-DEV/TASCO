@@ -13,8 +13,6 @@ const { maskPlate } = require('../domain/voicebot');
  * retried tap can never double-charge.
  */
 
-const QUOTE_TTL_HOURS = 24;
-
 function createSalesService({ store, rules, audit, events, clock, logger, metrics, gateways }) {
   const quotes = store.collection('quotes');
   const orders = store.collection('orders');
@@ -80,12 +78,26 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
         status: 'open',
         createdBy: actor.id,
         createdAt: clock.now().toISOString(),
-        expiresAt: new Date(clock.now().getTime() + QUOTE_TTL_HOURS * 3600000).toISOString(),
+        expiresAt: new Date(clock.now().getTime() + (await rules.get('service_levels')).quoteTtlHours * 3600000).toISOString(),
       };
       await quotes.insert(q);
       await audit.record({ actor: actor.id, action: 'quote.created', entityType: 'quote', entityId: q.id, details: { profileId: profile.id, products: lines.map((l) => l.product), total: q.total, channel: q.channel } });
       metrics?.inc('quotes_total', { channel: q.channel });
       return q;
+    },
+
+    /** Open (unexpired, unpaid) quotes for a customer — shown in the app for confirmation. */
+    async openQuotes(profileId) {
+      const now = clock.now().toISOString();
+      return (await quotes.find({ where: { profile_id: profileId, status: 'open' }, orderBy: ['created_at', 'desc'], limit: 10 })).filter((x) => x.expiresAt > now);
+    },
+
+    async markSent(id, actor) {
+      const q = await service.getQuote(id);
+      if (q.status !== 'open') throw errors.rule(`Quote is ${q.status}`);
+      const saved = await quotes.update({ ...q, sentToCustomerAt: clock.now().toISOString(), sentBy: actor.id });
+      await audit.record({ actor: actor.id, action: 'quote.sent_to_customer', entityType: 'quote', entityId: id, details: { profileId: q.profileId } });
+      return saved;
     },
 
     async getQuote(id) {
@@ -116,7 +128,14 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
 
       let payment;
       try {
-        payment = await gateways.payment.exec(() => gateways.payment.port.debit({ idempotencyKey: orderId, customerId: q.profileId, amount: q.total, description: `Insurance ${q.plate}` }));
+        if (q.channel === 'partner_api') {
+          // Partners collect the premium themselves and remit via the commission statement.
+          payment = { transactionId: `PARTNER-${q.partnerId}-${orderId}`, status: 'partner_collected' };
+        } else {
+          // Customer-initiated only: staff can send a quote but never debit a wallet.
+          if (!actor.roles?.includes('customer')) throw errors.forbidden('Only the customer can confirm payment, inside the VETC app');
+          payment = await gateways.payment.exec(() => gateways.payment.port.debit({ idempotencyKey: orderId, customerId: q.profileId, amount: q.total, description: `Insurance ${q.plate}` }));
+        }
       } catch (e) {
         await orders.upsert({ ...order, status: 'payment_failed', error: e.message });
         await audit.record({ actor: actor.id, action: 'order.payment_failed', entityType: 'order', entityId: orderId, details: { reason: e.message } });
@@ -131,7 +150,7 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
             premiumNet: line.premiumNet, vat: line.vat, orderId,
           }));
           const rec = {
-            id: pol.certNo, policyNo: pol.policyNo, certNo: pol.certNo, profileId: q.profileId, plate: q.plate, product: line.product,
+            id: pol.certNo, policyNo: pol.policyNo, certNo: pol.certNo, profileId: q.profileId, plate: q.plate, product: line.product, productName: line.productName, productNameVi: line.productNameVi,
             startDate: line.startDate, endDate: line.endDate, premiumNet: line.premiumNet, vat: line.vat, total: line.total,
             status: 'active', channel: q.channel, partnerId: q.partnerId, orderId, certificateUrl: pol.certificateUrl, issuedAt: pol.issuedAt, insurer: 'TASCO',
           };
@@ -140,7 +159,7 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
         }
       } catch (e) {
         // Compensate: refund and flag for reconciliation. Issued lines (if any) stay and are reconciled by ops.
-        await gateways.payment.port.refund({ transactionId: payment.transactionId, amount: q.total }).catch(() => {});
+        if (payment.status !== 'partner_collected') await gateways.payment.port.refund({ transactionId: payment.transactionId, amount: q.total }).catch(() => {});
         await orders.upsert({ ...order, status: 'issuance_failed_refunded', paymentRef: payment.transactionId, error: e.message, policies: issued.map((p) => p.id) });
         await audit.record({ actor: actor.id, action: 'order.issuance_failed', entityType: 'order', entityId: orderId, details: { reason: e.message } });
         throw e;
@@ -177,9 +196,14 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
     async verifyCertificate(certNo, today = clock.today()) {
       const p = await policies.get(certNo);
       if (!p) return { valid: false, reason: 'not_found' };
-      const valid = p.status === 'active' && p.startDate <= today && p.endDate >= today;
+      let state = 'in_force';
+      if (p.status !== 'active') state = p.status;
+      else if (p.startDate > today) state = 'not_yet_in_force';
+      else if (p.endDate < today) state = 'expired';
       return {
-        valid,
+        valid: state === 'in_force',
+        issued: true,
+        state,
         status: p.status,
         certNo: p.certNo,
         product: p.product,

@@ -43,7 +43,7 @@
         },
         "then": {
           "action": "verify_expiry",
-          "label": "Ask customer to confirm expiry in-app (earns points)",
+          "label": "Ask customer to confirm expiry in-app",
           "reason": "expiry date not reliable — fix data before selling"
         }
       },

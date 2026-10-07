@@ -33,6 +33,10 @@ function securityHeaders(res, { production }) {
 function cors(req, res, allowed) {
   const origin = req.headers.origin;
   if (!origin) return true;
+  // Same-origin requests (module scripts, fetch) also carry Origin — always allowed.
+  let sameOrigin = false;
+  try { sameOrigin = new URL(origin).host === req.headers.host; } catch { sameOrigin = false; }
+  if (sameOrigin) return true;
   if (!allowed.includes(origin)) return false;
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Vary', 'Origin');

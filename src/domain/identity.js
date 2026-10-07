@@ -25,9 +25,9 @@ const PROVINCES = {
   93: 'Bình Phước', 94: 'Bạc Liêu', 95: 'Hậu Giang', 97: 'Bắc Kạn', 98: 'Bắc Giang', 99: 'Bắc Ninh',
 };
 
-// Car plates: 2-digit province, 1–2 letter series (optionally followed by a digit
-// for some special series), then 4 (legacy) or 5 digits.
-const PLATE_RE = /^(\d{2})([A-Z]{1,2})(\d{4,5})$/;
+// 2-digit province, then a series: 1–2 letters (cars, e.g. "30A", "51LD") or a
+// letter + digit (motorbikes, e.g. "59X1"), then 4 (legacy) or 5 digits.
+const PLATE_RE = /^(\d{2})([A-Z]{1,2}|[A-Z]\d)(\d{4,5})$/;
 
 function normalizePlate(raw) {
   if (!raw) return { valid: false, reason: 'missing' };

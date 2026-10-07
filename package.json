@@ -16,7 +16,7 @@
     "seed": "node src/jobs/cli.js seed",
     "job": "node src/jobs/cli.js",
     "lint": "eslint .",
-    "test": "node --test --test-reporter=spec \"test/unit/**/*.test.js\" \"test/integration/**/*.test.js\" \"test/api/**/*.test.js\"",
+    "test": "node --test \"test/unit/**/*.test.js\" \"test/integration/**/*.test.js\" \"test/api/**/*.test.js\" \"test/security/**/*.test.js\"",
     "test:unit": "node --test \"test/unit/**/*.test.js\"",
     "test:api": "node --test \"test/api/**/*.test.js\"",
     "test:pg": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/tasco_test} node --test \"test/pg/**/*.test.js\"",

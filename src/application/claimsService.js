@@ -19,7 +19,7 @@ const TRANSITIONS = {
   rejected: [],
 };
 
-function createClaimsService({ store, audit, events, clock }) {
+function createClaimsService({ store, rules, audit, events, clock }) {
   const claims = store.collection('claims');
   const policies = store.collection('policies');
 
@@ -31,7 +31,7 @@ function createClaimsService({ store, audit, events, clock }) {
       const c = {
         id: `CL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, profileId, policyId, product: pol.product, incidentDate,
         description, location, photos, status: 'submitted', history: [{ status: 'submitted', at: clock.now().toISOString(), by: actor.id }],
-        slaDueAt: new Date(clock.now().getTime() + 4 * 3600000).toISOString(),
+        slaDueAt: new Date(clock.now().getTime() + (await rules.get('service_levels')).claimAckSlaHours * 3600000).toISOString(),
       };
       await claims.insert(c);
       await audit.record({ actor: actor.id, action: 'claim.submitted', entityType: 'claim', entityId: c.id, details: { policyId } });

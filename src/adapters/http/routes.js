@@ -74,7 +74,19 @@ function buildRoutes() {
   return [
     // ---------- Public ----------
     { method: 'GET', path: '/api/meta', auth: 'public', tag: 'Platform', summary: 'Client bootstrap metadata',
-      handler: async ({ c }) => ({ name: 'TASCO Growth Platform', version: require('../../../package.json').version, demoMode: c.config.demoMode, today: c.clock.today(), store: c.store.kind }) },
+      handler: async ({ c }) => {
+        const meta = { name: 'TASCO Growth Platform', version: require('../../../package.json').version, demoMode: c.config.demoMode, today: c.clock.today(), store: c.store.kind };
+        if (c.config.demoMode) {
+          // Demo only: a few customers per journey so the customer app can be explored without a real link.
+          const leads = c.store.collection('leads');
+          const picks = [];
+          for (const journey of ['renewal', 'lapsed_uninsured', 'new_vehicle', 'conquest']) {
+            for (const l of await leads.find({ where: { journey }, orderBy: ['score', 'desc'], limit: 2 })) picks.push({ id: l.id, plate: l.plate, journey });
+          }
+          meta.demoCustomers = picks;
+        }
+        return meta;
+      } },
     { method: 'GET', path: '/api/public/certificates/:certNo', auth: 'public', tag: 'Public', summary: 'Verify an e-certificate (QR target, no PII)', rateCost: 2,
       handler: async ({ c, params }) => c.services.sales.verifyCertificate(params.certNo) },
 
@@ -123,7 +135,12 @@ function buildRoutes() {
     { method: 'GET', path: '/api/customers/:id', auth: 'staff', perm: 'profile:read', tag: 'Customers', summary: 'Customer 360 (PII masked by permission)',
       handler: async ({ c, principal, params }) => customerDetail(c, principal, params.id) },
     { method: 'GET', path: '/api/customers/:id/lineage', auth: 'staff', perm: 'profile:read', tag: 'Customers', summary: 'Field-level data lineage',
-      handler: async ({ c, params }) => c.services.ops.lineage(params.id) },
+      handler: async ({ c, principal, params }) => {
+        const p = await c.store.collection('profiles').get(params.id);
+        if (!p) throw errors.notFound('Customer');
+        await c.services.access.check(principal, 'read', { type: 'profile', region: p.province });
+        return c.services.ops.lineage(params.id);
+      } },
     { method: 'PATCH', path: '/api/customers/:id/expiry', auth: 'staff', perm: 'profile:update', tag: 'Customers', summary: 'Data steward correction of policy expiry',
       body: { expiryDate: { type: 'date', required: true }, insurer: { type: 'string', max: 60 }, evidence: { type: 'string', max: 300, required: true } },
       handler: async ({ c, principal, params, body }) => {
@@ -131,7 +148,9 @@ function buildRoutes() {
         const col = c.store.collection('profiles');
         const p = await col.get(params.id);
         if (!p) throw errors.notFound('Customer');
-        await col.update(applyDeclaredExpiry(p, { expiryDate: body.expiryDate, insurer: body.insurer, source: 'data_steward', confidence: 0.9 }));
+        await c.services.access.check(principal, 'update', { type: 'profile', region: p.province });
+        const { stewardCorrectionConfidence } = await c.services.rules.get('service_levels');
+        await col.update(applyDeclaredExpiry(p, { expiryDate: body.expiryDate, insurer: body.insurer, source: 'data_steward', confidence: stewardCorrectionConfidence }));
         await c.services.audit.record({ actor: principal.id, action: 'profile.expiry_corrected', entityType: 'profile', entityId: params.id, details: { evidence: body.evidence } });
         await c.services.leads.recompute([params.id], { actor: principal.id });
         return { ok: true };
@@ -158,21 +177,26 @@ function buildRoutes() {
       body: { text: { type: 'string', max: 500, required: true } },
       handler: async ({ c, principal, params, body }) => { const s = await c.services.voice.turn(params.id, body.text, principal); await c.events.drain(); return s; } },
     { method: 'POST', path: '/api/voice/campaign', auth: 'staff', perm: 'journeys:run', tag: 'Voice bot', summary: 'Run an automated call campaign over top leads',
-      body: { limit: { type: 'integer', min: 1, max: 200, default: 20 }, tier: { type: 'string', enum: ['hot', 'warm'], default: 'hot' } },
+      body: { limit: { type: 'integer', min: 1, max: 200, default: 20 }, tier: { type: 'string', enum: ['hot', 'warm'], default: 'hot' }, at: { type: 'string', max: 40 } },
       handler: async ({ c, principal, body }) => {
+        const now = body.at ? new Date(body.at) : c.clock.now();
         const leads = await c.services.leads.list({ tier: body.tier, limit: 500 });
         const outcomes = {};
+        const skipped = {};
         let called = 0;
         for (const l of leads.items) {
           if (called >= body.limit) break;
           const p = await c.store.collection('profiles').get(l.id);
-          if (!p?.consent.call || p.consent.dnc || !p.phone || p.ownerType === 'company') continue;
+          if (!p || p.ownerType === 'company') continue;
+          const chk = await c.services.voice.canCall(l.id, now);
+          if (!chk.ok) { for (const r of chk.reasons) skipped[r] = (skipped[r] || 0) + 1; continue; }
           const s = await c.services.voice.autoCall(l.id, { actor: principal.id });
+          await c.store.collection('messages').insert({ id: require('crypto').randomUUID(), profileId: l.id, channel: 'voice_bot', journey: l.journey, step: 'campaign', marketing: true, to: p.phone, text: `[voice bot call: ${s.outcome}]`, sentAt: now.toISOString(), status: 'sent', sessionId: s.id });
           outcomes[s.outcome] = (outcomes[s.outcome] || 0) + 1;
           called++;
         }
         await c.events.drain();
-        return { called, outcomes };
+        return { called, outcomes, skipped };
       } },
     { method: 'GET', path: '/api/handoffs', auth: 'staff', perm: 'handoff:read', tag: 'Telesales', summary: 'Telesales work queue',
       query: { status: { type: 'string', enum: ['open', 'claimed', 'callback', 'won', 'lost'] }, mine: { type: 'boolean' }, limit: S.limit, offset: S.offset },
@@ -208,9 +232,22 @@ function buildRoutes() {
     { method: 'POST', path: '/api/quotes', auth: 'staff', perm: 'quote:create', tag: 'Sales', summary: 'Quote one or more products for a customer',
       body: { profileId: { ...S.id, required: true }, products: PRODUCT_LINES, channel: { type: 'string', enum: CHANNELS, default: 'telesales' }, termYears: { type: 'integer', min: 1, max: 3 }, journey: { type: 'string', max: 40 } },
       handler: async ({ c, principal, body }) => c.services.sales.quote(body, principal) },
-    { method: 'POST', path: '/api/orders', auth: 'staff', perm: 'policy:issue', tag: 'Sales', summary: 'Pay and issue (Idempotency-Key header required)', idempotent: true,
-      body: { quoteId: { type: 'string', max: 80, required: true }, holderName: { type: 'string', max: 120 } },
-      handler: async ({ c, principal, body, idempotencyKey }) => { const r = await c.services.sales.purchase({ ...body, idempotencyKey }, principal); await c.events.drain(); return r; } },
+    { method: 'POST', path: '/api/quotes/:id/send', auth: 'staff', perm: 'quote:create', tag: 'Sales', summary: 'Send a quote to the customer\'s VETC app / Zalo to confirm and pay (staff never take payment)',
+      handler: async ({ c, principal, params }) => {
+        const q = await c.services.sales.markSent(params.id, principal);
+        const profile = await c.store.collection('profiles').get(q.profileId);
+        await c.services.access.check(principal, 'read', { type: 'profile', region: profile.province });
+        const lead = await c.store.collection('leads').get(q.profileId);
+        const sent = [];
+        for (const ch of ['app_push', 'zalo_zns', 'sms']) {
+          if (!profile.channels[ch]) continue;
+          // Customer asked for it during the conversation → service message, not marketing.
+          const m = await c.services.journeys.sendMessage({ profile, lead, channel: ch, templateKey: 'quote_ready', marketing: false, journey: q.journey, step: 'quote_sent', now: c.clock.now(), extra: { premium: `${q.total.toLocaleString('vi-VN')}đ`, link: c.links.renew(profile.id, q.journey) } });
+          sent.push({ channel: ch, status: m.status });
+          if (m.status === 'sent') break;
+        }
+        return { quoteId: q.id, sent };
+      } },
     { method: 'GET', path: '/api/policies', auth: 'staff', perm: 'policy:read', tag: 'Sales', summary: 'List issued policies',
       query: { profileId: S.id, product: { type: 'string', max: 40 }, limit: S.limit, offset: S.offset },
       handler: async ({ c, query }) => c.services.sales.listPolicies(query) },
@@ -268,7 +305,7 @@ function buildRoutes() {
     { method: 'POST', path: '/api/partner/v1/quotes', auth: 'partner', perm: 'partner:transact', tag: 'Partner API', summary: 'Quote by plate; unknown vehicles are onboarded (new business)',
       body: {
         plate: { type: 'string', max: 20, required: true }, products: PRODUCT_LINES, holderName: { type: 'string', max: 120 }, phone: { type: 'string', max: 20 },
-        seats: { type: 'integer', min: 1, max: 60 }, usage: { type: 'string', enum: ['personal', 'commercial'] }, currentExpiry: S.date, consentMarketing: { type: 'boolean' },
+        seats: { type: 'integer', min: 1, max: 60 }, usage: { type: 'string', enum: ['personal', 'commercial'] }, ownerType: { type: 'string', enum: ['individual', 'company'] }, currentExpiry: S.date, consentMarketing: { type: 'boolean' },
       },
       handler: async ({ c, principal, body }) => {
         const plate = normalizePlate(body.plate);
@@ -278,7 +315,8 @@ function buildRoutes() {
           await c.services.ingestion.ingest([{
             recordId: `PR-${principal.partnerId}-${plate.key}-${Date.now()}`, source: `partner_${principal.partnerType}`, partnerId: principal.partnerId,
             plateRaw: body.plate, phoneRaw: body.phone || '', fullName: body.holderName || '', seatsDeclared: body.seats ?? null, usageDeclared: body.usage ?? null,
-            ownerType: 'individual', policy: body.currentExpiry ? { insurer: null, expiryDate: body.currentExpiry, verified: false } : null,
+            // Partner-declared expiry is unverified evidence: weighted by source trust, never overrides verified data.
+            ownerType: body.ownerType || 'individual', policy: body.currentExpiry ? { insurer: null, expiryDate: body.currentExpiry, verified: false } : null,
           }], { actor: principal.id, sourceName: principal.partnerId });
           await c.events.drain();
         }
@@ -359,7 +397,7 @@ function buildRoutes() {
       handler: async ({ c, principal, params }) => {
         if (params.kind === 'reconciliation') return c.services.ops.reconcile(principal.id);
         if (params.kind === 'retention') return c.services.ops.applyRetention(principal.id);
-        if (params.kind === 'relay') return { processed: await c.events.drain() };
+        if (params.kind === 'relay') return c.services.ops.recordRun('relay', principal.id, async () => ({ processed: await c.events.drain() }));
         throw errors.notFound('Job kind');
       } },
     { method: 'POST', path: '/api/dsar/:id/export', auth: 'staff', perm: 'dsar:manage', tag: 'Privacy', summary: 'Data subject access export',
@@ -384,6 +422,8 @@ function buildRoutes() {
     { method: 'POST', path: '/api/customer/quotes', auth: 'customer', tag: 'Customer', summary: 'Quote for my vehicle',
       body: { products: PRODUCT_LINES, termYears: { type: 'integer', min: 1, max: 3 }, journey: { type: 'string', max: 40 } },
       handler: async ({ c, principal, body }) => c.services.sales.quote({ ...body, profileId: principal.customerId, channel: 'vetc_app' }, principal) },
+    { method: 'GET', path: '/api/customer/quotes', auth: 'customer', tag: 'Customer', summary: 'Quotes waiting for my confirmation',
+      handler: async ({ c, principal }) => c.services.sales.openQuotes(principal.customerId) },
     { method: 'POST', path: '/api/customer/orders', auth: 'customer', tag: 'Customer', summary: 'One-tap pay with VETC wallet (Idempotency-Key)', idempotent: true,
       body: { quoteId: { type: 'string', max: 80, required: true } },
       handler: async ({ c, principal, body, idempotencyKey }) => {

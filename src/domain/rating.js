@@ -25,7 +25,9 @@ const METHODS = {
     const years = Math.max(rules.minTermYears, Math.min(rules.maxTermYears, Math.floor(termYears)));
     const end = termEnd(startDate, years);
     const days = daysBetween(startDate, end);
-    const net = Math.round((cat.annual * days) / 365);
+    // Whole-year terms: annual premium × years (no leap-day artefacts). Short-term
+    // pro-rata (rules.proRata) applies only if sub-annual terms are enabled later.
+    const net = cat.annual * years;
     return {
       net, vatRate: rules.vatRate, endDate: fmtDate(end), termDays: days,
       breakdown: [{ label: cat.label, labelVi: cat.labelVi, annual: cat.annual, years }],

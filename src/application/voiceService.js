@@ -5,6 +5,7 @@ const { createDialogue, handoffSummary } = require('../domain/voicebot');
 const { applyDeclaredExpiry } = require('../domain/enrichment');
 const { errors } = require('../shared/errors');
 const { fmtDate, addDays } = require('../shared/util');
+const { canContact } = require('../domain/contactPolicy');
 
 /**
  * Voice bot sessions (interactive console + automated campaign calls) and the
@@ -53,7 +54,8 @@ function createVoiceService({ store, rules, audit, events, clock, logger, metric
       case 'already_renewed': {
         // Renewed elsewhere: next expiry ≈ one year after the previous one.
         const nextExpiry = profile.policy.expiryDate ? fmtDate(addDays(profile.policy.expiryDate, 365)) : null;
-        const p = nextExpiry ? applyDeclaredExpiry(profile, { expiryDate: nextExpiry, insurer: 'OTHER', source: 'voice_bot', confidence: 0.6 }) : { ...profile, policy: { ...profile.policy, insurer: 'OTHER' } };
+        const { botRenewedElsewhereConfidence } = await rules.get('service_levels');
+        const p = nextExpiry ? applyDeclaredExpiry(profile, { expiryDate: nextExpiry, insurer: 'OTHER', source: 'voice_bot', confidence: botRenewedElsewhereConfidence }) : { ...profile, policy: { ...profile.policy, insurer: 'OTHER' } };
         p.policy.competitorNote = session.signals.competitorInfo;
         await profiles.update({ ...p, version: profile.version });
         await events.publish('lead.recompute_requested', { profileIds: [profile.id], reason: 'already_renewed' }, { actor });
@@ -100,6 +102,16 @@ function createVoiceService({ store, rules, audit, events, clock, logger, metric
       const s = await sessions.get(sessionId);
       if (!s) throw errors.notFound('Call session');
       return s;
+    },
+
+    /** Consent, DNC, contact-hours and frequency caps for an outbound marketing call. */
+    async canCall(profileId, now = clock.now()) {
+      const profile = await profiles.get(profileId);
+      if (!profile) return { ok: false, reasons: ['customer not found'] };
+      const policy = await rules.get('contact_policy');
+      const history = (await store.collection('messages').find({ where: { profile_id: profileId }, orderBy: ['sent_at', 'desc'], limit: 50 }))
+        .filter((m) => m.status === 'sent').map((m) => ({ at: m.sentAt, channel: m.channel, marketing: m.marketing }));
+      return canContact(policy, profile, 'voice_bot', { marketing: true, now, history });
     },
 
     /** Automated campaign call through the telephony port. */

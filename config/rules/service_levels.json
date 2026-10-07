@@ -1,0 +1,12 @@
+{
+  "kind": "service_levels",
+  "description": "Operational service levels and evidence weights used by services (no hardcoded numbers in code).",
+  "payload": {
+    "quoteTtlHours": 24,
+    "claimAckSlaHours": 4,
+    "customerDeclaredConfidence": 0.75,
+    "stewardCorrectionConfidence": 0.9,
+    "botRenewedElsewhereConfidence": 0.6,
+    "paymentLinkTtlHours": 48
+  }
+}

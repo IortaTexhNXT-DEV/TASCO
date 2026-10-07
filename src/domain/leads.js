@@ -72,9 +72,9 @@ function score(scoringRules, facts) {
 function benefitsFor(benefitRules, facts, { audience = 'customer', limit } = {}) {
   return benefitRules.items
     .filter((b) => !b.eligible || truthy(apply(b.eligible, facts)))
-    .filter((b) => audience !== 'customer' || b.legalStatus === 'approved')
+    .filter((b) => audience !== 'customer' || (b.legalStatus === 'approved' && b.available !== false))
     .map((b) => ({
-      id: b.id, type: b.type, product: b.product || null, provider: b.provider, legalStatus: b.legalStatus,
+      id: b.id, type: b.type, product: b.product || null, provider: b.provider, legalStatus: b.legalStatus, available: b.available !== false,
       title: b.title, titleVi: b.titleVi, desc: b.desc, descVi: b.descVi,
       relevance: +Number(apply(b.relevance, facts)).toFixed(2),
       why: String(apply(b.why, facts)),

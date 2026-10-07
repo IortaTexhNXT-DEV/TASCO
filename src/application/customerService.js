@@ -46,7 +46,7 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
           needsConfirmation: p.policy.expiryConfidence < 0.75,
         },
         premium: lead?.premium || null,
-        policies: pols.map((x) => ({ certNo: x.certNo, product: x.product, startDate: x.startDate, endDate: x.endDate, status: x.status, certificateUrl: x.certificateUrl })),
+        policies: pols.map((x) => ({ certNo: x.certNo, product: x.product, productNameVi: x.productNameVi || x.product, startDate: x.startDate, endDate: x.endDate, status: x.status, certificateUrl: x.certificateUrl })),
         benefits: benefitsFor(benefitRules, factsFor(p, clock.today())),
         consent: p.consent,
       };
@@ -54,7 +54,8 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
 
     async declareExpiry(profileId, { expiryDate, insurer }, actor) {
       const p = await mine(profileId);
-      const updated = applyDeclaredExpiry(p, { expiryDate, insurer, source: 'customer_declared', confidence: 0.8 });
+      const { customerDeclaredConfidence } = await rules.get('service_levels');
+      const updated = applyDeclaredExpiry(p, { expiryDate, insurer, source: 'customer_declared', confidence: customerDeclaredConfidence });
       await profiles.update(updated);
       await audit.record({ actor: actor.id, action: 'customer.expiry_declared', entityType: 'profile', entityId: profileId, details: { insurer: insurer || null } });
       await events.publish('lead.recompute_requested', { profileIds: [profileId], reason: 'customer_declared' }, { actor: actor.id });
@@ -97,7 +98,9 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
       await leads.delete(profileId);
       for (const r of await sources.find({ where: { plate_key: profileId }, limit: 100 })) await sources.upsert({ ...r, phoneRaw: null, fullName: null, anonymised: true });
       for (const m of await messages.find({ where: { profile_id: profileId }, limit: 1000 })) await messages.upsert({ ...m, to: null, text: '[erased]' });
-      for (const s of await sessions.find({ where: { profile_id: profileId }, limit: 100 })) await sessions.upsert({ ...s, transcript: [] });
+      for (const s of await sessions.find({ where: { profile_id: profileId }, limit: 100 })) await sessions.upsert({ ...s, transcript: [], signals: { ...s.signals, competitorInfo: null, expiryStatement: null } });
+      for (const h of await store.collection('handoffs').find({ where: { profile_id: profileId }, limit: 100 })) await store.collection('handoffs').upsert({ ...h, name: null, phoneMasked: null, notes: [] });
+      for (const cl of await store.collection('claims').find({ where: { profile_id: profileId }, limit: 100 })) await store.collection('claims').upsert({ ...cl, description: '[erased]', location: null });
       await audit.record({ actor: actor.id, action: 'dsar.erased', entityType: 'profile', entityId: profileId });
       return { erased: true };
     },
