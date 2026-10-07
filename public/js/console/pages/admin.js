@@ -1,5 +1,31 @@
 import { h, mount, fmtDate, fmtDateTime, fmtVnd } from '../../shared/dom.js';
-import { pageHead, table, statusBadge, field, select, toast, errorToast } from '../ui.js';
+import { label } from '../../shared/i18n.js';
+import { pageHead, table, statusBadge, field, select, toast, errorToast, codeLabel, refCell, trunc } from '../ui.js';
+
+/** Partner commission statement grouped by order: product lines then an order subtotal row. */
+function statementTable(s) {
+  const groups = s.byOrder || Object.values((s.lines || []).reduce((acc, l) => {
+    (acc[l.orderId] ||= { orderId: l.orderId, date: l.date, lines: [], subtotal: 0 }).lines.push(l);
+    acc[l.orderId].subtotal += l.amount;
+    return acc;
+  }, {}));
+  if (!groups.length) return h('div', { class: 'empty' }, 'No commission in this period');
+  const rows = [];
+  for (const g of groups) {
+    g.lines.forEach((l, i) => rows.push(h('tr', { class: i === 0 ? 'group-head' : 'group-line' },
+      h('td', { class: 'nowrap' }, i === 0 ? refCell(g.orderId) : ''),
+      h('td', { class: 'nowrap' }, i === 0 ? fmtDate(g.date) : ''),
+      h('td', { title: l.product }, label('product', l.product)),
+      h('td', { class: 'num' }, `${(l.rate * 100).toFixed(1)}%`),
+      h('td', { class: 'num' }, fmtVnd(l.amount)))));
+    rows.push(h('tr', { class: 'group-total' }, h('td', { colspan: '4' }, `Order subtotal (${g.lines.length} product${g.lines.length === 1 ? '' : 's'})`), h('td', { class: 'num' }, fmtVnd(g.subtotal))));
+  }
+  rows.push(h('tr', { class: 'group-total' }, h('td', { colspan: '4' }, `Total commission · ${groups.length} order${groups.length === 1 ? '' : 's'}`), h('td', { class: 'num' }, fmtVnd(s.totalCommission))));
+  return h('div', { class: 'table-wrap' }, h('table', {},
+    h('caption', { class: 'sr-only' }, `Commission statement ${s.partnerId}`),
+    h('thead', {}, h('tr', {}, ['Order', 'Date', 'Product', 'Rate', 'Commission'].map((x, i) => h('th', { scope: 'col', class: i >= 3 ? 'num' : null }, x)))),
+    h('tbody', {}, rows)));
+}
 
 export const partners = {
   perm: 'partners:manage',
@@ -7,21 +33,21 @@ export const partners = {
     const list = await api.get('/api/partners');
     const out = h('div', {});
     const name = h('input', { required: true, maxlength: '120' });
-    const type = select([['bank', 'Bank'], ['showroom', 'Car showroom'], ['agent', 'Agent'], ['fleet', 'Fleet'], ['inspection_center', 'Inspection centre']], 'showroom');
+    const type = select(['bank', 'showroom', 'agent', 'fleet', 'inspection_center'].map((k) => [k, label('partnerType', k)]), 'showroom');
     const form = h('form', { class: 'card stack' }, h('h2', {}, 'Onboard partner'), field('Name', name), field('Type', type), h('button', { class: 'btn primary', type: 'submit' }, 'Create'));
     form.addEventListener('submit', async (e) => { e.preventDefault(); try { await api.post('/api/partners', { name: name.value, type: type.value }); toast('Partner created', 'ok'); navigate(`partners?t=${Date.now()}`); } catch (ex) { errorToast(ex); } });
     const rows = list.map((p) => ({ ...p }));
     mount(main, 
       pageHead('Partners', 'Arm the partners that already close most deals: API access, white-label quotes, transparent commission (statutory caps enforced).'),
-      h('div', { class: 'grid cols-2' },
-        h('section', { class: 'card' }, table([
-          { label: 'ID', render: (p) => h('code', {}, p.id) }, { label: 'Name', render: (p) => p.name }, { label: 'Type', render: (p) => p.type }, { label: 'Status', render: (p) => statusBadge(p.status) },
-          { label: 'Actions', render: (p) => h('div', { class: 'row' },
+      h('div', { class: 'stack' },
+        h('section', { class: 'card stack' }, table([
+          { label: 'ID', nowrap: true, render: (p) => h('code', {}, p.id) }, { label: 'Name', render: (p) => p.name }, { label: 'Type', render: (p) => codeLabel('partnerType', p.type) }, { label: 'Status', render: (p) => statusBadge(p.status) },
+          { label: 'Actions', render: (p) => h('div', { class: 'row', style: 'gap:8px' },
             h('button', { class: 'btn small', onclick: async () => { try { const k = await api.post(`/api/partners/${encodeURIComponent(p.id)}/keys`); mount(out, h('div', { class: 'alert warn' }, h('strong', {}, 'Copy this API key now — it will not be shown again: '), h('code', {}, k.apiKey))); } catch (ex) { errorToast(ex); } } }, 'Issue API key'),
-            h('button', { class: 'btn small', onclick: async () => { try { const s = await api.get(`/api/partners/${encodeURIComponent(p.id)}/statement`); mount(out, h('div', { class: 'card' }, h('h3', {}, `Statement ${p.id}`), h('p', {}, `${s.orders} orders · commission ${fmtVnd(s.totalCommission)}`), table([{ label: 'Order', render: (l) => l.orderId.slice(0, 12) }, { label: 'Date', render: (l) => fmtDate(l.date) }, { label: 'Product', render: (l) => l.product }, { label: 'Rate', num: true, render: (l) => `${(l.rate * 100).toFixed(1)}%` }, { label: 'Amount', num: true, render: (l) => fmtVnd(l.amount) }], s.lines))); } catch (ex) { errorToast(ex); } } }, 'Statement'),
+            h('button', { class: 'btn small', onclick: async () => { try { const s = await api.get(`/api/partners/${encodeURIComponent(p.id)}/statement`); mount(out, h('div', { class: 'stack' }, h('h3', {}, `Statement · ${p.name}`), h('p', {}, `${s.orders} orders · commission ${fmtVnd(s.totalCommission)}`), statementTable(s))); } catch (ex) { errorToast(ex); } } }, 'Statement'),
             h('button', { class: 'btn small', onclick: async () => { try { await api.patch(`/api/partners/${encodeURIComponent(p.id)}`, { status: p.status === 'active' ? 'suspended' : 'active' }); navigate(`partners?t=${Date.now()}`); } catch (ex) { errorToast(ex); } } }, p.status === 'active' ? 'Suspend' : 'Activate')) },
         ], rows), out),
-        h('div', { class: 'stack' }, form, h('section', { class: 'card' }, h('h2', {}, 'Partner API'), h('p', { class: 'small' }, 'POST /api/partner/v1/quotes · POST /api/partner/v1/orders (Idempotency-Key) · GET /api/partner/v1/policies · GET /api/partner/v1/statement — header X-Api-Key. Full OpenAPI at /api/openapi.json.')))));
+        h('div', { class: 'grid cols-2' }, form, h('section', { class: 'card' }, h('h2', {}, 'Partner API'), h('p', { class: 'small' }, 'POST /api/partner/v1/quotes · POST /api/partner/v1/orders (Idempotency-Key) · GET /api/partner/v1/policies · GET /api/partner/v1/statement — header X-Api-Key. Full OpenAPI at /api/openapi.json.')))));
   },
 };
 
@@ -33,9 +59,13 @@ export const claims = {
     mount(main, 
       pageHead('Claims — first notice of loss', 'Reported from the VETC app. Fast, transparent claims build the trust that drives renewals.'),
       h('section', { class: 'card' }, table([
-        { label: 'Claim', render: (c) => h('code', {}, c.id) }, { label: 'Policy', render: (c) => c.policyId }, { label: 'Incident', render: (c) => fmtDate(c.incidentDate) },
-        { label: 'Status', render: (c) => statusBadge(c.status) }, { label: 'SLA due', render: (c) => fmtDateTime(c.slaDueAt) },
-        { label: 'Next', render: (c) => (can('claims:update') ? h('div', { class: 'row' }, (NEXT[c.status] || []).map((s) => h('button', { class: 'btn small', onclick: async () => { try { await api.patch(`/api/claims/${encodeURIComponent(c.id)}`, { status: s }); toast(`Claim ${s}`, 'ok'); navigate(`claims?t=${Date.now()}`); } catch (e) { errorToast(e); } } }, s))) : '—') },
+        { label: 'Claim', nowrap: true, render: (c) => h('code', {}, c.id) },
+        { label: 'Customer', render: (c) => [h('strong', { class: 'nowrap' }, c.plate || '—'), h('div', { class: 'small muted' }, c.customerName || '—')] },
+        { label: 'Policy', render: (c) => [h('div', { class: 'nowrap' }, c.policyId), h('div', { class: 'small muted', title: c.product }, label('product', c.product))] },
+        { label: 'Incident', nowrap: true, render: (c) => fmtDate(c.incidentDate) },
+        { label: 'What happened', cls: 'trunc-cell', render: (c) => [trunc(c.description), c.location ? h('div', { class: 'small muted trunc', title: c.location }, c.location) : null] },
+        { label: 'Status', render: (c) => statusBadge(c.status) }, { label: 'SLA due', nowrap: true, render: (c) => fmtDateTime(c.slaDueAt) },
+        { label: 'Next step', render: (c) => (can('claims:update') ? h('div', { class: 'row', style: 'gap:6px' }, (NEXT[c.status] || []).map((s) => h('button', { class: 'btn small', title: s, onclick: async () => { try { await api.patch(`/api/claims/${encodeURIComponent(c.id)}`, { status: s }); toast(`Claim: ${label('status', s)}`, 'ok'); navigate(`claims?t=${Date.now()}`); } catch (e) { errorToast(e); } } }, label('status', s)))) : '—') },
       ], list)));
   },
 };
@@ -47,10 +77,10 @@ export const dq = {
     const d = await api.get(`/api/dq/issues?limit=50${type ? `&type=${encodeURIComponent(type)}` : ''}`);
     mount(main, 
       pageHead('Data quality', 'Every gap found while building golden records. Journeys also ask customers to repair their own data in-app.'),
-      h('div', { class: 'row', style: 'margin-bottom:16px' }, h('a', { class: `btn small ${!type ? 'primary' : ''}`, href: '#/dq' }, 'All'), Object.entries(d.byType).map(([k, v]) => h('a', { class: `btn small ${type === k ? 'primary' : ''}`, href: `#/dq?type=${encodeURIComponent(k)}` }, `${k} (${v})`))),
+      h('div', { class: 'row', style: 'margin-bottom:16px' }, h('a', { class: `btn small ${!type ? 'primary' : ''}`, href: '#/dq' }, 'All'), Object.entries(d.byType).map(([k, v]) => h('a', { class: `btn small ${type === k ? 'primary' : ''}`, href: `#/dq?type=${encodeURIComponent(k)}`, title: k }, `${label('dq', k)} (${v})`))),
       h('section', { class: 'card' }, table([
-        { label: 'Issue', render: (i) => i.type }, { label: 'Customer', render: (i) => (i.profileId ? h('a', { href: `#/customer/${encodeURIComponent(i.profileId)}` }, i.profileId) : i.recordId) },
-        { label: 'Source', render: (i) => i.source || i.batchId || '—' }, { label: 'Detected', render: (i) => fmtDateTime(i.detectedAt) },
+        { label: 'Issue', render: (i) => codeLabel('dq', i.type) }, { label: 'Customer', nowrap: true, render: (i) => (i.profileId ? h('a', { href: `#/customer/${encodeURIComponent(i.profileId)}` }, i.profileId) : i.recordId) },
+        { label: 'Source', render: (i) => trunc(i.source || i.batchId || i.via || '—') }, { label: 'Detected', nowrap: true, render: (i) => fmtDateTime(i.detectedAt) },
         { label: 'Resolve', render: (i) => (can('dq:resolve') ? h('button', { class: 'btn small', onclick: async () => { const res = prompt('Resolution note'); if (!res) return; try { await api.post(`/api/dq/issues/${encodeURIComponent(i.id)}/resolve`, { resolution: res }); toast('Resolved', 'ok'); navigate(`dq?type=${type}&t=${Date.now()}`); } catch (e) { errorToast(e); } } }, 'Resolve') : '—') },
       ], d.items)));
   },
@@ -70,14 +100,15 @@ export const audit = {
       h('div', { class: `alert ${chain.ok ? 'ok' : 'danger'}`, role: 'status' }, chain.ok ? `Hash chain verified: ${chain.entries} entries, head ${String(chain.head).slice(0, 16)}…` : `CHAIN BROKEN at entry ${chain.brokenAt}: ${chain.reason}`),
       h('div', { class: 'grid cols-3', style: 'margin-top:16px' },
         h('div', { class: 'card kpi' }, h('span', { class: 'label' }, 'Voice bot calls'), h('span', { class: 'value' }, gov.voiceBot.calls), h('span', { class: 'hint' }, `opt-out ${(gov.voiceBot.optOutRate * 100).toFixed(1)}% · plate fail ${(gov.voiceBot.plateVerificationFailureRate * 100).toFixed(1)}%`)),
-        h('div', { class: 'card kpi' }, h('span', { class: 'label' }, 'Rule sets by status'), h('span', { class: 'value' }, Object.values(gov.rules).reduce((s, v) => s + v, 0)), h('span', { class: 'hint' }, Object.entries(gov.rules).map(([k, v]) => `${k} ${v}`).join(' · '))),
+        h('div', { class: 'card kpi' }, h('span', { class: 'label' }, 'Rule sets by status'), h('span', { class: 'value' }, Object.values(gov.rules).reduce((s, v) => s + v, 0)), h('span', { class: 'hint' }, Object.entries(gov.rules).map(([k, v]) => `${label('status', k)} ${v}`).join(' · '))),
         h('div', { class: 'card kpi' }, h('span', { class: 'label' }, 'Disclosure policy'), h('span', { class: 'hint' }, gov.voiceBot.disclosure))),
       h('form', { class: 'card filters', style: 'margin-top:16px', onsubmit: (e) => { e.preventDefault(); navigate(`audit?${new URLSearchParams(Object.entries(inputs).map(([k, v]) => [k, v.value]).filter(([, v]) => v))}`); } },
         field('Entity id', inputs.entityId), field('Actor', inputs.actor), field('Action', inputs.action), h('button', { class: 'btn primary', type: 'submit' }, 'Search')),
       h('section', { class: 'card', style: 'margin-top:16px' }, table([
-        { label: 'When', render: (a) => fmtDateTime(a.at) }, { label: 'Actor', render: (a) => a.actor }, { label: 'Action', render: (a) => h('code', {}, a.action) },
-        { label: 'Entity', render: (a) => `${a.entityType || ''} ${a.entityId || ''}` }, { label: 'Details', render: (a) => h('code', { class: 'xs' }, a.details ? JSON.stringify(a.details).slice(0, 160) : '') },
-        { label: 'Hash', render: (a) => h('code', { class: 'xs' }, a.hash.slice(0, 10)) },
+        { label: 'When', nowrap: true, render: (a) => fmtDateTime(a.at) }, { label: 'Actor', render: (a) => h('span', { title: a.actor }, a.actorName || a.actor) }, { label: 'Action', nowrap: true, render: (a) => h('code', {}, a.action) },
+        { label: 'Entity', cls: 'trunc-cell', render: (a) => trunc(`${a.entityType || ''} ${a.entityId || ''}`.trim()) },
+        { label: 'Details', cls: 'trunc-cell', render: (a) => trunc(a.details ? JSON.stringify(a.details) : '', 'mono xs') },
+        { label: 'Hash', nowrap: true, render: (a) => h('code', { class: 'xs', title: a.hash }, a.hash.slice(0, 10)) },
       ], entries)));
   },
 };
@@ -87,10 +118,10 @@ export const users = {
   async render(main, { api, navigate }) {
     const list = await api.get('/api/users');
     const f = { username: h('input', { required: true, pattern: '[a-z0-9._-]+', maxlength: '60' }), displayName: h('input', { required: true, maxlength: '120' }), password: h('input', { type: 'password', required: true, minlength: '12', autocomplete: 'new-password' }), region: h('input', { value: 'ALL', maxlength: '60' }) };
-    const roles = h('select', { multiple: true, size: '6' }, ['telesales_agent', 'telesales_supervisor', 'campaign_manager', 'rule_author', 'rule_approver', 'compliance_officer', 'data_steward', 'claims_handler', 'partner_manager', 'auditor', 'executive', 'support_engineer', 'admin'].map((r) => h('option', { value: r }, r)));
+    const roles = h('select', { multiple: true, size: '6' }, ['telesales_agent', 'telesales_supervisor', 'campaign_manager', 'rule_author', 'rule_approver', 'compliance_officer', 'data_steward', 'claims_handler', 'partner_manager', 'auditor', 'executive', 'support_engineer', 'admin'].map((r) => h('option', { value: r }, label('role', r))));
     const mfa = h('input', { type: 'checkbox', checked: true });
     const out = h('div', {});
-    const form = h('form', { class: 'card stack' }, h('h2', {}, 'Create user'), field('Username', f.username), field('Display name', f.displayName), field('Temporary password (≥ 12 chars)', f.password), field('Region', f.region), field('Roles', roles, 'Least privilege — choose only what the person needs'), h('label', { class: 'check' }, mfa, 'Enrol MFA (mandatory for privileged roles)'), h('button', { class: 'btn primary', type: 'submit' }, 'Create'), out);
+    const form = h('form', { class: 'card stack', style: 'max-width:720px' }, h('h2', {}, 'Create user'), field('Username', f.username), field('Display name', f.displayName), field('Temporary password (≥ 12 chars)', f.password), field('Region', f.region), field('Roles', roles, 'Least privilege — choose only what the person needs'), h('label', { class: 'check' }, mfa, 'Enrol MFA (mandatory for privileged roles)'), h('button', { class: 'btn primary', type: 'submit' }, 'Create'), out);
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       try {
@@ -99,10 +130,10 @@ export const users = {
       } catch (ex) { errorToast(ex); }
     });
     mount(main, pageHead('Users', 'Identity, roles and regions. Admins cannot read customer data or approve rules (segregation of duties).'),
-      h('div', { class: 'grid cols-2' },
+      h('div', { class: 'stack' },
         h('section', { class: 'card' }, table([
-          { label: 'User', render: (u) => h('strong', {}, u.username) }, { label: 'Name', render: (u) => u.displayName }, { label: 'Roles', render: (u) => u.roles.join(', ') }, { label: 'Region', render: (u) => u.region },
-          { label: 'MFA', render: (u) => (u.mfaEnabled ? '✓' : '—') }, { label: 'Status', render: (u) => statusBadge(u.status) }, { label: 'Last login', render: (u) => fmtDateTime(u.lastLoginAt) },
+          { label: 'User', nowrap: true, render: (u) => h('strong', {}, u.username) }, { label: 'Name', render: (u) => u.displayName }, { label: 'Roles', render: (u) => h('span', { title: u.roles.join(', ') }, u.roles.map((r) => label('role', r)).join(', ')) }, { label: 'Region', render: (u) => u.region },
+          { label: 'MFA', render: (u) => (u.mfaEnabled ? '✓' : '—') }, { label: 'Status', render: (u) => statusBadge(u.status) }, { label: 'Last login', nowrap: true, render: (u) => fmtDateTime(u.lastLoginAt) },
           { label: '', render: (u) => h('button', { class: 'btn small', onclick: async () => { try { await api.patch(`/api/users/${encodeURIComponent(u.id)}`, { status: u.status === 'active' ? 'disabled' : 'active' }); navigate(`users?t=${Date.now()}`); } catch (ex) { errorToast(ex); } } }, u.status === 'active' ? 'Disable' : 'Enable') },
         ], list)), form));
   },
@@ -117,8 +148,8 @@ export const ops = {
       can('ops:run_jobs') ? h('div', { class: 'row' }, ['reconciliation', 'retention', 'relay'].map((k) => h('button', { class: 'btn small', onclick: run(k) }, `Run ${k}`))) : null),
     h('div', { class: 'grid cols-3' },
       h('section', { class: 'card' }, h('h2', {}, 'Integrations'), table([{ label: 'Integration', render: (i) => i.name }, { label: 'Circuit', render: (i) => statusBadge(i.circuit === 'closed' ? 'active' : i.circuit === 'open' ? 'failed' : 'pending_approval') }], status.integrations)),
-      h('section', { class: 'card' }, h('h2', {}, 'Event backlog'), table([{ label: 'Status', render: (r) => r[0] }, { label: 'Count', num: true, render: (r) => r[1] }], Object.entries(status.eventBacklog))),
-      h('section', { class: 'card' }, h('h2', {}, 'Active rules'), table([{ label: 'Kind', render: (r) => r.kind }, { label: 'v', num: true, render: (r) => r.version }, { label: 'Checksum', render: (r) => h('code', { class: 'xs' }, r.checksum) }], status.rules))),
-    h('section', { class: 'card', style: 'margin-top:16px' }, h('h2', {}, 'Job history'), table([{ label: 'Started', render: (j) => fmtDateTime(j.startedAt) }, { label: 'Kind', render: (j) => j.kind }, { label: 'Actor', render: (j) => j.actor }, { label: 'Status', render: (j) => statusBadge(j.status === 'succeeded' ? 'done' : j.status) }, { label: 'Result', render: (j) => h('code', { class: 'xs' }, JSON.stringify(j.result || j.error || '').slice(0, 160)) }], jobs)));
+      h('section', { class: 'card' }, h('h2', {}, 'Event backlog'), table([{ label: 'Status', render: (r) => statusBadge(r[0]) }, { label: 'Count', num: true, render: (r) => r[1] }], Object.entries(status.eventBacklog))),
+      h('section', { class: 'card' }, h('h2', {}, 'Active rules'), table([{ label: 'Rule set', render: (r) => h('span', { title: r.kind }, label('ruleKind', r.kind)) }, { label: 'v', num: true, render: (r) => r.version }, { label: 'Checksum', nowrap: true, render: (r) => h('code', { class: 'xs', title: r.checksum }, r.checksum.slice(0, 8)) }], status.rules))),
+    h('section', { class: 'card', style: 'margin-top:16px' }, h('h2', {}, 'Job history'), table([{ label: 'Started', nowrap: true, render: (j) => fmtDateTime(j.startedAt) }, { label: 'Kind', render: (j) => j.kind }, { label: 'Actor', render: (j) => j.actor }, { label: 'Status', render: (j) => statusBadge(j.status) }, { label: 'Result', cls: 'trunc-cell', render: (j) => trunc(JSON.stringify(j.result || j.error || ''), 'mono xs') }], jobs)));
   },
 };

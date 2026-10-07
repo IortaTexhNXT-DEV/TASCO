@@ -1,6 +1,6 @@
-import { h, append, mount } from '../shared/dom.js';
+import { h, append, mount, fmtDate } from '../shared/dom.js';
 import { createApi } from '../shared/api.js';
-import { t, getLang, setLang } from '../shared/i18n.js';
+import { t, getLang, setLang, label } from '../shared/i18n.js';
 import { HELP } from './help.js';
 import { toast, errorToast, loading } from './ui.js';
 import { PAGES } from './pages/index.js';
@@ -10,6 +10,8 @@ import { qrSvg } from '../shared/qr.js';
  * Staff console: authentication (password + TOTP), permission-filtered
  * navigation, hash routing, contextual help, theme and language preferences.
  */
+
+document.documentElement.lang = getLang();
 
 const state = { token: null, user: null, meta: null };
 try { state.token = sessionStorage.getItem('token'); } catch { /* storage unavailable */ }
@@ -188,13 +190,13 @@ function shell(route) {
     menuBtn,
     h('a', { class: 'brand', href: '#/' }, h('img', { src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }), h('span', { class: 'sr-only' }, 'TASCO Growth Platform')),
     h('span', { class: 'spacer' }),
-    h('span', { class: 'who' }, `${state.user.displayName} · ${state.user.roles.join(', ')}${state.user.region && state.user.region !== 'ALL' ? ` · ${state.user.region}` : ''}`),
+    h('span', { class: 'who', title: state.user.roles.join(', ') }, `${state.user.displayName} · ${state.user.roles.map((r) => label('role', r)).join(', ')}${state.user.region && state.user.region !== 'ALL' ? ` · ${state.user.region}` : ''}`),
     h('button', { class: 'btn ghost small', 'aria-haspopup': 'dialog', onclick: () => openHelp(helpKey) }, '?', h('span', { class: 'sr-only' }, t('help'))),
     h('button', { class: 'btn ghost small', onclick: () => { const cur = document.documentElement.dataset.theme; const next = cur === 'dark' ? 'light' : 'dark'; applyTheme(next); try { localStorage.setItem('theme', next); } catch { /* ignore */ } } }, '🌓', h('span', { class: 'sr-only' }, t('theme'))),
     h('button', { class: 'btn ghost small', onclick: () => { setLang(getLang() === 'vi' ? 'en' : 'vi'); render(); } }, t('language')),
     h('button', { class: 'btn ghost small', onclick: () => changePasswordDialog(false) }, '🔑', h('span', { class: 'sr-only' }, 'Change password')),
     h('button', { class: 'btn small', onclick: signOut }, t('signOut')));
-  const footer = h('footer', { class: 'footer-credit' }, 'Built by', h('img', { src: '/assets/iorta-technxt-logo-tight.png', alt: 'iorta TechNXT' }), h('span', {}, `· ${state.meta?.today || ''} · ${state.meta?.store || ''}`));
+  const footer = h('footer', { class: 'footer-credit' }, 'Built by', h('img', { src: '/assets/iorta-technxt-logo-tight.png', alt: 'iorta TechNXT' }), h('span', {}, `· ${state.meta?.today ? fmtDate(state.meta.today) : ''} · ${state.meta?.store || ''}`));
   return { el: h('div', { class: 'shell' }, top, h('div', { class: 'layout' }, nav, h('div', {}, main, footer))), main };
 }
 

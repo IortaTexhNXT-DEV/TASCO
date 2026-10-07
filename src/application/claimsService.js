@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const { errors } = require('../shared/errors');
+const { maskName } = require('../shared/util');
 
 /**
  * First notice of loss (FNOL) from the VETC app. Trust is built at claim time:
@@ -22,6 +23,7 @@ const TRANSITIONS = {
 function createClaimsService({ store, rules, audit, events, clock }) {
   const claims = store.collection('claims');
   const policies = store.collection('policies');
+  const profiles = store.collection('profiles');
 
   return {
     async submit({ profileId, policyId, incidentDate, description, location, photos = 0 }, actor) {
@@ -42,7 +44,14 @@ function createClaimsService({ store, rules, audit, events, clock }) {
       const where = {};
       if (profileId) where.profile_id = profileId;
       if (status) where.status = status;
-      return claims.find({ where, orderBy: ['created_at', 'desc'], limit, offset });
+      const rows = await claims.find({ where, orderBy: ['created_at', 'desc'], limit, offset });
+      // Queue context for handlers: plate and (masked) customer name — claims handlers do not hold profile:read_pii.
+      const ids = [...new Set(rows.map((r) => r.profileId).filter(Boolean))];
+      const byId = new Map((await Promise.all(ids.map((id) => profiles.get(id)))).filter(Boolean).map((p) => [p.id, p]));
+      return rows.map((r) => {
+        const p = byId.get(r.profileId);
+        return { ...r, plate: p?.plate || null, customerName: p ? maskName(p.name) : null };
+      });
     },
     async get(id) {
       const c = await claims.get(id);

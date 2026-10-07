@@ -48,11 +48,14 @@ function createInsightsService({ store, rules, audit, clock }) {
       const humanEquivalent = totalCalls * costs.telesalesPerMinute * costs.avgTelesalesCallMinutes;
       const msgCost = Object.entries(msgs).reduce((s, [ch, n]) => s + (costs[ch] || 0) * n, 0);
       const blocked = await c('messages').countBy('status');
+      // One vehicle can have several open issues: report distinct vehicles as the headline.
+      const issuesByProfile = await c('dq_issues').countBy('profile_id', { status: 'open' });
+      const profilesWithOpenIssues = Object.keys(issuesByProfile).filter((k) => k && k !== 'null' && k !== 'undefined').length;
       return {
         asOf: today,
         base: { profiles: profilesN, expiring30, lapsedUninsured: lapsed, profilesWithUsableData: usableExpiry },
         leads: { byTier: tiers, byJourney: journeys, byAction: actions },
-        dataQuality: { openIssues: dqOpen, byType: dqTypes },
+        dataQuality: { openIssues: dqOpen, profilesWithOpenIssues, byType: dqTypes },
         engagement: { messagesByChannel: msgs, messageStatus: blocked, voiceOutcomes: calls, handoffs },
         sales: { orders: completed.n, gwp: completed.total, byJourney: ordersByJourney, byChannel: ordersByChannel, activePoliciesByProduct: policiesN },
         claims: claimsN,

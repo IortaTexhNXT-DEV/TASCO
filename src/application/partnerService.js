@@ -70,7 +70,12 @@ function createPartnerService({ store, audit, clock }) {
       if (from || to) where.created_date = { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) };
       const rows = await orders.find({ where, orderBy: ['created_at', 'asc'], limit: 5000 });
       const lines = rows.flatMap((o) => (o.commission || []).map((c) => ({ orderId: o.id, date: o.createdDate, ...c })));
-      return { partnerId, from: from || null, to: to || null, orders: rows.length, totalCommission: lines.reduce((s, l) => s + l.amount, 0), lines };
+      // Grouped view: one entry per order with its product lines and a subtotal (lines kept flat for API compatibility).
+      const byOrder = rows.map((o) => {
+        const ol = (o.commission || []).map((c) => ({ product: c.product, rate: c.rate, amount: c.amount }));
+        return { orderId: o.id, date: o.createdDate, products: ol.map((l) => l.product), lines: ol, subtotal: ol.reduce((s, l) => s + l.amount, 0) };
+      });
+      return { partnerId, from: from || null, to: to || null, orders: rows.length, totalCommission: lines.reduce((s, l) => s + l.amount, 0), lines, byOrder };
     },
   };
 }

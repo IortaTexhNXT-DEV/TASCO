@@ -41,10 +41,10 @@
           { "if": [{ "var": "channels.zalo_zns" }, 0.3, 0] },
           { "if": [{ "and": [{ "var": "channels.voice_bot" }, { "var": "consent.call" }] }, 0.3, { "var": "channels.sms" }, 0.1, 0] } ] }, 0, 1] },
         "reason": { "cat": [
-          "reachable via",
-          { "if": [{ "var": "channels.app_push" }, " push", ""] },
-          { "if": [{ "var": "channels.zalo_zns" }, " Zalo", ""] },
-          { "if": [{ "and": [{ "var": "channels.voice_bot" }, { "var": "consent.call" }] }, " phone(call consent)", { "var": "channels.sms" }, " SMS", ""] } ] }
+          { "if": [{ "var": "channels.app_push" }, "app push; ", ""] },
+          { "if": [{ "var": "channels.zalo_zns" }, "Zalo; ", ""] },
+          { "if": [{ "and": [{ "var": "channels.voice_bot" }, { "var": "consent.call" }] }, "phone (call consent); ", { "var": "channels.sms" }, "SMS only (no call consent); ", ""] } ] },
+        "emptyReason": "no reachable channel on file"
       },
       {
         "key": "affinity", "weight": 15, "label": "Relationship",
@@ -58,7 +58,9 @@
           { "if": [{ "var": "priorVetcInsurancePurchase" }, "bought in VETC app before; ", ""] },
           { "if": [{ "==": [{ "var": "insurer" }, "TASCO"] }, "current TASCO customer; ", ""] },
           { "if": [{ ">=": [{ "var": "walletBalance" }, { "var": "premium" }] }, "wallet covers premium (one-tap pay); ", ""] },
-          { "if": [{ "var": "complaints12m" }, "recent complaint(s); ", ""] } ] }
+          { "if": [{ "var": "autoTopUp" }, "wallet auto top-up on; ", ""] },
+          { "if": [{ "var": "complaints12m" }, "recent complaint(s); ", ""] } ] },
+        "emptyReason": "no prior relationship with TASCO or VETC insurance"
       }
     ],
     "zeroWhen": { "var": "consent.dnc" }

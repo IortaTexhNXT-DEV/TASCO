@@ -19,6 +19,10 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
   const sources = store.collection('source_records');
   const sessions = store.collection('voice_sessions');
 
+  // Demo picker: customers once offered stay offered (with their original journey) even after
+  // they buy and their lead moves to another journey / lower score.
+  const demoShown = new Map();
+
   async function mine(profileId) {
     const p = await profiles.get(profileId);
     if (!p || p.anonymised) throw errors.notFound('Vehicle');
@@ -33,6 +37,32 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
      */
     issueCustomerToken(profileId) {
       return signJwt({ sub: `customer:${profileId}`, roles: ['customer'], customerId: profileId, aud: 'customer' }, config.jwtSecret, 3600);
+    },
+
+    /**
+     * DEMO_MODE only: a few customers per journey for the customer-app picker, plus recent
+     * in-app buyers. Each carries a status so a customer who purchased is kept and labelled.
+     */
+    async demoCustomers({ perJourney = 2, journeys = ['renewal', 'lapsed_uninsured', 'new_vehicle', 'conquest'] } = {}) {
+      for (const journey of journeys) {
+        for (const l of await leads.find({ where: { journey }, orderBy: ['score', 'desc'], limit: perJourney })) {
+          if (!demoShown.has(l.id)) demoShown.set(l.id, { id: l.id, plate: l.plate, journey });
+        }
+      }
+      const buyers = await store.collection('orders').find({ where: { status: 'completed', channel: 'vetc_app' }, orderBy: ['created_at', 'desc'], limit: 4 });
+      for (const o of buyers) {
+        if (demoShown.has(o.profileId)) continue;
+        const l = await leads.get(o.profileId);
+        const p = l ? null : await profiles.get(o.profileId);
+        if (l || p) demoShown.set(o.profileId, { id: o.profileId, plate: l?.plate || p.plate, journey: o.journey || l?.journey || null });
+      }
+      const out = [];
+      for (const pick of demoShown.values()) {
+        const [lead, active] = await Promise.all([leads.get(pick.id), policies.count({ profile_id: pick.id, status: 'active' })]);
+        if (!lead && !active) continue; // erased / no longer a customer record
+        out.push({ ...pick, currentJourney: lead?.journey ?? null, status: active ? 'insured' : 'prospect', activePolicies: active });
+      }
+      return out;
     },
 
     async home(profileId) {

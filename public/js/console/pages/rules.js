@@ -1,5 +1,8 @@
 import { h, mount, fmtDateTime } from '../../shared/dom.js';
+import { label } from '../../shared/i18n.js';
 import { pageHead, table, statusBadge, field, toast, errorToast, confirmDialog } from '../ui.js';
+
+const who = (name, id) => h('span', { title: id || null }, name || id || '—');
 
 /** Flat JSON-path diff for reviewing a version against the active one. */
 function diff(a, b, path = '$', out = []) {
@@ -43,10 +46,11 @@ export default {
     const changes = activePayload ? diff(activePayload, r.payload) : [];
 
     mount(main, 
-      pageHead(`${r.kind} · v${r.version_no}`, r.description || '', h('a', { class: 'btn', href: '#/rules' }, '← All rule sets')),
+      pageHead(`${label('ruleKind', r.kind)} · v${r.version_no}`, r.description || '', h('a', { class: 'btn nowrap', href: '#/rules' }, '← All rule sets')),
       h('div', { class: 'grid cols-2' },
         h('section', { class: 'card stack' },
-          h('div', { class: 'row' }, statusBadge(r.status), h('span', { class: 'small muted' }, `checksum ${r.checksum} · by ${r.createdBy} ${r.approvedBy ? `· approved by ${r.approvedBy}` : ''}`)),
+          h('div', { class: 'row' }, statusBadge(r.status), h('span', { class: 'small muted' }, `checksum ${r.checksum} · by `, who(r.createdByName, r.createdBy),
+            r.approvedBy ? [' · approved by ', who(r.approvedByName, r.approvedBy)] : null, r.rejectedBy ? [' · rejected by ', who(r.rejectedByName, r.rejectedBy)] : null)),
           editor,
           (can('rules:approve') && r.status === 'pending_approval') ? field('Review comment', comment) : null,
           h('div', { class: 'row' }, actions), out),
@@ -57,7 +61,7 @@ export default {
               const p = parse(); if (!p) return;
               try {
                 const s = await api.post('/api/rules/simulate', { profileId: simId.value.trim().toUpperCase(), kind: r.kind, payload: p });
-                mount(out, h('div', { class: 'alert info' }, h('strong', {}, 'Simulation'), h('p', {}, `Current: score ${s.current.score} (${s.current.tier}), ${s.current.journey}, NBA ${s.current.nextBestAction.action}`), h('p', {}, `Candidate: score ${s.candidate.score} (${s.candidate.tier}), ${s.candidate.journey}, NBA ${s.candidate.nextBestAction.action}`)));
+                mount(out, h('div', { class: 'alert info' }, h('strong', {}, 'Simulation'), h('p', {}, `Current: score ${s.current.score} (${label('tier', s.current.tier)}), ${label('journey', s.current.journey)}, NBA: ${label('nba', s.current.nextBestAction.action)}`), h('p', {}, `Candidate: score ${s.candidate.score} (${label('tier', s.candidate.tier)}), ${label('journey', s.candidate.journey)}, NBA: ${label('nba', s.candidate.nextBestAction.action)}`)));
               } catch (e) { errorToast(e); }
             } }, 'Run simulation')) : null,
           h('section', { class: 'card' }, h('h2', {}, 'Governance'), h('ol', {}, h('li', {}, 'Author edits and validates; customer copy is checked by the copy guard.'), h('li', {}, 'Simulate on real customers before submitting.'), h('li', {}, 'A different user approves (maker-checker). Previous version is retired; all steps are audited.'), h('li', {}, 'Roll back by creating a draft from an older version.'))))));
@@ -72,11 +76,11 @@ async function renderList(main, api, navigate) {
     pageHead('Rules studio', 'Every business rule is versioned configuration with maker-checker approval — no code changes needed.'),
     pending.length ? h('div', { class: 'alert warn' }, `${pending.length} change(s) awaiting approval: `, pending.map((p) => h('a', { href: `#/rules/${encodeURIComponent(p.id)}`, style: 'margin-right:8px' }, p.id))) : null,
     h('section', { class: 'card', style: 'margin-top:16px' }, table([
-      { label: 'Kind', render: (r) => h('strong', {}, r.kind) },
+      { label: 'Rule set', render: (r) => [h('strong', {}, label('ruleKind', r.kind)), h('div', { class: 'xs muted mono' }, r.kind)] },
       { label: 'Version', num: true, render: (r) => r.version_no },
       { label: 'Status', render: (r) => statusBadge(r.status) },
       { label: 'Description', render: (r) => h('span', { class: 'small' }, (r.description || '').slice(0, 140)) },
-      { label: 'Author', render: (r) => r.createdBy },
-      { label: 'Activated', render: (r) => fmtDateTime(r.activatedAt) },
+      { label: 'Author', render: (r) => who(r.createdByName, r.createdBy) },
+      { label: 'Activated', nowrap: true, render: (r) => fmtDateTime(r.activatedAt) },
     ], all.sort((a, b) => (a.kind === b.kind ? b.version_no - a.version_no : a.kind < b.kind ? -1 : 1)), { onRowClick: (r) => navigate(`rules/${encodeURIComponent(r.id)}`), caption: 'Rule sets' })));
 }

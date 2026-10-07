@@ -14,7 +14,11 @@ body.customer { background: var(--bg); }
 .tabbar a[aria-current="page"] { color: var(--primary); }
 .tabbar span[aria-hidden] { font-size: 20px; }
 .option { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
-.option input { width: 22px; min-height: 22px; margin-top: 2px; }
+.option input[type="checkbox"] { width: 22px; height: 22px; min-height: 22px; flex: 0 0 22px; margin-top: 2px; }
+.app .check { padding: var(--sp-2) 0; border-bottom: 1px solid var(--border); }
+.app .check:last-of-type { border-bottom: none; }
+.claim-item { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--sp-3); padding: var(--sp-2) 0; border-bottom: 1px dashed var(--border); }
+.claim-item:last-child { border-bottom: none; }
 .option.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
 .steps { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-4); list-style: none; padding: 0; }
 .steps li { flex: 1; height: 6px; border-radius: 999px; background: var(--border); }
@@ -23,3 +27,4 @@ body.customer { background: var(--bg); }
 .qr svg { width: 180px; height: 180px; }
 .benefit { display: flex; gap: var(--sp-3); align-items: flex-start; }
 .benefit .icon { font-size: 22px; }
+.demo-pick { justify-content: flex-start; flex-wrap: wrap; text-align: left; }

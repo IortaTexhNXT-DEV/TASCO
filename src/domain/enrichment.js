@@ -113,7 +113,12 @@ function buildProfiles(rules, rawRecords, today) {
     const expiry = inferExpiry(rules, records, today);
     lineage.push({ field: 'policy.expiryDate', source: `${expiry.method}${expiry.source ? ` (${expiry.source})` : ''}`, confidence: expiry.confidence });
 
-    const insurer = records.find((r) => r.policy?.insurer)?.policy.insurer || expiry.insurer || null;
+    // A verified certificate is authoritative for who insures the vehicle (a TASCO-issued
+    // certificate means a TASCO customer → renewal, never conquest); otherwise the most
+    // trusted source that names an insurer wins.
+    const verifiedInsurer = records.find((r) => r.policy?.verified && r.policy.insurer)?.policy.insurer;
+    const named = records.filter((r) => r.policy?.insurer).sort((a, b) => trustOf(rules, b.source) - trustOf(rules, a.source));
+    const insurer = verifiedInsurer || named[0]?.policy.insurer || expiry.insurer || null;
     const missing = [];
     if (!uniquePhones.length) missing.push('phone');
     if (!names.length) missing.push('name');
@@ -196,19 +201,54 @@ function buildProfiles(rules, rawRecords, today) {
   };
 }
 
-/** Apply a customer- or bot-captured fact to a profile (closes the data loop). */
+/**
+ * Apply a customer- or bot-captured fact to a profile (closes the data loop).
+ * The new evidence only replaces the expiry date — and the insurer — when it is
+ * at least as strong as the current evidence; weaker evidence is kept as a
+ * candidate marked `superseded` so the lineage stays honest without two
+ * competing "current" expiries.
+ */
 function applyDeclaredExpiry(profile, { expiryDate, insurer, source = 'customer_declared', confidence = 0.75 }) {
   const p = structuredClone(profile);
-  p.policy.expiryCandidates = [{ date: expiryDate, method: source, confidence }, ...(p.policy.expiryCandidates || [])];
-  if (confidence >= p.policy.expiryConfidence) {
+  const wins = confidence >= (p.policy.expiryConfidence || 0);
+  const candidate = { date: expiryDate, method: source, source, confidence };
+  if (!wins) candidate.superseded = true;
+  p.policy.expiryCandidates = [candidate, ...(p.policy.expiryCandidates || [])];
+  if (wins) {
     p.policy.expiryDate = expiryDate;
     p.policy.expiryMethod = source;
     p.policy.expiryConfidence = confidence;
+    p.policy.verified = false;
   }
-  if (insurer) p.policy.insurer = insurer;
-  p.dataQuality.missing = p.dataQuality.missing.filter((m) => m !== 'reliable_expiry' && (!insurer || m !== 'current_insurer'));
-  p.lineage = [...(p.lineage || []), { field: 'policy.expiryDate', source, confidence, at: new Date().toISOString() }];
+  const insurerApplied = !!insurer && (wins || !p.policy.insurer);
+  if (insurerApplied) p.policy.insurer = insurer;
+  p.dataQuality.missing = p.dataQuality.missing.filter((m) => (wins ? m !== 'reliable_expiry' : true) && (!insurerApplied || m !== 'current_insurer'));
+  p.lineage = [...(p.lineage || []), { field: 'policy.expiryDate', source, confidence, at: new Date().toISOString(), ...(wins ? {} : { superseded: true }) }];
   return p;
 }
 
-module.exports = { buildProfiles, inferCategory, inferExpiry, applyDeclaredExpiry };
+/**
+ * "Already renewed elsewhere" heard on a call. When the current cover is backed by
+ * a verified certificate the spoken claim cannot outrank it: the profile keeps its
+ * verified expiry and insurer (so a TASCO certificate stays a TASCO renewal) and
+ * the claim is returned as a conflict for a data steward to check — no second,
+ * year-later expiry is invented. Otherwise the next expiry (≈ previous + 1 year)
+ * is recorded at bot confidence.
+ * @returns {{ profile, conflict: boolean }}
+ */
+function applyRenewedElsewhereClaim(profile, { confidence, note = null }) {
+  if (profile.policy.verified || profile.policy.expiryMethod === 'verified_certificate') {
+    const p = structuredClone(profile);
+    p.policy.renewalClaim = { insurer: 'OTHER', note, confidence, status: 'unverified' };
+    return { profile: p, conflict: true };
+  }
+  if (!profile.policy.expiryDate) {
+    return { profile: { ...profile, policy: { ...profile.policy, insurer: 'OTHER', competitorNote: note } }, conflict: false };
+  }
+  const nextExpiry = fmtDate(addDays(profile.policy.expiryDate, 365));
+  const p = applyDeclaredExpiry(profile, { expiryDate: nextExpiry, insurer: 'OTHER', source: 'voice_bot', confidence });
+  p.policy.competitorNote = note;
+  return { profile: p, conflict: false };
+}
+
+module.exports = { buildProfiles, inferCategory, inferExpiry, applyDeclaredExpiry, applyRenewedElsewhereClaim };

@@ -1,4 +1,5 @@
-import { h, mount, fmtDate } from './shared/dom.js';
+import { h, mount, fmtPeriod } from './shared/dom.js';
+import { labelIn } from './shared/i18n.js';
 
 /** Public e-certificate verification (QR target). Shows validity only — no personal data. */
 const certNo = decodeURIComponent(location.pathname.split('/verify/')[1] || '');
@@ -19,9 +20,9 @@ async function run() {
     h('div', { class: `alert ${r.valid ? 'ok' : r.state === 'not_yet_in_force' ? 'info' : 'danger'}` }, h('strong', {}, STATES[r.state] || STATES.invalid)),
     h('dl', { class: 'kv' },
       h('dt', {}, 'Số GCN'), h('dd', {}, r.certNo),
-      h('dt', {}, 'Sản phẩm'), h('dd', {}, r.product),
+      h('dt', {}, 'Sản phẩm'), h('dd', { title: r.product }, r.productNameVi || labelIn('vi', 'product', r.product)),
       h('dt', {}, 'Biển số'), h('dd', {}, r.plate),
-      h('dt', {}, 'Hiệu lực'), h('dd', {}, `${fmtDate(r.startDate)} → ${fmtDate(r.endDate)}`),
+      h('dt', {}, 'Hiệu lực'), h('dd', {}, fmtPeriod(r.startDate, r.endDate)),
       h('dt', {}, 'Doanh nghiệp bảo hiểm'), h('dd', {}, r.insurer)),
     h('p', { class: 'xs muted' }, 'Thông tin cá nhân không được hiển thị để bảo vệ quyền riêng tư.')));
 }

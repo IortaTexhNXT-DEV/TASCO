@@ -29,9 +29,10 @@ code, pre, .mono { font-family: var(--mono); font-size: var(--fs-sm); }
 .stack > * + * { margin-top: var(--sp-4); }
 .row { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; }
 .row.spread { justify-content: space-between; }
-.grid { display: grid; gap: var(--sp-4); grid-template-columns: 1fr; }
-@media (min-width: 640px) { .grid.cols-2 { grid-template-columns: repeat(2, 1fr); } .grid.cols-4 { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1024px) { .grid.cols-3 { grid-template-columns: repeat(3, 1fr); } .grid.cols-4 { grid-template-columns: repeat(4, 1fr); } }
+.grid { display: grid; gap: var(--sp-4); grid-template-columns: minmax(0, 1fr); }
+.grid > * { min-width: 0; }
+@media (min-width: 640px) { .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
 /* Cards & tiles */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-4); box-shadow: var(--shadow-1); min-width: 0; }
@@ -67,8 +68,10 @@ textarea.code { font-family: var(--mono); font-size: var(--fs-sm); min-height: 3
 input[aria-invalid="true"] { border-color: var(--danger); }
 fieldset { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--sp-3); margin: 0; }
 legend { font-weight: 600; padding: 0 var(--sp-1); }
-.check { display: flex; gap: var(--sp-2); align-items: center; min-height: var(--tap); }
-.check input { width: 20px; min-height: 20px; }
+.check { display: flex; gap: var(--sp-3); align-items: center; min-height: var(--tap); line-height: 1.4; }
+/* Checkboxes/radios: one fixed size everywhere (the global input padding/min-height must not apply). */
+input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; min-height: 20px; padding: 0; margin: 0; flex: 0 0 20px; accent-color: var(--primary); }
+.check input[type="checkbox"], .check input[type="radio"] { align-self: center; }
 
 /* Badges */
 .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 700; border: 1px solid currentColor; white-space: nowrap; }
@@ -98,7 +101,19 @@ th, td { text-align: left; padding: var(--sp-2) var(--sp-3); border-bottom: 1px 
 th { background: var(--surface-2); font-weight: 700; white-space: nowrap; position: sticky; top: 0; }
 tbody tr:hover { background: var(--surface-2); }
 tr.clickable { cursor: pointer; }
-td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.nowrap, .nowrap, .plate-cell { white-space: nowrap; }
+td.num-text, th.num-text { text-align: right; }
+td code { overflow-wrap: anywhere; }
+td.nowrap code { overflow-wrap: normal; }
+.trunc { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+td.trunc-cell { max-width: 0; width: 30%; }
+td.trunc-cell .trunc { width: 100%; }
+.ref { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.btn.copy { min-height: 24px; padding: 0 4px; font-size: var(--fs-xs); color: var(--text-muted); }
+tr.group-head td { border-bottom: none; }
+tr.group-line td { padding-top: 2px; padding-bottom: 2px; border-bottom: none; color: var(--text-muted); }
+tr.group-total td { font-weight: 700; background: var(--surface-2); }
 
 /* Score bar */
 .bar { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
@@ -114,7 +129,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .timeline li.done::before { background: var(--accent); }
 
 /* Chat (voice bot console) */
-.chat { display: flex; flex-direction: column; gap: var(--sp-2); max-height: 60vh; overflow-y: auto; padding: var(--sp-2); background: var(--surface-2); border-radius: var(--radius-sm); }
+.chat { display: flex; flex-direction: column; gap: var(--sp-2); height: clamp(220px, 42vh, 440px); overflow-y: auto; overscroll-behavior: contain; padding: var(--sp-2); background: var(--surface-2); border-radius: var(--radius-sm); }
 .bubble { max-width: 85%; padding: var(--sp-2) var(--sp-3); border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
 .bubble.customer { align-self: flex-end; background: var(--info-bg); }
 .bubble .gloss { display: block; font-size: var(--fs-xs); color: var(--text-muted); margin-top: var(--sp-1); }

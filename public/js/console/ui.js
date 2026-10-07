@@ -1,5 +1,5 @@
-import { h, mount } from '../shared/dom.js';
-import { t } from '../shared/i18n.js';
+import { h, mount, shortRef } from '../shared/dom.js';
+import { t, label } from '../shared/i18n.js';
 
 export function toast(message, kind = 'info') {
   const box = document.getElementById('toasts');
@@ -14,29 +14,54 @@ export function errorToast(err) {
 }
 
 export function tierBadge(tier) {
-  return h('span', { class: `badge ${tier}` }, tier ? tier.toUpperCase() : '—');
+  return h('span', { class: `badge ${tier}`, title: tier || null }, tier ? label('tier', tier) : '—');
 }
 
-export function statusBadge(status) {
-  const map = { active: 'ok', completed: 'ok', done: 'ok', sent: 'ok', won: 'ok', resolved: 'ok', approved: 'ok', paid: 'ok',
-    open: 'info', scheduled: 'info', claimed: 'info', submitted: 'info', pending_approval: 'warn', draft: 'info', callback: 'warn', acknowledged: 'info',
-    skipped: 'warn', cancelled: 'warn', blocked: 'danger', failed: 'danger', lost: 'danger', rejected: 'danger', retired: 'warn', dead_letter: 'danger' };
-  return h('span', { class: `badge ${map[status] || 'info'}` }, status || '—');
+const STATUS_TONE = { active: 'ok', completed: 'ok', done: 'ok', sent: 'ok', won: 'ok', resolved: 'ok', approved: 'ok', paid: 'ok', succeeded: 'ok', converted: 'ok', insured: 'ok',
+  open: 'info', scheduled: 'info', claimed: 'info', submitted: 'info', pending_approval: 'warn', draft: 'info', callback: 'warn', acknowledged: 'info', assessor_assigned: 'info', under_assessment: 'info',
+  skipped: 'warn', cancelled: 'warn', blocked: 'danger', failed: 'danger', lost: 'danger', rejected: 'danger', retired: 'warn', dead_letter: 'danger', disabled: 'warn', suspended: 'warn', payment_failed: 'danger' };
+
+/** Status badge with a human label (UI language); the raw code stays in the tooltip. */
+export function statusBadge(status, group = 'status') {
+  return h('span', { class: `badge ${STATUS_TONE[status] || 'info'}`, title: status || null }, status ? label(group, status) : '—');
+}
+
+/** Human label for a business code, with the code in a tooltip. */
+export function codeLabel(group, code) {
+  return h('span', { title: code ?? null }, label(group, code));
+}
+
+/** Readable short reference (shown fully) + full id in tooltip + copy button. */
+export function refCell(id) {
+  if (!id) return '—';
+  const btn = h('button', { class: 'btn ghost copy', type: 'button', title: `${t('copy')} ${id}`, 'aria-label': `${t('copy')} ${id}`, onclick: async (e) => {
+    e.stopPropagation();
+    try { await navigator.clipboard.writeText(id); toast(`${t('copied')}: ${id}`, 'ok'); } catch { toast(id); }
+  } }, '⧉');
+  return h('span', { class: 'ref' }, h('code', { title: id }, shortRef(id)), btn);
+}
+
+/** Single-line cell that ellipsises long text; the full text is in the tooltip. */
+export function trunc(text, cls = '') {
+  const s = text === null || text === undefined ? '' : String(text);
+  return h('span', { class: `trunc ${cls}`.trim(), title: s || null }, s || '—');
 }
 
 export function kpi(label, value, hint) {
   return h('div', { class: 'card kpi' }, h('span', { class: 'label' }, label), h('span', { class: 'value' }, value), hint ? h('span', { class: 'hint' }, hint) : null);
 }
 
-/** Accessible data table. columns: [{ label, render(row) → node|string, num }] */
+const cellClass = (c) => [c.num ? 'num' : null, c.nowrap ? 'nowrap' : null, c.cls || null].filter(Boolean).join(' ') || null;
+
+/** Accessible data table. columns: [{ label, render(row) → node|string, num, nowrap, cls }] */
 export function table(columns, rows, { onRowClick, caption } = {}) {
   if (!rows.length) return h('div', { class: 'empty' }, t('empty'));
   return h('div', { class: 'table-wrap' },
     h('table', {},
       caption ? h('caption', { class: 'sr-only' }, caption) : null,
-      h('thead', {}, h('tr', {}, columns.map((c) => h('th', { scope: 'col', class: c.num ? 'num' : null }, c.label)))),
+      h('thead', {}, h('tr', {}, columns.map((c) => h('th', { scope: 'col', class: cellClass(c) }, c.label)))),
       h('tbody', {}, rows.map((r) => {
-        const tr = h('tr', { class: onRowClick ? 'clickable' : null }, columns.map((c) => h('td', { class: c.num ? 'num' : null }, c.render(r))));
+        const tr = h('tr', { class: onRowClick ? 'clickable' : null }, columns.map((c) => h('td', { class: cellClass(c) }, c.render(r))));
         if (onRowClick) {
           tr.tabIndex = 0;
           tr.addEventListener('click', () => onRowClick(r));
@@ -85,5 +110,5 @@ export function loading(el) {
 }
 
 export function pageHead(title, subtitle, ...actions) {
-  return h('div', { class: 'page-head' }, h('div', {}, h('h1', { tabindex: '-1', id: 'page-title' }, title), subtitle ? h('p', {}, subtitle) : null), h('div', { class: 'row' }, actions));
+  return h('div', { class: 'page-head' }, h('div', { class: 'page-head-text' }, h('h1', { tabindex: '-1', id: 'page-title' }, title), subtitle ? h('p', {}, subtitle) : null), h('div', { class: 'row page-head-actions' }, actions));
 }

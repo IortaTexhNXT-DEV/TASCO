@@ -1,4 +1,5 @@
-import { h, mount, fmtVnd, fmtDate } from '../shared/dom.js';
+import { h, mount, fmtVnd, fmtDate, fmtPeriod } from '../shared/dom.js';
+import { labelIn } from '../shared/i18n.js';
 import { createApi, idempotencyKey } from '../shared/api.js';
 import { qrSvg } from '../shared/qr.js';
 
@@ -16,6 +17,42 @@ function toast(msg, kind = 'info') {
   document.getElementById('toasts').append(el);
   setTimeout(() => el.remove(), 5000);
 }
+
+// The customer app is Vietnamese-only by design: every code is shown with its Vietnamese label.
+const vi = (group, code) => labelIn('vi', group, code);
+const productVi = (x) => x.productNameVi || vi('product', x.product);
+const TONE = { active: 'ok', paid: 'ok', approved: 'ok', completed: 'ok', insured: 'ok', submitted: 'info', acknowledged: 'info', assessor_assigned: 'info', under_assessment: 'info', rejected: 'danger', cancelled: 'warn', expired: 'warn' };
+const statusBadgeVi = (status) => h('span', { class: `badge ${TONE[status] || 'info'}` }, vi('status', status));
+
+/**
+ * Date entry in Vietnamese order (dd/mm/yyyy) whatever the browser locale — a native
+ * <input type=date> renders mm/dd/yyyy on en-US devices. `.isoValue()` returns yyyy-mm-dd or ''.
+ */
+function dateInput(id) {
+  const input = h('input', { id, type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: 'dd/mm/yyyy', maxlength: '10', required: true, pattern: '\\d{1,2}/\\d{1,2}/\\d{4}', 'aria-describedby': `${id}-hint` });
+  input.addEventListener('input', () => {
+    const digits = input.value.replace(/\D/g, '').slice(0, 8);
+    input.value = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4)].filter(Boolean).join('/');
+    input.setCustomValidity('');
+  });
+  input.isoValue = () => {
+    const m = input.value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return '';
+    const [d, mo, y] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    const dt = new Date(Date.UTC(y, mo - 1, d));
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return '';
+    return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  };
+  input.check = () => {
+    const ok = !!input.isoValue();
+    input.setCustomValidity(ok ? '' : 'Ngày không hợp lệ — nhập theo dạng ngày/tháng/năm, ví dụ 07/10/2026');
+    input.setAttribute('aria-invalid', String(!ok));
+    if (!ok) input.reportValidity();
+    return ok;
+  };
+  return input;
+}
+const dateField = (input, labelText) => h('div', { class: 'field' }, h('label', { for: input.id }, labelText), input, h('span', { class: 'help', id: `${input.id}-hint` }, 'Ngày/tháng/năm, ví dụ 07/10/2026'));
 
 const route = () => (location.hash.replace(/^#\/?/, '') || 'home').split('?')[0];
 
@@ -42,7 +79,9 @@ async function viewHome() {
   return [
     pending.map((q) => h('section', { class: 'card stack', 'aria-label': 'Báo giá chờ xác nhận' },
       h('h2', {}, 'Báo giá chờ bạn xác nhận'),
-      h('dl', { class: 'kv' }, q.lines.flatMap((l) => [h('dt', {}, l.productNameVi), h('dd', {}, fmtVnd(l.total))])),
+      q.lines[0] ? h('p', { class: 'small' }, 'Thời hạn bảo hiểm: ', h('strong', {}, fmtPeriod(q.lines[0].startDate, q.lines[0].endDate))) : null,
+      h('dl', { class: 'kv' }, q.lines.flatMap((l) => [h('dt', {}, productVi(l)), h('dd', {}, fmtVnd(l.total),
+        q.lines.some((x) => x.startDate !== l.startDate || x.endDate !== l.endDate) ? h('div', { class: 'xs muted' }, fmtPeriod(l.startDate, l.endDate)) : null)])),
       h('p', {}, h('strong', {}, `Tổng: ${fmtVnd(q.total)}`)),
       h('button', { class: 'btn primary block', onclick: (ev) => payQuote(q, ev.target) }, 'Xác nhận & thanh toán bằng ví VETC'))),
     h('section', { class: 'hero', 'aria-labelledby': 'veh' },
@@ -55,8 +94,8 @@ async function viewHome() {
     h('section', { class: 'card stack' }, h('h2', {}, 'Quyền lợi khi mua qua VETC'),
       d.benefits.map((b) => h('div', { class: 'benefit' }, h('span', { class: 'icon', 'aria-hidden': 'true' }, '✓'), h('div', {}, h('strong', {}, b.titleVi), h('div', { class: 'small muted' }, b.descVi))))),
     d.policies.length ? h('section', { class: 'card stack' }, h('h2', {}, 'Giấy chứng nhận của tôi'),
-      d.policies.map((p) => h('div', { class: 'stack' }, h('div', { class: 'row spread' }, h('strong', {}, p.productNameVi || p.product), h('span', { class: `badge ${p.status === 'active' ? 'ok' : 'warn'}` }, p.status)),
-        h('div', { class: 'small' }, `${p.certNo} · ${fmtDate(p.startDate)} → ${fmtDate(p.endDate)}`),
+      d.policies.map((p) => h('div', { class: 'stack' }, h('div', { class: 'row spread' }, h('strong', {}, productVi(p)), statusBadgeVi(p.status)),
+        h('div', { class: 'small' }, `${p.certNo} · ${fmtPeriod(p.startDate, p.endDate)}`),
         h('div', { class: 'qr' }, qrSvg(p.certificateUrl, { label: `Mã QR tra cứu giấy chứng nhận ${p.certNo}` })),
         h('a', { href: p.certificateUrl, target: '_blank', rel: 'noopener' }, 'Tra cứu giấy chứng nhận')))) : null,
     h('p', { class: 'xs muted' }, 'Phí bảo hiểm TNDS bắt buộc theo biểu phí của Nhà nước, giống nhau ở mọi công ty bảo hiểm. VETC không bao giờ yêu cầu mã OTP hay thanh toán qua điện thoại.'),
@@ -64,17 +103,18 @@ async function viewHome() {
 }
 
 function viewConfirm() {
-  const date = h('input', { type: 'date', required: true, id: 'exp' });
+  const date = dateInput('exp');
   const insurer = h('select', { id: 'ins' }, ['TASCO', 'PVI', 'PTI', 'Bảo Việt', 'PJICO', 'BIC', 'MIC', 'Khác'].map((x) => h('option', { value: x }, x)));
   const form = h('form', { class: 'card stack' },
     h('h2', {}, 'Xác nhận ngày hết hạn'),
     h('p', { class: 'small muted' }, 'Xem trên giấy chứng nhận bảo hiểm TNDS hiện tại của bạn.'),
-    h('div', { class: 'field' }, h('label', { for: 'exp' }, 'Ngày hết hạn'), date),
+    dateField(date, 'Ngày hết hạn'),
     h('div', { class: 'field' }, h('label', { for: 'ins' }, 'Công ty bảo hiểm'), insurer),
     h('button', { class: 'btn primary block', type: 'submit' }, 'Lưu'));
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    try { await api.post('/api/customer/expiry', { expiryDate: date.value, insurer: insurer.value === 'Khác' ? 'OTHER' : insurer.value }); toast('Cảm ơn bạn! Chúng tôi sẽ nhắc đúng hạn.', 'ok'); location.hash = '#/home'; } catch (ex) { toast(ex.message, 'danger'); }
+    if (!date.check()) return;
+    try { await api.post('/api/customer/expiry', { expiryDate: date.isoValue(), insurer: insurer.value === 'Khác' ? 'OTHER' : insurer.value }); toast('Cảm ơn bạn! Chúng tôi sẽ nhắc đúng hạn.', 'ok'); location.hash = '#/home'; } catch (ex) { toast(ex.message, 'danger'); }
   });
   return [form];
 }
@@ -104,7 +144,7 @@ function viewRenew() {
       const q = await api.post('/api/customer/quotes', { products });
       steps.children[1].classList.add('done');
       mount(body, h('section', { class: 'card stack' }, h('h2', {}, 'Kiểm tra thông tin'),
-        h('dl', { class: 'kv' }, q.lines.flatMap((l) => [h('dt', {}, l.productNameVi), h('dd', {}, `${fmtVnd(l.total)} · ${fmtDate(l.startDate)} → ${fmtDate(l.endDate)}`)])),
+        h('dl', { class: 'kv' }, q.lines.flatMap((l) => [h('dt', {}, productVi(l)), h('dd', {}, fmtVnd(l.total), h('div', { class: 'xs muted' }, fmtPeriod(l.startDate, l.endDate)))])),
         h('p', {}, h('strong', {}, `Tổng thanh toán: ${fmtVnd(q.total)}`)),
         h('p', { class: 'xs muted' }, 'Đã gồm VAT (nếu có). Bảo hiểm tai nạn con người không chịu VAT.'),
         h('div', { class: 'small' }, 'Kèm theo: ', q.benefits.map((b) => b.titleVi).join(' · ')),
@@ -114,7 +154,7 @@ function viewRenew() {
             const r = await api.post('/api/customer/orders', { quoteId: q.id }, { 'Idempotency-Key': idempotencyKey() });
             steps.children[2].classList.add('done');
             mount(body, h('section', { class: 'card stack', role: 'status' }, h('h2', {}, '🎉 Thành công!'), h('p', {}, 'Giấy chứng nhận điện tử đã được cấp. Bạn có thể xuất trình mã QR khi được kiểm tra.'),
-              r.policies.map((p) => h('div', { class: 'stack' }, h('strong', {}, `${p.productNameVi || p.product} · ${p.certNo}`), h('div', { class: 'qr' }, qrSvg(p.certificateUrl, { label: `QR ${p.certNo}` })))),
+              r.policies.map((p) => h('div', { class: 'stack' }, h('strong', {}, `${productVi(p)} · ${p.certNo}`), h('div', { class: 'qr' }, qrSvg(p.certificateUrl, { label: `QR ${p.certNo}` })))),
               h('a', { class: 'btn block', href: '#/home' }, 'Về trang chủ')));
           } catch (ex) { toast(ex.status === 422 && pdBox.checked ? 'Vật chất xe cần giám định trước. Bạn có thể bỏ chọn để mua TNDS ngay, tư vấn viên sẽ liên hệ về vật chất xe.' : ex.message, 'danger'); ev.target.disabled = false; }
         } }, 'Thanh toán bằng ví VETC')));
@@ -138,21 +178,25 @@ async function viewClaims() {
   const active = home.policies.filter((p) => p.status === 'active');
   const items = [h('h2', {}, 'Bồi thường')];
   if (active.length) {
-    const pol = h('select', { id: 'pol' }, active.map((p) => h('option', { value: p.certNo }, `${p.product} · ${p.certNo}`)));
-    const date = h('input', { type: 'date', id: 'idate', required: true });
+    const pol = h('select', { id: 'pol' }, active.map((p) => h('option', { value: p.certNo }, `${productVi(p)} · ${p.certNo}`)));
+    const date = dateInput('idate');
     const desc = h('textarea', { id: 'desc', required: true, maxlength: '2000' });
     const loc = h('input', { id: 'loc', maxlength: '200', placeholder: 'VD: Cao tốc Hà Nội – Hải Phòng, km 35' });
     const form = h('form', { class: 'card stack' }, h('h3', {}, 'Báo tai nạn'),
-      h('div', { class: 'field' }, h('label', { for: 'pol' }, 'Hợp đồng'), pol), h('div', { class: 'field' }, h('label', { for: 'idate' }, 'Ngày xảy ra'), date),
+      h('div', { class: 'field' }, h('label', { for: 'pol' }, 'Hợp đồng'), pol), dateField(date, 'Ngày xảy ra'),
       h('div', { class: 'field' }, h('label', { for: 'loc' }, 'Địa điểm'), loc), h('div', { class: 'field' }, h('label', { for: 'desc' }, 'Mô tả'), desc),
       h('button', { class: 'btn primary block', type: 'submit' }, 'Gửi'));
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      try { const c = await api.post('/api/customer/claims', { policyId: pol.value, incidentDate: date.value, description: desc.value, location: loc.value || undefined }); toast(`Đã tiếp nhận ${c.id}. Giám định viên sẽ liên hệ trong 4 giờ.`, 'ok'); render(); } catch (ex) { toast(ex.message, 'danger'); }
+      if (!date.check()) return;
+      try { const c = await api.post('/api/customer/claims', { policyId: pol.value, incidentDate: date.isoValue(), description: desc.value, location: loc.value || undefined }); toast(`Đã tiếp nhận ${c.id}. Giám định viên sẽ liên hệ trong 4 giờ.`, 'ok'); render(); } catch (ex) { toast(ex.message, 'danger'); }
     });
     items.push(form);
   } else items.push(h('p', { class: 'muted' }, 'Bạn chưa có hợp đồng còn hiệu lực với TASCO.'));
-  items.push(h('section', { class: 'card stack' }, h('h3', {}, 'Yêu cầu của tôi'), list.length ? list.map((c) => h('div', { class: 'row spread' }, h('span', {}, `${c.id} · ${fmtDate(c.incidentDate)}`), h('span', { class: 'badge info' }, c.status))) : h('p', { class: 'muted' }, 'Chưa có yêu cầu.')));
+  items.push(h('section', { class: 'card stack' }, h('h3', {}, 'Yêu cầu của tôi'), list.length ? list.map((c) => h('div', { class: 'claim-item' },
+    h('strong', {}, c.id), statusBadgeVi(c.status),
+    h('span', { class: 'small' }, `Ngày xảy ra: ${fmtDate(c.incidentDate)}`), h('span', { class: 'small muted' }, productVi(c)),
+    c.description ? h('span', { class: 'small muted', style: 'grid-column:1/-1' }, c.description) : null)) : h('p', { class: 'muted' }, 'Chưa có yêu cầu.')));
   return items;
 }
 
@@ -184,7 +228,9 @@ async function viewEntry() {
   const items = [h('div', { class: 'card stack' }, h('h2', {}, 'Mở từ liên kết gia hạn'), h('p', { class: 'small muted' }, 'Trong thực tế, bạn mở trang này từ ứng dụng VETC hoặc tin nhắn Zalo OA chính thức của VETC.'))];
   if (state.meta.demoMode && state.meta.demoCustomers) {
     items.push(h('section', { class: 'card stack' }, h('h3', {}, 'Demo: chọn một khách hàng'),
-      state.meta.demoCustomers.map((c) => h('button', { class: 'btn block', onclick: async () => { await startSession({ demoProfileId: c.id }); } }, `${c.plate} · ${c.journey}`))));
+      state.meta.demoCustomers.map((c) => h('button', { class: 'btn block demo-pick', onclick: async () => { await startSession({ demoProfileId: c.id }); } },
+        h('span', { class: 'nowrap' }, c.plate), h('span', { class: 'small muted' }, vi('journey', c.journey)),
+        c.status === 'insured' ? h('span', { class: 'badge ok' }, 'Đã mua bảo hiểm') : null))));
   }
   return items;
 }

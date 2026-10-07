@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { validatePayload } = require('../rules/validators');
 const { errors } = require('../shared/errors');
+const { userNames } = require('./auditService');
 
 /**
  * Rule registry with versioning and maker-checker governance.
@@ -26,6 +27,17 @@ function checksum(payload) {
 function createRulesService({ store, audit, events, clock, logger, rbac }) {
   const col = store.collection('rulesets');
   let cache = new Map();
+
+  /** Resolve createdByName / approvedByName / rejectedByName from the user directory (usernames are also stored on write). */
+  async function withNames(rows) {
+    const names = await userNames(store, rows.flatMap((r) => [r.createdBy, r.approvedBy, r.rejectedBy]));
+    return rows.map((r) => ({
+      ...r,
+      createdByName: names.get(r.createdBy) || r.createdByName || r.createdBy,
+      ...(r.approvedBy ? { approvedByName: names.get(r.approvedBy) || r.approvedByName || r.approvedBy } : {}),
+      ...(r.rejectedBy ? { rejectedByName: names.get(r.rejectedBy) || r.rejectedByName || r.rejectedBy } : {}),
+    }));
+  }
   let cacheAt = 0;
 
   async function refresh() {
@@ -94,13 +106,13 @@ function createRulesService({ store, audit, events, clock, logger, rbac }) {
       if (kind) where.kind = kind;
       if (status) where.status = status;
       const rows = await col.find({ where, orderBy: ['kind', 'asc'], limit: 1000 });
-      return rows.map(({ payload, ...meta }) => ({ ...meta, size: JSON.stringify(payload).length }));
+      return withNames(rows.map(({ payload, ...meta }) => ({ ...meta, size: JSON.stringify(payload).length })));
     },
 
     async byId(id) {
       const r = await col.get(id);
       if (!r) throw errors.notFound('Rule set');
-      return r;
+      return (await withNames([r]))[0];
     },
 
     async createDraft({ kind, payload, description }, actor) {
@@ -109,7 +121,7 @@ function createRulesService({ store, audit, events, clock, logger, rbac }) {
       const versionNo = await nextVersion(kind);
       const rec = {
         id: `${kind}@${versionNo}`, kind, version_no: versionNo, status: 'draft', description: description || '',
-        payload, checksum: checksum(payload), createdBy: actor.id, createdAt: clock.now().toISOString(),
+        payload, checksum: checksum(payload), createdBy: actor.id, createdByName: actor.username || actor.id, createdAt: clock.now().toISOString(),
       };
       await col.insert(rec);
       await audit.record({ actor: actor.id, action: 'rules.draft_created', entityType: 'ruleset', entityId: rec.id, details: { checksum: rec.checksum } });
@@ -139,7 +151,7 @@ function createRulesService({ store, audit, events, clock, logger, rbac }) {
         const tcol = tx.collection('rulesets');
         const prev = await tcol.find({ where: { kind: r.kind, status: 'active' } });
         for (const p of prev) await tcol.update({ ...p, status: 'retired', retiredAt: now, supersededBy: id });
-        const upd = await tcol.update({ ...r, status: 'active', approvedBy: actor.id, approvalComment: comment || null, activatedAt: now });
+        const upd = await tcol.update({ ...r, status: 'active', approvedBy: actor.id, approvedByName: actor.username || actor.id, approvalComment: comment || null, activatedAt: now });
         return { previous: prev, updated: upd };
       });
       cacheAt = 0;
@@ -153,7 +165,7 @@ function createRulesService({ store, audit, events, clock, logger, rbac }) {
       const r = await service.byId(id);
       if (r.status !== 'pending_approval') throw errors.rule('Only pending rule sets can be rejected');
       if (r.createdBy === actor.id) throw errors.forbidden('Maker-checker: you cannot review your own change');
-      const updated = await col.update({ ...r, status: 'rejected', rejectedBy: actor.id, rejectionComment: comment || null });
+      const updated = await col.update({ ...r, status: 'rejected', rejectedBy: actor.id, rejectedByName: actor.username || actor.id, rejectionComment: comment || null });
       await audit.record({ actor: actor.id, action: 'rules.rejected', entityType: 'ruleset', entityId: id, details: { comment } });
       return updated;
     },

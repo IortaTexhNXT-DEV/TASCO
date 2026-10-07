@@ -1,5 +1,6 @@
 import { h, mount, fmtDate } from '../../shared/dom.js';
-import { pageHead, table, statusBadge, field, select, toast, errorToast } from '../ui.js';
+import { label, hasLabel } from '../../shared/i18n.js';
+import { pageHead, table, statusBadge, field, select, toast, errorToast, codeLabel } from '../ui.js';
 
 export default {
   perm: 'journeys:run',
@@ -20,7 +21,7 @@ export default {
         const at = new Date(`${date.value}T00:00:00Z`);
         at.setUTCHours(hh - 7, mm); // Asia/Ho_Chi_Minh (UTC+7)
         const r = await api.post('/api/journeys/run', { date: date.value, at: at.toISOString() });
-        mount(result, h('div', { class: 'alert ok' }, `Due ${r.due}: done ${r.done}, skipped ${r.skipped}, cancelled ${r.cancelled}. Channels: ${Object.entries(r.byChannel).map(([k, v]) => `${k} ${v}`).join(', ') || '—'}`));
+        mount(result, h('div', { class: 'alert ok' }, `Due ${r.due}: done ${r.done}, skipped ${r.skipped}, cancelled ${r.cancelled}. Channels: ${Object.entries(r.byChannel).map(([k, v]) => `${label('channel', k)} ${v}`).join(', ') || '—'}`));
         toast('Journey run complete', 'ok');
       } catch (ex) { errorToast(ex); }
     });
@@ -39,9 +40,9 @@ export default {
       pageHead('Journeys', 'New business (uninsured recovery, new vehicle, conquest) and retention (TASCO renewal), with cross-sell after purchase.'),
       h('div', { class: 'grid cols-2' }, runForm, evForm),
       h('section', { class: 'card', style: 'margin-top:16px' }, h('h2', {}, 'Journey definitions (active rule set)'),
-        table([{ label: 'Priority', num: true, render: (j) => j.priority }, { label: 'Journey', render: (j) => h('strong', {}, j.name) }, { label: 'Objective', render: (j) => j.objective }, { label: 'Anchor', render: (j) => j.anchor },
-          { label: 'Steps', render: (j) => j.steps.map((s) => `${s.offset >= 0 ? '+' : ''}${s.offset}d ${s.step}`).join(' → ') }], journeys)),
+        table([{ label: 'Priority', num: true, render: (j) => j.priority }, { label: 'Journey', render: (j) => h('strong', { title: j.id }, hasLabel('journey', j.id) ? label('journey', j.id) : j.name) }, { label: 'Objective', render: (j) => codeLabel('objective', j.objective) }, { label: 'Anchor', render: (j) => ({ expiry: 'Policy expiry', today: 'Enrolment date', tagActivatedAt: 'Tag activation' }[j.anchor] || j.anchor) },
+          { label: 'Steps', render: (j) => j.steps.map((s) => `${s.offset >= 0 ? '+' : ''}${s.offset}d ${label('step', s.step)}`).join(' → ') }], journeys)),
       h('section', { class: 'card', style: 'margin-top:16px' }, h('h2', {}, 'Next scheduled touchpoints'),
-        table([{ label: 'Due', render: (t) => fmtDate(t.dueDate) }, { label: 'Customer', render: (t) => h('a', { href: `#/customer/${encodeURIComponent(t.profileId)}` }, t.profileId) }, { label: 'Journey', render: (t) => t.journey }, { label: 'Step', render: (t) => t.step }, { label: 'Channels', render: (t) => t.channels.join(' / ') }, { label: 'Status', render: (t) => statusBadge(t.status) }], scheduled, { onRowClick: (t) => navigate(`customer/${encodeURIComponent(t.profileId)}`) })));
+        table([{ label: 'Due', nowrap: true, render: (t) => fmtDate(t.dueDate) }, { label: 'Customer', nowrap: true, render: (t) => h('a', { href: `#/customer/${encodeURIComponent(t.profileId)}` }, t.profileId) }, { label: 'Journey', render: (t) => codeLabel('journey', t.journey) }, { label: 'Step', render: (t) => codeLabel('step', t.step) }, { label: 'Channels', render: (t) => t.channels.map((c) => label('channel', c)).join(' / ') }, { label: 'Status', render: (t) => statusBadge(t.status) }], scheduled, { onRowClick: (t) => navigate(`customer/${encodeURIComponent(t.profileId)}`) })));
   },
 };

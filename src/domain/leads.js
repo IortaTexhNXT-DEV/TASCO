@@ -52,6 +52,17 @@ function assignJourney(journeysRules, facts) {
   return null;
 }
 
+/**
+ * Normalise a factor's reason: rule authors list signals as "a; b; " fragments,
+ * so tidy separators and never return an empty explanation (a factor with no
+ * supporting signal says so instead of rendering "Label —").
+ */
+function reasonText(raw, emptyReason) {
+  const parts = String(raw ?? '').split(';').map((x) => x.trim().replace(/\s+/g, ' ')).filter(Boolean);
+  if (parts.length) return parts.join('; ');
+  return emptyReason || 'no supporting signal';
+}
+
 function score(scoringRules, facts) {
   let total = 0;
   const reasons = [];
@@ -59,7 +70,7 @@ function score(scoringRules, facts) {
     const v = Math.max(0, Math.min(1, Number(apply(f.value, facts)) || 0));
     const pts = f.weight * v;
     total += pts;
-    reasons.push({ factor: f.key, label: f.label, points: +pts.toFixed(1), max: f.weight, why: String(apply(f.reason, facts) || '').trim() });
+    reasons.push({ factor: f.key, label: f.label, points: +pts.toFixed(1), max: f.weight, why: reasonText(apply(f.reason, facts), f.emptyReason) });
   }
   const d = scoringRules.damping;
   total *= d.base + d.byExpiryConfidence * (facts.expiryConfidence || 0);
@@ -144,4 +155,4 @@ function planTouchpoints(journeysRules, lead, profile, today) {
     }));
 }
 
-module.exports = { factsFor, assignJourney, score, benefitsFor, evaluateLead, planTouchpoints, METHOD_LABELS };
+module.exports = { factsFor, assignJourney, score, reasonText, benefitsFor, evaluateLead, planTouchpoints, METHOD_LABELS };

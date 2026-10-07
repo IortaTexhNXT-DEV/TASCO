@@ -1,4 +1,5 @@
 import { h, mount } from '../../shared/dom.js';
+import { label } from '../../shared/i18n.js';
 import { pageHead, field, toast, errorToast, tierBadge, statusBadge } from '../ui.js';
 
 const QUICK = ['30A 123 45', 'đúng rồi', 'phí bao nhiêu tiền vậy', 'sao biết số tôi, lừa đảo à', 'gửi link qua zalo cho tôi', 'tôi muốn mua ngay', 'tôi đã gia hạn rồi', 'đang lái xe, gọi lại sau', 'đừng gọi nữa'];
@@ -12,7 +13,7 @@ export default {
       const hot = await api.get('/api/leads?tier=hot&limit=10');
       mount(main, head,
         h('section', { class: 'card stack' }, h('h2', {}, 'Pick a customer'),
-          h('ul', {}, hot.items.map((l) => h('li', {}, h('a', { href: `#/voice?profile=${encodeURIComponent(l.id)}` }, l.plate), ' ', tierBadge(l.tier), ' ', h('span', { class: 'muted small' }, l.nextBestAction.label))))),
+          h('ul', {}, hot.items.map((l) => h('li', {}, h('a', { href: `#/voice?profile=${encodeURIComponent(l.id)}` }, l.plate), ' ', tierBadge(l.tier), ' ', h('span', { class: 'muted small', title: l.nextBestAction.action }, label('nba', l.nextBestAction.action)))))),
         can('journeys:run') ? campaignCard(api) : null);
       return;
     }
@@ -25,8 +26,8 @@ export default {
 
     function paint() {
       mount(chat, s.transcript.map((m) => h('div', { class: `bubble ${m.speaker}` }, h('span', { class: 'sr-only' }, m.speaker === 'bot' ? 'Assistant: ' : 'Customer: '), m.text, m.gloss ? h('span', { class: 'gloss' }, m.gloss) : null)));
-      chat.scrollTop = chat.scrollHeight;
-      mount(status, h('span', {}, 'State: '), statusBadge(s.state), s.verified ? h('span', { class: 'badge ok' }, 'plate verified') : h('span', { class: 'badge warn' }, 'not verified'), s.outcome ? h('span', { class: 'badge info' }, `outcome: ${s.outcome}`) : null);
+      chat.scrollTop = chat.scrollHeight; // scroll the transcript, never the page
+      mount(status, h('span', {}, 'State: '), statusBadge(s.state, 'voiceState'), s.verified ? h('span', { class: 'badge ok' }, 'plate verified') : h('span', { class: 'badge warn' }, 'not verified'), s.outcome ? h('span', { class: 'badge info', title: s.outcome }, `outcome: ${label('outcome', s.outcome)}`) : null);
       const ended = s.state === 'ended';
       input.disabled = ended;
       sendBtn.disabled = ended;
@@ -36,7 +37,7 @@ export default {
       if (!text.trim()) return;
       try { s = await api.post(`/api/voice/sessions/${s.id}/turns`, { text }); paint(); } catch (e) { errorToast(e); }
       input.value = '';
-      input.focus();
+      input.focus({ preventScroll: true });
     }
     const form = h('form', { class: 'row', onsubmit: (e) => { e.preventDefault(); say(input.value); } }, h('div', { style: 'flex:1;min-width:200px' }, field('Customer utterance (ASR text)', input)), sendBtn);
     mount(main, head,
@@ -46,7 +47,7 @@ export default {
           h('button', { class: 'btn', onclick: () => navigate(`customer/${encodeURIComponent(profileId)}`) }, 'Open Customer 360'),
           h('button', { class: 'btn', onclick: () => navigate(`voice?profile=${encodeURIComponent(profileId)}&r=${Date.now()}`) }, 'Restart call'))));
     paint();
-    input.focus();
+    input.focus({ preventScroll: true });
   },
 };
 
@@ -58,7 +59,7 @@ function campaignCard(api) {
     e.preventDefault();
     try {
       const r = await api.post('/api/voice/campaign', { limit: Number(limit.value), tier: 'hot' });
-      mount(out, h('div', { class: 'alert ok' }, `Called ${r.called}: ${Object.entries(r.outcomes).map(([k, v]) => `${k} ${v}`).join(', ')}`));
+      mount(out, h('div', { class: 'alert ok' }, `Called ${r.called}: ${Object.entries(r.outcomes).map(([k, v]) => `${label('outcome', k)} ${v}`).join(', ')}`));
     } catch (ex) { errorToast(ex); }
   });
   return form;

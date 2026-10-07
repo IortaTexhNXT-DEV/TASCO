@@ -2,9 +2,8 @@
 
 const crypto = require('crypto');
 const { createDialogue, handoffSummary } = require('../domain/voicebot');
-const { applyDeclaredExpiry } = require('../domain/enrichment');
+const { applyRenewedElsewhereClaim } = require('../domain/enrichment');
 const { errors } = require('../shared/errors');
-const { fmtDate, addDays } = require('../shared/util');
 const { canContact } = require('../domain/contactPolicy');
 
 /**
@@ -52,12 +51,13 @@ function createVoiceService({ store, rules, audit, events, clock, metrics, gatew
         break;
       }
       case 'already_renewed': {
-        // Renewed elsewhere: next expiry ≈ one year after the previous one.
-        const nextExpiry = profile.policy.expiryDate ? fmtDate(addDays(profile.policy.expiryDate, 365)) : null;
         const { botRenewedElsewhereConfidence } = await rules.get('service_levels');
-        const p = nextExpiry ? applyDeclaredExpiry(profile, { expiryDate: nextExpiry, insurer: 'OTHER', source: 'voice_bot', confidence: botRenewedElsewhereConfidence }) : { ...profile, policy: { ...profile.policy, insurer: 'OTHER' } };
-        p.policy.competitorNote = session.signals.competitorInfo;
+        const { profile: p, conflict } = applyRenewedElsewhereClaim(profile, { confidence: botRenewedElsewhereConfidence, note: session.signals.competitorInfo || null });
         await profiles.update({ ...p, version: profile.version });
+        if (conflict) {
+          // Spoken claim contradicts a verified certificate: a steward checks it; the verified record stands.
+          await dq.upsert({ id: `${profile.id}:unverified_renewal_claim`, profileId: profile.id, type: 'unverified_renewal_claim', status: 'open', detectedAt: clock.now().toISOString(), via: session.id });
+        }
         await events.publish('lead.recompute_requested', { profileIds: [profile.id], reason: 'already_renewed' }, { actor });
         break;
       }
