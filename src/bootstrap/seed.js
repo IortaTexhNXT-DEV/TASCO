@@ -36,6 +36,35 @@ const DEMO_PARTNERS = [
   { id: 'P-INSPECTION_CENTER-01', name: 'Inspection Centre (demo)', type: 'inspection_center' },
 ];
 
+/** Deterministic authenticator key for a demo user (UAT only; seed is a secret env var). */
+function demoTotpSecret(seed, username) {
+  const { base32Encode } = require('../shared/crypto'); // eslint-disable-line global-require
+  return base32Encode(require('crypto').createHmac('sha256', seed).update(`totp:${username}`).digest().subarray(0, 20)); // eslint-disable-line global-require
+}
+
+/**
+ * UAT only (DEMO_MODE + DEMO_ACCOUNT_SYNC): bring every seeded demo account back to
+ * the published state — unlocked, demo password, published authenticator key.
+ */
+async function syncDemoAccounts(c) {
+  const { config, store, services } = c;
+  if (!config.demoMode || !config.demoAccountSync) return { synced: 0 };
+  const { hashPassword } = require('../shared/crypto'); // eslint-disable-line global-require
+  const col = store.collection('users');
+  let synced = 0;
+  for (const d of DEMO_USERS) {
+    const u = await services.identity.byUsername(d.username);
+    if (!u) continue;
+    const next = { ...u, failedLogins: 0, lockedUntil: null, status: 'active', lastTotpStep: null, mustChangePassword: false,
+      passwordHash: hashPassword(config.demoPassword || DEMO_PASSWORD), tokensValidAfter: new Date().toISOString() };
+    if (d.mfa && config.demoTotpSeed) Object.assign(next, { totpSecret: demoTotpSecret(config.demoTotpSeed, d.username), mfaEnrolled: true });
+    await col.update(next);
+    synced++;
+  }
+  await services.audit.record({ actor: 'system', action: 'demo.accounts_synced', details: { synced } });
+  return { synced };
+}
+
 async function seedRules(c) {
   return c.services.rules.loadDefaults(path.join(ROOT, c.config.rulesDir));
 }
@@ -49,6 +78,7 @@ async function seedDemo(c, { records } = {}) {
       await services.identity.createUser({ username: u.username, password: config.demoPassword || DEMO_PASSWORD, displayName: u.displayName, roles: u.roles, region: u.region || 'ALL', enableMfa: !!u.mfa, preEnrolled: true }, system);
     }
   }
+  await syncDemoAccounts(c);
   if (!(await store.collection('partners').count())) {
     for (const p of DEMO_PARTNERS) await services.partners.create(p, system);
   }
@@ -60,4 +90,4 @@ async function seedDemo(c, { records } = {}) {
   return { users: DEMO_USERS.length, partners: DEMO_PARTNERS.length };
 }
 
-module.exports = { seedDemo, seedRules, DEMO_USERS, DEMO_PASSWORD, DEMO_PARTNERS };
+module.exports = { seedDemo, seedRules, syncDemoAccounts, demoTotpSecret, DEMO_USERS, DEMO_PASSWORD, DEMO_PARTNERS };

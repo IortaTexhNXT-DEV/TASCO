@@ -89,6 +89,10 @@ function loadConfig(env = process.env) {
     logLevel: env.LOG_LEVEL || (production ? 'info' : 'debug'),
     demoMode,
     demoPassword: readSecret(env, 'DEMO_PASSWORD') || null,
+    // UAT only: derive demo users' authenticator keys from this seed (so they can be
+    // published to testers) and reset demo accounts (unlock, password) at start-up.
+    demoTotpSeed: readSecret(env, 'DEMO_TOTP_SEED') || null,
+    demoAccountSync: bool(env.DEMO_ACCOUNT_SYNC, false),
     seedRecords: int(env.SEED_RECORDS, 2500),
     seed: int(env.SEED, 20261007),
     simToday: env.SIM_TODAY || null,

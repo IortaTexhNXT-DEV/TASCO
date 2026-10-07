@@ -243,3 +243,19 @@ test('demo MFA helper never returns an already-used code (repeat sign-ins within
   await assert.rejects(id.verifyMfa({ mfaToken: again.mfaToken, code: totp(u.totpSecret, used * 30000) }), /already been used/);
   assert.equal(await id.demoCode('nobody'), null);
 });
+
+test('UAT demo account sync unlocks accounts and applies published authenticator keys', async () => {
+  const { makeContainer } = require('../helpers');
+  const { syncDemoAccounts, demoTotpSecret } = require('../../src/bootstrap/seed');
+  const u2 = await makeContainer({ env: { SEED_RECORDS: '30', DEMO_ACCOUNT_SYNC: 'true', DEMO_TOTP_SEED: 'uat-seed-123' } });
+  const id = u2.services.identity;
+  const admin = await id.byUsername('admin');
+  assert.equal(admin.totpSecret, demoTotpSecret('uat-seed-123', 'admin'));
+  await u2.store.collection('users').update({ ...admin, failedLogins: 5, lockedUntil: new Date(Date.now() + 600000).toISOString() });
+  await syncDemoAccounts(u2);
+  const r = await id.login({ username: 'admin', password: 'Tasco@Demo2026!' });
+  const m = await id.verifyMfa({ mfaToken: r.mfaToken, code: totp(demoTotpSecret('uat-seed-123', 'admin')) });
+  assert.ok(m.accessToken, 'unlocked and the published key works');
+  const off = await makeContainer({ env: { SEED_RECORDS: '30' } });
+  assert.deepEqual(await syncDemoAccounts(off), { synced: 0 }, 'disabled unless explicitly enabled');
+});

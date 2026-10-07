@@ -98,10 +98,14 @@ function loginView() {
       err,
       h('button', { class: 'btn primary block', type: 'submit' }, t('verify')));
     if (state.meta?.demoMode) {
-      append(mfaForm, h('button', { class: 'btn ghost small', type: 'button', onclick: async () => {
-        const r = await api.get(`/api/demo/totp/${encodeURIComponent(username)}`);
-        if (r.code) { code.value = r.code; err.textContent = ''; code.removeAttribute('aria-invalid'); } else err.textContent = `${t('waitForCode')} ${r.waitSeconds}s`;
-      } }, t('demoFillCode')));
+      append(mfaForm, h('div', { class: 'demo-mfa' },
+        h('p', { class: 'xs muted' }, t('demoMfaHint')),
+        h('button', { class: 'btn block', type: 'button', onclick: async () => {
+          const r = await api.get(`/api/demo/totp/${encodeURIComponent(username)}`);
+          if (!r.code) { err.textContent = `${t('waitForCode')} ${r.waitSeconds}s`; return; }
+          code.value = r.code; err.textContent = ''; code.removeAttribute('aria-invalid');
+          mfaForm.requestSubmit();
+        } }, t('demoFillCode'))));
     }
     mfaForm.addEventListener('submit', async (e) => {
       e.preventDefault();
