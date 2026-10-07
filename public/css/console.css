@@ -2,7 +2,7 @@
 .shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
 .topbar { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-4); background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30; }
 .topbar .brand { display: flex; align-items: center; gap: var(--sp-2); text-decoration: none; color: var(--text); font-weight: 700; }
-.topbar .brand img { height: 44px; width: auto; }
+.topbar .brand img { height: 36px; width: auto; }
 .topbar .spacer { flex: 1; }
 .topbar .who { font-size: var(--fs-sm); color: var(--text-muted); display: none; }
 @media (min-width: 720px) { .topbar .who { display: block; } }
@@ -26,11 +26,32 @@ main { padding: var(--sp-4); min-width: 0; }
 .page-head p { margin: 0; color: var(--text-muted); }
 .filters { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end; }
 .footer-credit { font-size: var(--fs-xs); color: var(--text-muted); padding: var(--sp-4); display: flex; align-items: center; gap: var(--sp-2); justify-content: center; }
-.footer-credit img { height: 22px; width: auto; }
+.footer-credit img { height: 24px; width: auto; }
 
-/* Login */
-.login { min-height: 100vh; display: grid; place-items: center; padding: var(--sp-4); background: linear-gradient(160deg, var(--brand-navy) 0%, #2c4386 55%, var(--brand-teal) 140%); }
-.login .card { width: min(420px, 100%); padding: var(--sp-6) var(--sp-5); }
-.login .logos { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-4); }
-.login .logos img { height: 44px; width: auto; }
-.demo-users { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+/* Login — split screen: brand hero + sign-in panel (stacks on mobile).
+   To use official TASCO photography, add public/assets/login-hero.jpg and
+   change the background-image below (keep the navy overlay for text contrast). */
+.login { min-height: 100vh; display: grid; grid-template-columns: 1fr; background: var(--surface); }
+.login-hero { display: none; position: relative; color: #fff;
+  background: linear-gradient(180deg, rgba(13, 20, 48, 0.92) 0%, rgba(13, 20, 48, 0.55) 38%, rgba(13, 20, 48, 0) 60%), url('/assets/login-hero.svg') center bottom / cover no-repeat, #213368; }
+.login-hero-inner { position: absolute; inset: 0 0 auto 0; padding: var(--sp-7); }
+.login-hero-logo { height: 56px; background: #fff; padding: 8px 14px; border-radius: 10px; box-shadow: var(--shadow-2); }
+.login-kicker { margin: var(--sp-5) 0 var(--sp-2); text-transform: uppercase; letter-spacing: 0.12em; font-size: var(--fs-sm); color: #b9ecea; font-weight: 700; }
+.login-headline { font-size: clamp(1.6rem, 2.6vw, 2.4rem); line-height: 1.2; margin: 0 0 var(--sp-4); color: #fff; max-width: 18ch; }
+.login-points { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--sp-2); max-width: 46ch; }
+.login-points li { padding-left: 28px; position: relative; color: #e9eefb; }
+.login-points li::before { content: "✓"; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--brand-teal); color: var(--brand-navy); font-weight: 800; font-size: 12px; display: grid; place-items: center; }
+.login-panel { display: flex; flex-direction: column; min-height: 100vh; padding: var(--sp-4) var(--sp-5); background: var(--surface); }
+.login-top { display: flex; align-items: center; gap: var(--sp-3); }
+.login-top .spacer { flex: 1; }
+.login-mobile-logo { height: 44px; }
+.login-card { width: min(400px, 100%); margin: auto; padding: var(--sp-5) 0; }
+.login-title { font-size: var(--fs-2xl); color: var(--primary); margin-bottom: var(--sp-1); }
+.login-note { margin-top: var(--sp-2); }
+.login-credit { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); font-size: var(--fs-xs); color: var(--text-muted); padding-top: var(--sp-4); }
+.login-credit img { height: 30px; width: auto; }
+@media (min-width: 900px) {
+  .login { grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr); }
+  .login-hero { display: block; }
+  .login-mobile-logo { visibility: hidden; }
+}

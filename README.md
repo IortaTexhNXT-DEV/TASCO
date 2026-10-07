@@ -38,8 +38,9 @@ With PostgreSQL: `docker compose up --build` → http://localhost:8080.
 
 ```bash
 npm run lint              # ESLint, zero errors
-npm test                  # unit + integration + API + security (86 tests)
-npm run test:coverage     # gate: ≥80% lines/functions, ≥70% branches (currently ~99% / ~91%)
+npm test                  # unit + integration + API + security + functional (210 tests)
+npm run test:functional   # 124 business scenarios from the user stories (Given/When/Then)
+npm run test:coverage     # gate: ≥80% lines/functions, ≥70% branches (currently ~99% / ~92%)
 npm run test:pg           # PostgreSQL adapter (needs TEST_DATABASE_URL)
 npm run test:perf         # load smoke with p95 budget
 ```
@@ -85,19 +86,22 @@ Security controls:
 | `test/` | unit, integration, API, security, Postgres and performance tests |
 | `deploy/k8s/` | Kubernetes manifests (Deployment, HPA, PDB, NetworkPolicy, CronJobs, ExternalSecret) |
 | `Dockerfile`, `docker-compose.yml`, `railway.json` | container and Railway deployment |
-| `docs/` | full documentation set (below) |
+| `docs/` | full documentation set in **Word (.docx) and PDF** (below); test cases & results in `docs/quality/TASCO-Test-Cases-and-Results.xlsx` |
 
 ## Documentation
 
+Every document is published as **Word (`.docx`, editable)** and **PDF (`.pdf`, for distribution)** with the same name. Links below open the PDF; the `.docx` sits alongside it.
+
+
 | Area | Documents |
 |---|---|
-| Business | [Strategy & business case](docs/business/01-business-context-and-growth-strategy.md) · [FRS](docs/business/02-functional-requirements-specification.md) · [NFR](docs/business/03-non-functional-requirements.md) · [User stories](docs/business/04-user-stories-and-acceptance-criteria.md) · [Traceability](docs/business/05-requirements-traceability-matrix.md) · [Personas & journeys](docs/business/06-personas-and-journey-maps.md) · [Commercials](docs/business/07-commercials-and-engagement-model.md) |
-| Architecture | [Solution](docs/architecture/solution-architecture.md) · [ADRs](docs/architecture/adr/) · [Integration](docs/architecture/integration-architecture.md) · [Deployment & infrastructure](docs/architecture/deployment-and-infrastructure-architecture.md) · [Data (ERD, dictionary)](docs/architecture/data-architecture.md) · [Security & threat model](docs/architecture/security-architecture.md) · [AI governance](docs/architecture/ai-governance.md) · [OpenAPI](docs/api/openapi.json) |
-| Quality | [Test strategy](docs/quality/test-strategy.md) · [Test cases](docs/quality/test-case-catalogue.md) · [Performance plan](docs/quality/performance-and-capacity-test-plan.md) · [UAT plan](docs/quality/uat-plan.md) |
-| Operations | [Runbook & support](docs/operations/runbook-and-support-guide.md) · [Monitoring](docs/operations/monitoring-and-alerting.md) · [DR/BCP](docs/operations/dr-bcp.md) · [Production readiness](docs/operations/production-readiness-checklist.md) · [Go-live & hypercare](docs/operations/go-live-and-hypercare-plan.md) · [Release & change](docs/operations/release-and-change-management.md) |
-| Delivery | [Project plan](docs/delivery/project-plan.md) · [Methodology](docs/delivery/delivery-methodology.md) · [RACI](docs/delivery/raci.md) · [Risk register](docs/delivery/risk-register.md) · [KT plan](docs/delivery/kt-plan.md) · [Change & training](docs/delivery/change-management-and-training.md) |
-| UX | [Design system](docs/ux/design-system.md) · [Standards & accessibility](docs/ux/ux-standards-and-accessibility.md) · [IA & journeys](docs/ux/journey-maps-and-information-architecture.md) · [Usability testing](docs/ux/usability-testing-plan.md) |
-| Manuals | [User manual](docs/manuals/user-manual.md) · persona manuals · [Partner API guide](docs/manuals/partner-api-guide.md) · [Customer app guide](docs/manuals/customer-app-guide.md) |
+| Business | [Strategy & business case](docs/business/01-business-context-and-growth-strategy.pdf) · [FRS](docs/business/02-functional-requirements-specification.pdf) · [NFR](docs/business/03-non-functional-requirements.pdf) · [User stories](docs/business/04-user-stories-and-acceptance-criteria.pdf) · [Traceability](docs/business/05-requirements-traceability-matrix.pdf) · [Personas & journeys](docs/business/06-personas-and-journey-maps.pdf) · [Commercials](docs/business/07-commercials-and-engagement-model.pdf) |
+| Architecture | [Solution](docs/architecture/solution-architecture.pdf) · [ADRs](docs/architecture/adr/) · [Integration](docs/architecture/integration-architecture.pdf) · [Deployment & infrastructure](docs/architecture/deployment-and-infrastructure-architecture.pdf) · [Data (ERD, dictionary)](docs/architecture/data-architecture.pdf) · [Security & threat model](docs/architecture/security-architecture.pdf) · [AI governance](docs/architecture/ai-governance.pdf) · [OpenAPI](docs/api/openapi.json) |
+| Quality | **[Test cases & results (Excel)](docs/quality/TASCO-Test-Cases-and-Results.xlsx)** · [Test strategy](docs/quality/test-strategy.pdf) · [Test cases](docs/quality/test-case-catalogue.pdf) · [Performance plan](docs/quality/performance-and-capacity-test-plan.pdf) · [UAT plan](docs/quality/uat-plan.pdf) |
+| Operations | [Runbook & support](docs/operations/runbook-and-support-guide.pdf) · [Monitoring](docs/operations/monitoring-and-alerting.pdf) · [DR/BCP](docs/operations/dr-bcp.pdf) · [Production readiness](docs/operations/production-readiness-checklist.pdf) · [Go-live & hypercare](docs/operations/go-live-and-hypercare-plan.pdf) · [Release & change](docs/operations/release-and-change-management.pdf) |
+| Delivery | [Project plan](docs/delivery/project-plan.pdf) · [Methodology](docs/delivery/delivery-methodology.pdf) · [RACI](docs/delivery/raci.pdf) · [Risk register](docs/delivery/risk-register.pdf) · [KT plan](docs/delivery/kt-plan.pdf) · [Change & training](docs/delivery/change-management-and-training.pdf) |
+| UX | [Design system](docs/ux/design-system.pdf) · [Standards & accessibility](docs/ux/ux-standards-and-accessibility.pdf) · [IA & journeys](docs/ux/journey-maps-and-information-architecture.pdf) · [Usability testing](docs/ux/usability-testing-plan.pdf) |
+| Manuals | [User manual](docs/manuals/user-manual.pdf) · persona manuals · [Partner API guide](docs/manuals/partner-api-guide.pdf) · [Customer app guide](docs/manuals/customer-app-guide.pdf) |
 
 ## Honest status
 

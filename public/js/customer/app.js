@@ -22,7 +22,7 @@ const route = () => (location.hash.replace(/^#\/?/, '') || 'home').split('?')[0]
 function layout(content, current) {
   const tab = (r, icon, label) => h('a', { href: `#/${r}`, 'aria-current': current === r ? 'page' : null }, h('span', { 'aria-hidden': 'true' }, icon), label);
   return h('div', { class: 'app' },
-    h('header', { class: 'app-head' }, h('img', { src: '/assets/tasco-logo.png', alt: 'TASCO Insurance' }), h('h1', {}, 'Bảo hiểm xe · VETC')),
+    h('header', { class: 'app-head' }, h('img', { src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }), h('h1', {}, 'Bảo hiểm xe · VETC')),
     h('main', { class: 'app-main stack', id: 'app-main', tabindex: '-1' }, content),
     h('nav', { class: 'tabbar', 'aria-label': 'Điều hướng' },
       tab('home', '🏠', 'Trang chủ'), tab('renew', '🛡', 'Mua / Gia hạn'), tab('claims', '🚑', 'Bồi thường'), tab('account', '👤', 'Tài khoản')));

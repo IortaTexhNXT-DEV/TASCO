@@ -71,7 +71,7 @@ function createIngestionService({ store, rules, audit, events, clock, logger }) 
       await audit.record({ actor, action: 'data.ingested', entityType: 'batch', entityId: batchId, details: { source: sourceName, records: records.length, rejected, profiles: stats.profiles } });
       await events.publish('profiles.rebuilt', { batchId, profileIds: [...touched] }, { actor });
       logger?.info('batch ingested', { batchId, records: records.length, profiles: stats.profiles });
-      return { batchId, records: records.length, rejected, profilesTouched: touched.size, ...stats };
+      return { ...stats, batchId, records: records.length, rejected, profilesTouched: touched.size };
     },
 
     rebuild,

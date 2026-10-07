@@ -84,19 +84,12 @@ function loginView() {
   const err = h('div', { class: 'error', role: 'alert' });
   const user = h('input', { autocomplete: 'username', required: true, name: 'username' });
   const pass = h('input', { type: 'password', autocomplete: 'current-password', required: true, name: 'password' });
-  const card = h('div', { class: 'card stack' });
-  const demo = state.meta?.demoMode
-    ? h('div', { class: 'stack' }, h('p', { class: 'muted small' }, t('demoHint')),
-      h('div', { class: 'demo-users' }, ['campaign', 'agent.hn', 'supervisor', 'author', 'approver', 'compliance', 'steward', 'claims', 'partners', 'exec', 'auditor', 'admin', 'support'].map((u) => h('button', {
-        class: 'btn small', type: 'button',
-        onclick: () => { user.value = u; pass.focus(); },
-      }, u))))
-    : null;
-
+  const card = h('div', { class: 'login-card stack' });
   async function mfaStep(mfaToken, username, otpauthUri) {
     const code = h('input', { inputmode: 'numeric', autocomplete: 'one-time-code', pattern: '\\d{6}', maxlength: '6', required: true });
     const mfaForm = h('form', { class: 'stack', novalidate: true },
-      h('h2', {}, t('mfaCode')),
+      h('h1', { class: 'login-title' }, t('mfaTitle')),
+      h('p', { class: 'muted' }, t('mfaHelp')),
       otpauthUri ? h('div', { class: 'stack' },
         h('div', { class: 'alert info' }, 'Set up two-step sign-in: scan this code with Microsoft/Google Authenticator, then enter the 6-digit code. / Quét mã bằng ứng dụng xác thực rồi nhập mã 6 số.'),
         h('div', { class: 'qr' }, qrSvg(otpauthUri, { label: 'Authenticator enrolment QR code' })),
@@ -105,7 +98,7 @@ function loginView() {
       err,
       h('button', { class: 'btn primary block', type: 'submit' }, t('verify')));
     if (state.meta?.demoMode) {
-      append(mfaForm, h('button', { class: 'btn small', type: 'button', onclick: async () => { const r = await api.get(`/api/demo/totp/${encodeURIComponent(username)}`); code.value = r.code; } }, 'Demo: fill code'));
+      append(mfaForm, h('button', { class: 'btn ghost small', type: 'button', onclick: async () => { const r = await api.get(`/api/demo/totp/${encodeURIComponent(username)}`); code.value = r.code; } }, t('demoFillCode')));
     }
     mfaForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -114,17 +107,18 @@ function loginView() {
         onSignedIn(r);
       } catch (ex) { err.textContent = ex.message; code.setAttribute('aria-invalid', 'true'); code.focus(); }
     });
-    mount(card, logos(), mfaForm);
+    mount(card, mfaForm);
     code.focus();
   }
 
   const form = h('form', { class: 'stack', novalidate: true },
-    h('h1', {}, 'TASCO Growth Platform'),
-    h('p', { class: 'muted' }, 'Bảo hiểm TASCO × VETC'),
+    h('h1', { class: 'login-title' }, t('welcome')),
+    h('p', { class: 'muted' }, t('signInHelp')),
     h('div', { class: 'field' }, h('label', { for: 'u' }, t('username')), Object.assign(user, { id: 'u' })),
     h('div', { class: 'field' }, h('label', { for: 'p' }, t('password')), Object.assign(pass, { id: 'p' })),
     err,
-    h('button', { class: 'btn primary block', type: 'submit' }, t('signIn')));
+    h('button', { class: 'btn primary block', type: 'submit' }, t('signIn')),
+    h('p', { class: 'xs muted login-note' }, '🔒 ', t('securityNote')));
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     err.textContent = '';
@@ -136,11 +130,19 @@ function loginView() {
     return undefined;
   });
 
-  function logos() {
-    return h('div', { class: 'logos' }, h('img', { src: '/assets/tasco-logo.png', alt: 'TASCO Insurance' }), h('img', { src: '/assets/iorta-technxt-logo.jpg', alt: 'iorta TechNXT' }));
-  }
-  append(card, [logos(), form, demo]);
-  return h('div', { class: 'login' }, h('main', { id: 'main' }, card));
+  card.append(form);
+  const langBtn = h('button', { class: 'btn ghost small', type: 'button', onclick: () => { setLang(getLang() === 'vi' ? 'en' : 'vi'); render(); } }, t('language'));
+  return h('div', { class: 'login' },
+    h('section', { class: 'login-hero', 'aria-label': t('heroLabel') },
+      h('div', { class: 'login-hero-inner' },
+        h('img', { class: 'login-hero-logo', src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }),
+        h('p', { class: 'login-kicker' }, 'TASCO Insurance × VETC'),
+        h('h2', { class: 'login-headline' }, t('heroHeadline')),
+        h('ul', { class: 'login-points' }, ['heroPoint1', 'heroPoint2', 'heroPoint3'].map((k) => h('li', {}, t(k)))))),
+    h('main', { id: 'main', class: 'login-panel' },
+      h('div', { class: 'login-top' }, h('img', { class: 'login-mobile-logo', src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }), h('span', { class: 'spacer' }), langBtn),
+      card,
+      h('footer', { class: 'login-credit' }, h('span', {}, t('poweredBy')), h('img', { src: '/assets/iorta-technxt-logo-tight.png', alt: 'iorta TechNXT' }))));
 }
 
 function onSignedIn(r) {
@@ -176,7 +178,7 @@ function shell(route) {
   const helpKey = route.name || 'home';
   const top = h('header', { class: 'topbar' },
     menuBtn,
-    h('a', { class: 'brand', href: '#/' }, h('img', { src: '/assets/tasco-logo.png', alt: 'TASCO Insurance' }), h('span', { class: 'sr-only' }, 'TASCO Growth Platform')),
+    h('a', { class: 'brand', href: '#/' }, h('img', { src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }), h('span', { class: 'sr-only' }, 'TASCO Growth Platform')),
     h('span', { class: 'spacer' }),
     h('span', { class: 'who' }, `${state.user.displayName} · ${state.user.roles.join(', ')}${state.user.region && state.user.region !== 'ALL' ? ` · ${state.user.region}` : ''}`),
     h('button', { class: 'btn ghost small', 'aria-haspopup': 'dialog', onclick: () => openHelp(helpKey) }, '?', h('span', { class: 'sr-only' }, t('help'))),
@@ -184,7 +186,7 @@ function shell(route) {
     h('button', { class: 'btn ghost small', onclick: () => { setLang(getLang() === 'vi' ? 'en' : 'vi'); render(); } }, t('language')),
     h('button', { class: 'btn ghost small', onclick: () => changePasswordDialog(false) }, '🔑', h('span', { class: 'sr-only' }, 'Change password')),
     h('button', { class: 'btn small', onclick: signOut }, t('signOut')));
-  const footer = h('footer', { class: 'footer-credit' }, 'Built by', h('img', { src: '/assets/iorta-technxt-logo.jpg', alt: 'iorta TechNXT' }), h('span', {}, `· ${state.meta?.today || ''} · ${state.meta?.store || ''}`));
+  const footer = h('footer', { class: 'footer-credit' }, 'Built by', h('img', { src: '/assets/iorta-technxt-logo-tight.png', alt: 'iorta TechNXT' }), h('span', {}, `· ${state.meta?.today || ''} · ${state.meta?.store || ''}`));
   return { el: h('div', { class: 'shell' }, top, h('div', { class: 'layout' }, nav, h('div', {}, main, footer))), main };
 }
 
