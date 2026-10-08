@@ -130,13 +130,7 @@ TASCO often knows a vehicle's expiry date only by estimate. When the customer co
 
 The app thanks the customer: "Cảm ơn bạn! Chúng tôi sẽ nhắc gia hạn đúng hạn." The information is used only for reminders.
 
-::: {custom-style="Figure"}
-![](../../shots/app-customer-confirm-expiry.png){width=6cm}
-:::
-
-::: {custom-style="Caption"}
-Figure 2 – Confirming the expiry date
-:::
+![Confirming the expiry date](../../shots/app-customer-confirm-expiry.png){width=6cm}
 
 # Buy or renew
 
