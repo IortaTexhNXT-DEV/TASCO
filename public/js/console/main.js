@@ -36,7 +36,7 @@ const api = createApi({
  */
 const NAV = [
   { group: null, items: [
-    { route: 'home', icon: 'layout-dashboard', perm: 'dashboard:read' },
+    { route: 'home', icon: 'layout-dashboard', perm: 'dashboard:read', altPerm: 'handoff:work' }, // agents: "My work today"
   ] },
   { group: 'groupSell', items: [
     { route: 'leads', icon: 'users', perm: 'leads:read' },
@@ -70,7 +70,7 @@ const NAV = [
 const PARENT = { customer: 'leads' };
 
 const can = (perm) => !!state.user?.permissions?.includes(perm);
-const visibleItems = (g) => g.items.filter((i) => can(i.perm) && (!i.optional || PAGES[i.route]));
+const visibleItems = (g) => g.items.filter((i) => (can(i.perm) || (i.altPerm && can(i.altPerm))) && (!i.optional || PAGES[i.route]));
 
 /* ---------- Preferences ---------- */
 const store = {
@@ -126,75 +126,200 @@ function firstAllowedRoute() {
 }
 
 // ---------- Login ----------
+/** Pending second step (kept across a language switch so the MFA step is not lost). */
+let loginPending = null;
+
 function loginView() {
-  const err = h('div', { class: 'error', role: 'alert' });
-  const user = h('input', { autocomplete: 'username', required: true, name: 'username' });
-  const pass = h('input', { type: 'password', autocomplete: 'current-password', required: true, name: 'password' });
-  const card = h('div', { class: 'login-card stack' });
-  async function mfaStep(mfaToken, username, otpauthUri) {
-    const code = h('input', { inputmode: 'numeric', autocomplete: 'one-time-code', pattern: '\\d{6}', maxlength: '6', required: true });
-    const mfaForm = h('form', { class: 'stack', novalidate: true },
+  const L = (en, vi) => (getLang() === 'vi' ? vi : en);
+  const card = h('div', { class: 'login-card' });
+  const alertBox = h('div', { class: 'login-alert', role: 'alert', hidden: true });
+  const showAlert = (msg) => {
+    if (!msg) { alertBox.hidden = true; mount(alertBox); return; }
+    mount(alertBox, icon('alert-circle', { size: 18 }), h('span', {}, msg));
+    alertBox.hidden = false;
+  };
+  const authError = (ex) => {
+    const m = String(ex?.message || '');
+    if (ex?.status === 423) return L('Your account is temporarily locked after several failed attempts. Try again later or contact your administrator.', 'Tài khoản tạm khóa do nhập sai nhiều lần. Vui lòng thử lại sau hoặc liên hệ quản trị viên.');
+    if (ex?.status === 429) return L('Too many attempts. Please wait a moment and try again.', 'Bạn thử quá nhiều lần. Vui lòng đợi một lát rồi thử lại.');
+    if (/already been used/i.test(m)) return L('This code has already been used. Wait for the next code in your authenticator app.', 'Mã này đã được sử dụng. Vui lòng đợi mã tiếp theo trong ứng dụng xác thực.');
+    if (/MFA session expired/i.test(m)) return L('Your sign-in session expired. Please sign in again.', 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+    if (/Invalid code/i.test(m)) return L('Incorrect code. Check the 6 digits and that your phone’s clock is correct.', 'Mã không đúng. Kiểm tra 6 chữ số và giờ trên điện thoại của bạn.');
+    if (ex?.status === 401) return L('Incorrect username or password.', 'Tên đăng nhập hoặc mật khẩu không đúng.');
+    if (ex instanceof TypeError) return L('Cannot reach the server. Check your connection and try again.', 'Không kết nối được máy chủ. Vui lòng kiểm tra mạng và thử lại.');
+    return L('Sign-in failed. Please try again.', 'Đăng nhập không thành công. Vui lòng thử lại.');
+  };
+  const setBusy = (btn, on) => { if (on) { btn.setAttribute('aria-busy', 'true'); btn.disabled = true; } else { btn.removeAttribute('aria-busy'); btn.disabled = false; } };
+  const fieldError = (input, msg) => {
+    const el = document.getElementById(`${input.id}-err`);
+    if (el) mount(el, msg ? [icon('alert-circle', { size: 14 }), msg] : []);
+    if (msg) input.setAttribute('aria-invalid', 'true'); else input.removeAttribute('aria-invalid');
+  };
+
+  // Step 2: six-box TOTP code (typing, paste, backspace and arrow keys), auto-submits when complete.
+  function mfaStep({ mfaToken, username, otpauthUri }) {
+    loginPending = { mfaToken, username, otpauthUri };
+    const boxes = Array.from({ length: 6 }, (_, i) => h('input', {
+      class: 'otp-box', inputmode: 'numeric', pattern: '[0-9]*', maxlength: '1', autocomplete: i === 0 ? 'one-time-code' : 'off',
+      'aria-label': L(`Digit ${i + 1} of 6`, `Chữ số ${i + 1} trên 6`), id: i === 0 ? 'mfa' : null,
+    }));
+    const code = () => boxes.map((b) => b.value).join('');
+    const fill = (digits, from = 0) => {
+      const d = String(digits).replace(/\D/g, '').slice(0, 6 - from).split('');
+      d.forEach((x, k) => { boxes[from + k].value = x; });
+      boxes.forEach((b) => b.classList.toggle('filled', !!b.value));
+      const next = boxes.find((b) => !b.value);
+      (next || boxes[5]).focus();
+      return d.length;
+    };
+    const clearInvalid = () => { boxes.forEach((b) => b.removeAttribute('aria-invalid')); showAlert(''); };
+    const submitBtn = h('button', { class: 'btn primary block lg', type: 'submit' }, h('span', {}, t('verify')));
+    const mfaForm = h('form', { class: 'login-form', novalidate: true });
+    boxes.forEach((b, i) => {
+      b.addEventListener('input', () => {
+        clearInvalid();
+        const v = b.value.replace(/\D/g, '');
+        if (v.length > 1) { fill(v, i); } else { b.value = v; b.classList.toggle('filled', !!v); if (v && i < 5) boxes[i + 1].focus(); }
+        if (code().length === 6) mfaForm.requestSubmit();
+      });
+      b.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !b.value && i > 0) { e.preventDefault(); boxes[i - 1].value = ''; boxes[i - 1].classList.remove('filled'); boxes[i - 1].focus(); }
+        else if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); boxes[i - 1].focus(); }
+        else if (e.key === 'ArrowRight' && i < 5) { e.preventDefault(); boxes[i + 1].focus(); }
+      });
+      b.addEventListener('focus', () => b.select());
+      b.addEventListener('paste', (e) => {
+        const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+        if (!/\d/.test(text)) return;
+        e.preventDefault();
+        clearInvalid();
+        fill(text, text.replace(/\D/g, '').length >= 6 ? 0 : i);
+        if (code().length === 6) mfaForm.requestSubmit();
+      });
+    });
+    const back = h('button', { class: 'login-back', type: 'button', onclick: () => { loginPending = null; render(); } }, icon('arrow-left', { size: 16 }), L('Use a different account', 'Đăng nhập bằng tài khoản khác'));
+    append(mfaForm,
+      back,
+      h('span', { class: 'login-badge', 'aria-hidden': 'true' }, icon('shield-check', { size: 24 })),
       h('h1', { class: 'login-title' }, t('mfaTitle')),
-      h('p', { class: 'muted' }, t('mfaHelp')),
-      otpauthUri ? h('div', { class: 'stack' },
-        h('div', { class: 'alert info' }, 'Set up two-step sign-in: scan this code with Microsoft/Google Authenticator, then enter the 6-digit code. / Quét mã bằng ứng dụng xác thực rồi nhập mã 6 số.'),
-        h('div', { class: 'qr' }, qrSvg(otpauthUri, { label: 'Authenticator enrolment QR code' })),
-        h('details', {}, h('summary', {}, 'Cannot scan? Enter the key manually'), h('code', {}, new URL(otpauthUri).searchParams.get('secret')))) : null,
-      h('div', { class: 'field' }, h('label', { for: 'mfa' }, t('mfaCode')), Object.assign(code, { id: 'mfa' })),
-      err,
-      h('button', { class: 'btn primary block', type: 'submit' }, t('verify')));
+      h('p', { class: 'login-sub' }, t('mfaHelp'), ' ', h('span', { class: 'login-user' }, icon('user', { size: 14 }), username)),
+      otpauthUri ? h('div', { class: 'login-enrol' },
+        h('p', {}, L('First sign-in: scan this code with Microsoft or Google Authenticator, then enter the 6-digit code.', 'Lần đăng nhập đầu: quét mã bằng Microsoft hoặc Google Authenticator, sau đó nhập mã 6 số.')),
+        h('div', { class: 'qr' }, qrSvg(otpauthUri, { label: L('Authenticator set-up QR code', 'Mã QR cài đặt ứng dụng xác thực') })),
+        h('details', {}, h('summary', {}, L('Can’t scan? Enter the key manually', 'Không quét được? Nhập khóa thủ công')), h('code', {}, new URL(otpauthUri).searchParams.get('secret')))) : null,
+      h('fieldset', { class: 'otp-field' },
+        h('legend', { class: 'login-label' }, t('mfaCode')),
+        h('div', { class: 'otp', role: 'group' }, boxes.slice(0, 3), h('span', { class: 'otp-sep', 'aria-hidden': 'true' }), boxes.slice(3))),
+      alertBox,
+      submitBtn);
     if (state.meta?.demoMode) {
-      append(mfaForm, h('div', { class: 'demo-mfa' },
-        h('p', { class: 'xs muted' }, t('demoMfaHint')),
-        h('button', { class: 'btn block', type: 'button', onclick: async () => {
+      const demoBtn = h('button', { class: 'btn secondary block', type: 'button' }, icon('key', { size: 16 }), h('span', {}, t('demoFillCode')));
+      demoBtn.addEventListener('click', async () => {
+        setBusy(demoBtn, true);
+        try {
           const r = await api.get(`/api/demo/totp/${encodeURIComponent(username)}`);
-          if (!r.code) { err.textContent = `${t('waitForCode')} ${r.waitSeconds}s`; return; }
-          code.value = r.code; err.textContent = ''; code.removeAttribute('aria-invalid');
+          if (!r.code) { showAlert(`${t('waitForCode')} ${r.waitSeconds}s`); return; }
+          clearInvalid();
+          fill(r.code, 0);
           mfaForm.requestSubmit();
-        } }, t('demoFillCode'))));
+        } catch (ex) { showAlert(authError(ex)); } finally { setBusy(demoBtn, false); }
+      });
+      append(mfaForm, h('div', { class: 'demo-mfa' }, h('p', { class: 'login-hint' }, icon('info', { size: 14 }), h('span', {}, t('demoMfaHint'))), demoBtn));
     }
     mfaForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (code().length !== 6) {
+        boxes.forEach((b) => { if (!b.value) b.setAttribute('aria-invalid', 'true'); });
+        showAlert(L('Enter all 6 digits of the code.', 'Vui lòng nhập đủ 6 chữ số.'));
+        (boxes.find((b) => !b.value) || boxes[0]).focus();
+        return;
+      }
+      if (submitBtn.getAttribute('aria-busy')) return;
+      setBusy(submitBtn, true);
       try {
-        const r = await api.post('/api/auth/mfa', { mfaToken, code: code.value.trim() });
+        const r = await api.post('/api/auth/mfa', { mfaToken, code: code() });
+        loginPending = null;
         onSignedIn(r);
-      } catch (ex) { err.textContent = ex.message; code.setAttribute('aria-invalid', 'true'); code.focus(); }
+      } catch (ex) {
+        setBusy(submitBtn, false);
+        if (/MFA session expired/i.test(String(ex?.message))) loginPending = null;
+        showAlert(authError(ex));
+        boxes.forEach((b) => { b.value = ''; b.classList.remove('filled'); b.setAttribute('aria-invalid', 'true'); });
+        boxes[0].focus();
+      }
     });
     mount(card, mfaForm);
-    code.focus();
+    setTimeout(() => boxes[0].focus(), 0);
   }
 
-  const form = h('form', { class: 'stack', novalidate: true },
+  // Step 1: username + password.
+  const user = h('input', { id: 'u', autocomplete: 'username', required: true, name: 'username', autocapitalize: 'none', spellcheck: 'false', 'aria-describedby': 'u-err' });
+  const pass = h('input', { id: 'p', type: 'password', autocomplete: 'current-password', required: true, name: 'password', 'aria-describedby': 'p-err p-caps' });
+  const toggle = h('button', { class: 'login-pw-toggle', type: 'button', 'aria-controls': 'p', 'aria-pressed': 'false', 'aria-label': L('Show password', 'Hiện mật khẩu') }, icon('eye', { size: 18 }));
+  toggle.addEventListener('click', () => {
+    const show = pass.type === 'password';
+    pass.type = show ? 'text' : 'password';
+    toggle.setAttribute('aria-pressed', String(show));
+    toggle.setAttribute('aria-label', show ? L('Hide password', 'Ẩn mật khẩu') : L('Show password', 'Hiện mật khẩu'));
+    mount(toggle, icon(show ? 'eye-off' : 'eye', { size: 18 }));
+    pass.focus();
+  });
+  const caps = h('p', { class: 'login-caps', id: 'p-caps', hidden: true }, icon('arrow-big-up', { size: 14 }), L('Caps Lock is on', 'Caps Lock đang bật'));
+  const capsCheck = (e) => { if (e.getModifierState) caps.hidden = !e.getModifierState('CapsLock'); };
+  pass.addEventListener('keydown', capsCheck);
+  pass.addEventListener('keyup', capsCheck);
+  pass.addEventListener('blur', () => { caps.hidden = true; });
+  user.addEventListener('input', () => { fieldError(user, ''); showAlert(''); });
+  pass.addEventListener('input', () => { fieldError(pass, ''); showAlert(''); });
+  const submitBtn = h('button', { class: 'btn primary block lg', type: 'submit' }, h('span', {}, t('signIn')));
+  const form = h('form', { class: 'login-form', novalidate: true },
     h('h1', { class: 'login-title' }, t('welcome')),
-    h('p', { class: 'muted' }, t('signInHelp')),
-    h('div', { class: 'field' }, h('label', { for: 'u' }, t('username')), Object.assign(user, { id: 'u' })),
-    h('div', { class: 'field' }, h('label', { for: 'p' }, t('password')), Object.assign(pass, { id: 'p' })),
-    err,
-    h('button', { class: 'btn primary block', type: 'submit' }, t('signIn')),
-    h('p', { class: 'xs muted login-note' }, icon('lock', { size: 14 }), ' ', t('securityNote')));
+    h('p', { class: 'login-sub' }, t('signInHelp')),
+    alertBox,
+    h('div', { class: 'field' }, h('label', { for: 'u' }, t('username')), user, h('span', { class: 'login-field-error', id: 'u-err' })),
+    h('div', { class: 'field' }, h('label', { for: 'p' }, t('password')),
+      h('div', { class: 'login-pw' }, pass, toggle), caps, h('span', { class: 'login-field-error', id: 'p-err' })),
+    submitBtn,
+    h('p', { class: 'login-hint' }, icon('lock', { size: 14 }), h('span', {}, t('securityNote'))));
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    err.textContent = '';
+    showAlert('');
+    const u = user.value.trim();
+    fieldError(user, u ? '' : L('Enter your username.', 'Vui lòng nhập tên đăng nhập.'));
+    fieldError(pass, pass.value ? '' : L('Enter your password.', 'Vui lòng nhập mật khẩu.'));
+    if (!u) { user.focus(); return; }
+    if (!pass.value) { pass.focus(); return; }
+    setBusy(submitBtn, true);
     try {
-      const r = await api.post('/api/auth/login', { username: user.value.trim(), password: pass.value });
-      if (r.mfaRequired) return mfaStep(r.mfaToken, user.value.trim(), r.otpauthUri);
+      const r = await api.post('/api/auth/login', { username: u, password: pass.value });
+      if (r.mfaRequired) { mfaStep({ mfaToken: r.mfaToken, username: u, otpauthUri: r.otpauthUri }); return; }
       onSignedIn(r);
-    } catch (ex) { err.textContent = ex.message; pass.value = ''; pass.focus(); }
-    return undefined;
+    } catch (ex) {
+      setBusy(submitBtn, false);
+      showAlert(authError(ex));
+      if (ex?.status === 401) { pass.value = ''; pass.setAttribute('aria-invalid', 'true'); }
+      pass.focus();
+    }
   });
-
   card.append(form);
-  const langBtn = h('button', { class: 'btn ghost small', type: 'button', onclick: () => { setLang(getLang() === 'vi' ? 'en' : 'vi'); render(); } }, t('language'));
+  if (loginPending) mfaStep(loginPending);
+
+  const langSwitch = h('div', { class: 'login-lang', role: 'group', 'aria-label': L('Language', 'Ngôn ngữ') },
+    icon('globe', { size: 16 }),
+    [['en', 'EN', 'English'], ['vi', 'VI', 'Tiếng Việt']].map(([code, short, full]) => h('button', {
+      type: 'button', lang: code, 'aria-pressed': String(getLang() === code), 'aria-label': full, title: full,
+      onclick: () => { if (getLang() !== code) { setLang(code); render(); } },
+    }, short)));
   return h('div', { class: 'login' },
     h('section', { class: 'login-hero', 'aria-label': t('heroLabel') },
       h('div', { class: 'login-hero-inner' },
         h('img', { class: 'login-hero-logo', src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }),
         h('p', { class: 'login-kicker' }, 'TASCO Insurance × VETC'),
         h('h2', { class: 'login-headline' }, t('heroHeadline')),
-        h('ul', { class: 'login-points' }, ['heroPoint1', 'heroPoint2', 'heroPoint3'].map((k) => h('li', {}, t(k))))),
+        h('ul', { class: 'login-points' }, ['heroPoint1', 'heroPoint2', 'heroPoint3'].map((k) => h('li', {}, h('span', { class: 'login-point-icon' }, icon('check', { size: 14, strokeWidth: 3 })), h('span', {}, t(k)))))),
       h('img', { class: 'login-hero-art', src: '/assets/login-hero.svg', alt: '' })),
     h('main', { id: 'main', class: 'login-panel' },
-      h('div', { class: 'login-top' }, h('img', { class: 'login-mobile-logo', src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }), h('span', { class: 'spacer' }), langBtn),
+      h('div', { class: 'login-top' }, h('img', { class: 'login-mobile-logo', src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }), h('span', { class: 'spacer' }), langSwitch),
       card,
       h('footer', { class: 'login-credit' }, h('span', {}, t('poweredBy')), h('img', { src: '/assets/iorta-technxt-logo-tight.png', alt: 'iorta TechNXT' }))));
 }

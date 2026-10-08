@@ -20,6 +20,9 @@ function createIdentityService({ store, audit, config, clock, rbac }) {
   const publicUser = (u) => ({
     id: u.id, username: u.username, displayName: u.displayName, roles: u.roles, region: u.region,
     mfaEnabled: !!u.totpSecret && !!u.mfaEnrolled, status: u.status, lastLoginAt: u.lastLoginAt || null,
+    // Additive console fields: MFA set up but not yet enrolled, temporary lock-out, first-sign-in password change.
+    mfaPending: !!u.totpSecret && !u.mfaEnrolled, locked: !!(u.lockedUntil && new Date(u.lockedUntil) > new Date()), lockedUntil: u.lockedUntil || null,
+    mustChangePassword: !!u.mustChangePassword, createdAt: u.createdAt || null,
   });
 
   async function byUsername(username) {
@@ -98,16 +101,22 @@ function createIdentityService({ store, audit, config, clock, rbac }) {
     },
 
     /** Service-desk actions: unlock and/or force MFA re-enrolment (never reveals seeds). */
-    async reset(id, { unlock, resetMfa }, actor) {
+    async reset(id, { unlock, resetMfa, resetPassword }, actor) {
       const u = await users.get(id);
       if (!u) throw errors.notFound('User');
       if (id === actor.id) throw errors.rule('Ask another administrator to reset your own account');
       const next = { ...u };
       if (unlock) Object.assign(next, { failedLogins: 0, lockedUntil: null });
       if (resetMfa) Object.assign(next, { totpSecret: generateTotpSecret(), mfaEnrolled: false, lastTotpStep: null, tokensValidAfter: clock.now().toISOString() });
+      // Temporary password: returned once to the administrator, must be changed at next sign-in; sessions end now.
+      let temporaryPassword = null;
+      if (resetPassword) {
+        temporaryPassword = `Tmp-${crypto.randomBytes(12).toString('base64url')}`;
+        Object.assign(next, { passwordHash: hashPassword(temporaryPassword), mustChangePassword: true, failedLogins: 0, lockedUntil: null, tokensValidAfter: clock.now().toISOString() });
+      }
       const saved = await users.update(next);
-      await audit.record({ actor: actor.id, action: 'user.reset', entityType: 'user', entityId: id, details: { unlock: !!unlock, resetMfa: !!resetMfa } });
-      return publicUser(saved);
+      await audit.record({ actor: actor.id, action: 'user.reset', entityType: 'user', entityId: id, details: { unlock: !!unlock, resetMfa: !!resetMfa, resetPassword: !!resetPassword } });
+      return temporaryPassword ? { ...publicUser(saved), temporaryPassword } : publicUser(saved);
     },
 
     /** Step 1: password → tokens, an MFA challenge, or MFA self-enrolment. */

@@ -28,6 +28,8 @@ function createCircuitBreaker({ name, failureThreshold = 5, resetMs = 30000, tim
   let state = 'closed';
   let failures = 0;
   let openedAt = 0;
+  // Read-only health counters for the operations console (latency of the last call, last success/failure time).
+  const st = { calls: 0, failures: 0, lastLatencyMs: null, lastCallAt: null, lastSuccessAt: null, lastFailureAt: null };
 
   const isRetryable = (e) => !(e && e.status && e.status < 500 && e.status !== 429);
 
@@ -41,14 +43,17 @@ function createCircuitBreaker({ name, failureThreshold = 5, resetMs = 30000, tim
     }
     let attempt = 0;
     for (;;) {
+      const started = Date.now();
       try {
         const out = await withTimeout(Promise.resolve().then(fn), timeoutMs, name);
+        Object.assign(st, { calls: st.calls + 1, lastLatencyMs: Date.now() - started, lastCallAt: new Date().toISOString(), lastSuccessAt: new Date().toISOString() });
         failures = 0;
         if (state !== 'closed') logger?.info('circuit closed', { integration: name });
         state = 'closed';
         metrics?.inc('integration_calls_total', { integration: name, result: 'ok' });
         return out;
       } catch (e) {
+        Object.assign(st, { calls: st.calls + 1, failures: st.failures + 1, lastLatencyMs: Date.now() - started, lastCallAt: new Date().toISOString(), lastFailureAt: new Date().toISOString() });
         metrics?.inc('integration_calls_total', { integration: name, result: 'error' });
         if (state === 'half_open' || !isRetryable(e) || attempt >= retries) {
           if (isRetryable(e)) {
@@ -67,7 +72,7 @@ function createCircuitBreaker({ name, failureThreshold = 5, resetMs = 30000, tim
     }
   }
 
-  return { exec, state: () => state, name };
+  return { exec, state: () => state, stats: () => ({ ...st }), name };
 }
 
 module.exports = { createCircuitBreaker, withTimeout, sleep, tagged };

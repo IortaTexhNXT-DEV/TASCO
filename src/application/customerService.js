@@ -4,6 +4,10 @@ const { errors } = require('../shared/errors');
 const { applyDeclaredExpiry } = require('../domain/enrichment');
 const { benefitsFor, factsFor } = require('../domain/leads');
 const { signJwt } = require('../shared/crypto');
+const { maskName } = require('../shared/util');
+
+/** Vietnamese full names put the given name last ("Nguyễn Văn An" → "An"). */
+const givenName = (name) => (name ? String(name).trim().split(/\s+/).pop() : null);
 
 /**
  * Customer self-service for the VETC app / Zalo mini app: my vehicle, my cover,
@@ -22,6 +26,9 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
   // Demo picker: customers once offered stay offered (with their original journey) even after
   // they buy and their lead moves to another journey / lower score.
   const demoShown = new Map();
+
+  /** Masked display name for the demo picker ("N. V. An") — never the full name. */
+  const demoName = async (id) => maskName((await profiles.get(id))?.name);
 
   async function mine(profileId) {
     const p = await profiles.get(profileId);
@@ -46,7 +53,7 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
     async demoCustomers({ perJourney = 2, journeys = ['renewal', 'lapsed_uninsured', 'new_vehicle', 'conquest'] } = {}) {
       for (const journey of journeys) {
         for (const l of await leads.find({ where: { journey }, orderBy: ['score', 'desc'], limit: perJourney })) {
-          if (!demoShown.has(l.id)) demoShown.set(l.id, { id: l.id, plate: l.plate, journey });
+          if (!demoShown.has(l.id)) demoShown.set(l.id, { id: l.id, plate: l.plate, journey, name: await demoName(l.id) });
         }
       }
       const buyers = await store.collection('orders').find({ where: { status: 'completed', channel: 'vetc_app' }, orderBy: ['created_at', 'desc'], limit: 4 });
@@ -54,7 +61,7 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
         if (demoShown.has(o.profileId)) continue;
         const l = await leads.get(o.profileId);
         const p = l ? null : await profiles.get(o.profileId);
-        if (l || p) demoShown.set(o.profileId, { id: o.profileId, plate: l?.plate || p.plate, journey: o.journey || l?.journey || null });
+        if (l || p) demoShown.set(o.profileId, { id: o.profileId, plate: l?.plate || p.plate, journey: o.journey || l?.journey || null, name: await demoName(o.profileId) });
       }
       const out = [];
       for (const pick of demoShown.values()) {
@@ -69,14 +76,18 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
       const p = await mine(profileId);
       const [lead, pols, benefitRules] = await Promise.all([leads.get(profileId), policies.find({ where: { profile_id: profileId }, orderBy: ['end_date', 'desc'], limit: 20 }), rules.get('benefits')]);
       return {
-        vehicle: { plate: p.plate, category: p.vehicle.category, province: p.province },
+        // Greeting only: the given name, never the full name.
+        customer: { firstName: givenName(p.name) },
+        vehicle: { plate: p.plate, category: p.vehicle.category, province: p.province, seats: p.vehicle.seats ?? null, usage: p.vehicle.usage ?? null, firstRegisteredYear: p.vehicle.firstRegisteredYear ?? null },
+        // Last known VETC wallet balance (from the VETC account feed) for the checkout's payment row.
+        wallet: { balance: p.engagement?.walletBalance ?? null, autoTopUp: !!p.engagement?.autoTopUp },
         cover: {
           expiryDate: p.policy.expiryDate, confidence: p.policy.expiryConfidence, insurer: p.policy.insurer, verified: p.policy.verified,
           daysToExpiry: lead?.daysToExpiry ?? null,
           needsConfirmation: p.policy.expiryConfidence < 0.75,
         },
         premium: lead?.premium || null,
-        policies: pols.map((x) => ({ certNo: x.certNo, product: x.product, productNameVi: x.productNameVi || x.product, startDate: x.startDate, endDate: x.endDate, status: x.status, certificateUrl: x.certificateUrl })),
+        policies: pols.map((x) => ({ certNo: x.certNo, policyNo: x.policyNo || null, total: x.total ?? null, issuedAt: x.issuedAt || null, insurer: x.insurer || 'TASCO', product: x.product, productNameVi: x.productNameVi || x.product, startDate: x.startDate, endDate: x.endDate, status: x.status, certificateUrl: x.certificateUrl })),
         benefits: benefitsFor(benefitRules, factsFor(p, clock.today())),
         consent: p.consent,
       };

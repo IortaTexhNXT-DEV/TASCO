@@ -2,8 +2,10 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Tra cứu hiệu lực giấy chứng nhận bảo hiểm điện tử TASCO Insurance">
+  <meta name="robots" content="noindex">
   <title>Tra cứu giấy chứng nhận · TASCO Insurance</title>
   <link rel="icon" href="/assets/tasco-logo-tight.png">
   <link rel="stylesheet" href="/css/tokens.css">
@@ -11,10 +13,14 @@
   <link rel="stylesheet" href="/css/customer.css">
   <script type="module" src="/js/verify.js"></script>
 </head>
-<body class="customer">
-  <div class="app">
-    <header class="app-head"><img src="/assets/tasco-logo-tight.png" alt="TASCO Insurance"><h1>Tra cứu giấy chứng nhận</h1></header>
-    <main class="app-main" id="result" aria-live="polite"><div class="empty">Đang kiểm tra…</div></main>
-  </div>
+<body class="customer verify">
+  <header class="v-head">
+    <div class="v-head-inner">
+      <a href="/verify/" aria-label="TASCO Insurance"><img src="/assets/tasco-logo-tight.png" alt="TASCO Insurance"></a>
+      <p class="v-head-title">Tra cứu giấy chứng nhận<span lang="en">Certificate verification</span></p>
+    </div>
+  </header>
+  <main class="v-main" id="result" aria-live="polite" aria-busy="true"><div class="v-card v-loading c-skel" aria-label="Đang kiểm tra"></div></main>
+  <footer class="v-foot" id="foot"></footer>
 </body>
 </html>

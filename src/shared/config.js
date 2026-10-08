@@ -119,6 +119,7 @@ function loadConfig(env = process.env) {
     nodeEnv,
     production,
     port: int(env.PORT, 3000),
+    supportHotline: env.SUPPORT_HOTLINE || '',
     publicBaseUrl: env.PUBLIC_BASE_URL || `http://localhost:${int(env.PORT, 3000)}`,
     databaseUrl,
     databaseSsl: bool(env.DATABASE_SSL, production),

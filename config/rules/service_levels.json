@@ -4,9 +4,12 @@
   "payload": {
     "quoteTtlHours": 24,
     "claimAckSlaHours": 4,
+    "handoffFirstContactHours": 2,
     "customerDeclaredConfidence": 0.75,
     "stewardCorrectionConfidence": 0.9,
     "botRenewedElsewhereConfidence": 0.6,
-    "paymentLinkTtlHours": 48
+    "paymentLinkTtlHours": 48,
+    "claimDecisionSlaHours": 120,
+    "claimPaymentSlaHours": 72
   }
 }

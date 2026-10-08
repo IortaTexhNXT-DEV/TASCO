@@ -51,11 +51,38 @@ function createInsightsService({ store, rules, audit, clock }) {
       // One vehicle can have several open issues: report distinct vehicles as the headline.
       const issuesByProfile = await c('dq_issues').countBy('profile_id', { status: 'open' });
       const profilesWithOpenIssues = Object.keys(issuesByProfile).filter((k) => k && k !== 'null' && k !== 'undefined').length;
+      // Forward pipeline: policies (and TNDS premium) falling due per month for the next 12 months, by objective.
+      const months = [];
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(`${today.slice(0, 7)}-01T00:00:00Z`);
+        d.setUTCMonth(d.getUTCMonth() + i);
+        months.push({ month: d.toISOString().slice(0, 7), retention: 0, newBusiness: 0, retentionPremium: 0, newBusinessPremium: 0 });
+      }
+      const byMonth = new Map(months.map((m) => [m.month, m]));
+      const todayMs = new Date(`${today}T00:00:00Z`).getTime();
+      for (let off = 0; ; off += 2000) {
+        const page = await c('leads').find({ where: { days_to_expiry: { gte: 0 } }, limit: 2000, offset: off, orderBy: ['id', 'asc'] });
+        for (const l of page) {
+          const m = byMonth.get(new Date(todayMs + l.daysToExpiry * 86400000).toISOString().slice(0, 7));
+          if (!m || !l.journey) continue;
+          if (l.objective === 'retention') { m.retention++; m.retentionPremium += l.premium || 0; } else { m.newBusiness++; m.newBusinessPremium += l.premium || 0; }
+        }
+        if (page.length < 2000) break;
+      }
+      const weekAhead = new Date(todayMs + 7 * 86400000).toISOString().slice(0, 10);
+      const [dqByStatus, dueTouchpoints, dueWeek, scheduledTouchpoints] = await Promise.all([
+        c('dq_issues').countBy('status'),
+        c('touchpoints').countBy('journey', { status: 'scheduled', due_date: { lte: today } }),
+        c('touchpoints').countBy('journey', { status: 'scheduled', due_date: { lte: weekAhead } }),
+        c('touchpoints').count({ status: 'scheduled' }),
+      ]);
       return {
         asOf: today,
+        pipeline: months,
+        journeys: { dueToday: dueTouchpoints, dueNext7Days: dueWeek, scheduled: scheduledTouchpoints },
         base: { profiles: profilesN, expiring30, lapsedUninsured: lapsed, profilesWithUsableData: usableExpiry },
         leads: { byTier: tiers, byJourney: journeys, byAction: actions },
-        dataQuality: { openIssues: dqOpen, profilesWithOpenIssues, byType: dqTypes },
+        dataQuality: { openIssues: dqOpen, profilesWithOpenIssues, byType: dqTypes, byStatus: dqByStatus },
         engagement: { messagesByChannel: msgs, messageStatus: blocked, voiceOutcomes: calls, handoffs },
         sales: { orders: completed.n, gwp: completed.total, byJourney: ordersByJourney, byChannel: ordersByChannel, activePoliciesByProduct: policiesN },
         claims: claimsN,

@@ -110,7 +110,7 @@ const LABELS = {
   vi: {
     nba: {
       suppress: 'Không liên hệ', route_b2b: 'Chuyển nhóm khách hàng doanh nghiệp / đội xe', verify_expiry: 'Mời khách xác nhận ngày hết hạn',
-      welcome_new_vehicle: 'Chào mừng xe mới', nurture: 'Lên lịch nhắc', urgent_recovery: 'Khẩn: xe chưa có bảo hiểm', voice_bot: 'Gọi trợ lý tự động → telesales',
+      welcome_new_vehicle: 'Chào mừng xe mới', nurture: 'Lên lịch nhắc', urgent_recovery: 'Khẩn: xe chưa có bảo hiểm', voice_bot: 'Trợ lý giọng nói → telesales',
       digital_reminder: 'Gửi link gia hạn qua app / Zalo', sms_reminder: 'Nhắc qua SMS', enrich: 'Tìm kênh liên lạc',
     },
     journey: {
@@ -119,7 +119,8 @@ const LABELS = {
     },
     step: {
       first_reminder: 'Nhắc lần đầu', value_reminder: 'Nhắc quyền lợi', urgent_reminder: 'Nhắc khẩn', expiry_day: 'Ngày hết hạn', lapsed_notice: 'Thông báo hết hạn',
-      telesales: 'Telesales gọi', verify_expiry: 'Xác nhận ngày hết hạn', voice_bot: 'Trợ lý gọi tự động', welcome: 'Chào mừng',
+      telesales: 'Telesales gọi', verify_expiry: 'Xác nhận ngày hết hạn', voice_bot: 'Cuộc gọi trợ lý giọng nói', welcome: 'Chào mừng',
+      cross_sell: 'Gợi ý nâng cấp bảo hiểm', quote_sent: 'Gửi báo giá', campaign: 'Chiến dịch gọi', inspection_tnds_check: 'Nhắc kiểm tra TNDS khi đăng kiểm',
     },
     tier: { hot: 'Nóng', warm: 'Ấm', nurture: 'Nuôi dưỡng' },
     ownerType: { individual: 'Cá nhân', company: 'Doanh nghiệp' },
@@ -151,7 +152,7 @@ const LABELS = {
       plate_mismatch: 'Biển số không khớp', unverified: 'Chưa xác minh', callback_later: 'Hẹn gọi lại', no_answer: 'Không nghe máy', scam_concern: 'Lo ngại lừa đảo',
     },
     voiceState: { intro: 'Giới thiệu', verify_plate: 'Xác minh biển số', confirm_expiry: 'Xác nhận hạn', offer: 'Chào sản phẩm', capture_competitor: 'Ghi nhận DN khác', ended: 'Kết thúc' },
-    channel: { app_push: 'Thông báo app', zalo_zns: 'Zalo ZNS', sms: 'SMS', voice_bot: 'Trợ lý gọi', telesales: 'Telesales', vetc_app: 'Ứng dụng VETC', zalo: 'Zalo', partner_api: 'API đối tác', email: 'Email' },
+    channel: { app_push: 'Thông báo app', zalo_zns: 'Zalo ZNS', sms: 'SMS', voice_bot: 'Trợ lý giọng nói', telesales: 'Telesales', vetc_app: 'Ứng dụng VETC', zalo: 'Zalo', partner_api: 'API đối tác', email: 'Email' },
     dq: {
       phone: 'Thiếu số điện thoại', name: 'Thiếu tên', reliable_expiry: 'Ngày hết hạn chưa tin cậy', vehicle_category: 'Chưa rõ loại xe', current_insurer: 'Chưa rõ DN bảo hiểm',
       conflicting_phone: 'Số điện thoại mâu thuẫn', invalid_plate: 'Biển số không hợp lệ', wrong_person: 'Sai người (cuộc gọi)', plate_mismatch: 'Biển số không khớp (cuộc gọi)',
@@ -159,7 +160,7 @@ const LABELS = {
     },
     method: {
       verified_certificate: 'Giấy chứng nhận đã xác minh', partner_policy_record: 'Hồ sơ đối tác', customer_declared: 'Khách hàng khai báo', inspection_cycle: 'Chu kỳ đăng kiểm',
-      tag_anniversary: 'Ngày kích hoạt thẻ', voice_bot: 'Cuộc gọi trợ lý', unknown: 'Chưa có bằng chứng', steward_correction: 'Hiệu chỉnh dữ liệu',
+      tag_anniversary: 'Ngày kích hoạt thẻ', voice_bot: 'Cuộc gọi trợ lý giọng nói', unknown: 'Chưa có bằng chứng', steward_correction: 'Hiệu chỉnh dữ liệu',
     },
     role: {
       admin: 'Quản trị hệ thống', executive: 'Lãnh đạo', campaign_manager: 'Quản lý chiến dịch', telesales_agent: 'Tư vấn viên telesales', telesales_supervisor: 'Giám sát telesales',
@@ -178,7 +179,7 @@ const LABELS = {
   en: {
     nba: {
       suppress: 'Do not contact', route_b2b: 'Route to fleet / B2B team', verify_expiry: 'Ask customer to confirm expiry', welcome_new_vehicle: 'Welcome new vehicle',
-      nurture: 'Schedule reminders', urgent_recovery: 'Urgent: vehicle uninsured', voice_bot: 'AI voice bot → telesales', digital_reminder: 'One-tap renew link (app / Zalo)',
+      nurture: 'Schedule reminders', urgent_recovery: 'Urgent: vehicle uninsured', voice_bot: 'Voice assistant → telesales', digital_reminder: 'One-tap renew link (app / Zalo)',
       sms_reminder: 'SMS reminder', enrich: 'Find a contact channel',
     },
     journey: {
@@ -187,7 +188,8 @@ const LABELS = {
     },
     step: {
       first_reminder: 'First reminder', value_reminder: 'Value reminder', urgent_reminder: 'Urgent reminder', expiry_day: 'Expiry day', lapsed_notice: 'Lapsed notice',
-      telesales: 'Telesales call', verify_expiry: 'Verify expiry', voice_bot: 'Voice bot call', welcome: 'Welcome',
+      telesales: 'Telesales call', verify_expiry: 'Verify expiry', voice_bot: 'Voice assistant call', welcome: 'Welcome',
+      cross_sell: 'Cover upgrade offer', quote_sent: 'Quote sent', campaign: 'Campaign call', inspection_tnds_check: 'TNDS check before inspection',
     },
     tier: { hot: 'Hot', warm: 'Warm', nurture: 'Nurture' },
     ownerType: { individual: 'Individual', company: 'Company' },
@@ -219,7 +221,7 @@ const LABELS = {
       plate_mismatch: 'Plate mismatch', unverified: 'Not verified', callback_later: 'Call back later', no_answer: 'No answer', scam_concern: 'Scam concern',
     },
     voiceState: { intro: 'Introduction', verify_plate: 'Verifying plate', confirm_expiry: 'Confirming expiry', offer: 'Offer', capture_competitor: 'Capturing competitor', ended: 'Ended' },
-    channel: { app_push: 'App push', zalo_zns: 'Zalo ZNS', sms: 'SMS', voice_bot: 'Voice bot', telesales: 'Telesales', vetc_app: 'VETC app', zalo: 'Zalo', partner_api: 'Partner API', email: 'Email' },
+    channel: { app_push: 'App push', zalo_zns: 'Zalo ZNS', sms: 'SMS', voice_bot: 'Voice assistant', telesales: 'Telesales', vetc_app: 'VETC app', zalo: 'Zalo', partner_api: 'Partner API', email: 'Email' },
     dq: {
       phone: 'Missing phone', name: 'Missing name', reliable_expiry: 'Unreliable expiry date', vehicle_category: 'Uncertain vehicle category', current_insurer: 'Unknown insurer',
       conflicting_phone: 'Conflicting phone numbers', invalid_plate: 'Invalid plate', wrong_person: 'Wrong person (call)', plate_mismatch: 'Plate mismatch (call)',
@@ -227,7 +229,7 @@ const LABELS = {
     },
     method: {
       verified_certificate: 'Verified certificate', partner_policy_record: 'Partner policy record', customer_declared: 'Customer declaration', inspection_cycle: 'Inspection cycle',
-      tag_anniversary: 'Tag anniversary', voice_bot: 'Voice bot call', unknown: 'No evidence', steward_correction: 'Steward correction',
+      tag_anniversary: 'Tag anniversary', voice_bot: 'Voice assistant call', unknown: 'No evidence', steward_correction: 'Steward correction',
     },
     role: {
       admin: 'Admin', executive: 'Executive', campaign_manager: 'Campaign manager', telesales_agent: 'Telesales agent', telesales_supervisor: 'Telesales supervisor',
@@ -263,3 +265,18 @@ export const businessLabel = label;
 /** Intl locale for the UI language: numbers 1,234 (en) / 1.234 (vi). Dates stay dd/MM/yyyy in both. */
 export const locale = () => (lang === 'en' ? 'en-US' : 'vi-VN');
 export const hasLabel = (group, code) => code !== null && code !== undefined && !!(LABELS[lang]?.[group]?.[code] ?? LABELS.en[group]?.[code]);
+
+/**
+ * Page modules may register their own strings and business labels next to the page (keeps this
+ * catalogue small and avoids edit conflicts). Shapes: { vi: {key: str|fn}, en: {...} } and
+ * { vi: {group: {code: label}}, en: {...} }. Existing keys win, so shared terms cannot be overridden.
+ */
+export function addStrings(dict) {
+  for (const l of Object.keys(dict)) for (const [k, v] of Object.entries(dict[l])) if (STRINGS[l] && !(k in STRINGS[l])) STRINGS[l][k] = v;
+}
+export function addLabels(dict) {
+  for (const l of Object.keys(dict)) {
+    if (!LABELS[l]) continue;
+    for (const [g, codes] of Object.entries(dict[l])) LABELS[l][g] = { ...codes, ...(LABELS[l][g] || {}) };
+  }
+}

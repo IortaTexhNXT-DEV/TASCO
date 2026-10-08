@@ -126,6 +126,7 @@ test('claims queue rows carry plate, masked customer name and description', asyn
   const mine = picks.find((x) => x.id === p.id);
   assert.ok(mine, 'buyer stays in the demo picker');
   assert.equal(mine.status, 'insured');
+  if (p.name) assert.ok(mine.name && mine.name !== p.name, 'picker shows a masked name, never the full name');
   const again = await c.services.customers.demoCustomers();
   for (const x of picks) assert.ok(again.some((y) => y.id === x.id), 'picker is stable between calls');
 });

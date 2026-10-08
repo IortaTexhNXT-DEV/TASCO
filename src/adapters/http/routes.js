@@ -3,6 +3,8 @@
 const { errors } = require('../../shared/errors');
 const { normalizePlate, normalizePhone } = require('../../domain/identity');
 const { evaluateLead } = require('../../domain/leads');
+const { createRuleSimulation } = require('../../application/ruleSimulation');
+const { AUDIT_CATEGORIES } = require('../../application/auditService');
 
 /**
  * API route table (API-first). Each route declares:
@@ -70,6 +72,35 @@ async function searchCustomers(c, principal, q, limit) {
   return { items, total: items.length };
 }
 
+/**
+ * Work-queue display fields for leads: owner name (masked per permission), owner type, vehicle category and the
+ * expiry date. Read-time join only — the lead record itself is unchanged.
+ */
+async function withOwner(c, principal, items) {
+  const profiles = c.store.collection('profiles');
+  return Promise.all(items.map(async (l) => {
+    const p = await profiles.get(l.id);
+    if (!p) return l;
+    const m = c.services.access.maskProfile(principal, p);
+    return { ...l, owner: m.name || null, ownerType: p.ownerType || null, category: p.vehicle?.category || null, expiryDate: p.policy?.expiryDate || null };
+  }));
+}
+
+/** Staff display names for handoff assignees and note authors (read-time only). */
+async function withHandoffNames(c, handoffs) {
+  const { userNames } = require('../../application/auditService');
+  const ids = handoffs.flatMap((x) => [x.assignedTo, ...(x.notes || []).map((n) => n.by)]);
+  const names = await userNames(c.store, ids);
+  const short = (id) => (names.has(id) ? names.get(id).replace(/\s*\([^)]*\)$/, '') : null);
+  const { handoffFirstContactHours = 2 } = await c.services.rules.get('service_levels');
+  return handoffs.map((x) => ({
+    ...x,
+    assignedToName: x.assignedTo ? short(x.assignedTo) : null,
+    slaDueAt: x.createdAt ? new Date(new Date(x.createdAt).getTime() + handoffFirstContactHours * 3600000).toISOString() : null,
+    notes: x.notes ? x.notes.map((n) => ({ ...n, byName: short(n.by) })) : x.notes,
+  }));
+}
+
 async function customerDetail(c, principal, id) {
   const { access } = c.services;
   const s = (n) => c.store.collection(n);
@@ -104,7 +135,7 @@ function buildRoutes() {
     // ---------- Public ----------
     { method: 'GET', path: '/api/meta', auth: 'public', tag: 'Platform', summary: 'Client bootstrap metadata',
       handler: async ({ c }) => {
-        const meta = { name: 'TASCO Growth Platform', version: require('../../../package.json').version, demoMode: c.config.demoMode, today: c.clock.today(), store: c.store.kind };
+        const meta = { name: 'TASCO Growth Platform', version: require('../../../package.json').version, demoMode: c.config.demoMode, today: c.clock.today(), store: c.store.kind, supportHotline: c.config.supportHotline || null };
         if (c.config.demoMode) {
           // Demo only: a few customers per journey so the customer app can be explored without a real link.
           meta.demoCustomers = await c.services.customers.demoCustomers();
@@ -151,11 +182,14 @@ function buildRoutes() {
       query: {
         tier: { type: 'string', enum: ['hot', 'warm', 'nurture'] }, journey: { type: 'string', max: 40 }, action: { type: 'string', max: 40 }, region: { type: 'string', max: 60 },
         maxDays: { type: 'integer', min: -365, max: 3650 }, minScore: { type: 'integer', min: 0, max: 100 }, limit: S.limit, offset: S.offset, sort: { type: 'string', enum: ['score', 'expiry'] },
+        q: { type: 'string', max: 20 },
       },
       handler: async ({ c, query, principal }) => {
         const q = { ...query };
         if (principal.region && principal.region !== 'ALL' && !c.services.access.has(principal, 'dashboard:read')) q.region = principal.region;
-        return c.services.leads.list(q);
+        const r = await c.services.leads.list(q);
+        const regions = Object.keys(await c.store.collection('leads').countBy('region')).filter((x) => x && x !== 'null' && x !== 'undefined').sort((a, b) => a.localeCompare(b, 'vi'));
+        return { ...r, items: await withOwner(c, principal, r.items), facets: { regions: q.region && !query.region ? [q.region] : regions } };
       } },
     { method: 'POST', path: '/api/leads/recompute', auth: 'staff', perm: 'leads:recompute', tag: 'Leads', summary: 'Re-score all leads with active rules',
       handler: async ({ c, principal }) => c.services.leads.recompute(null, { actor: principal.id }) },
@@ -195,8 +229,10 @@ function buildRoutes() {
       handler: async ({ c, principal, body }) => {
         // Simulated dates/times are a demo/UAT feature; production always uses the real clock.
         const opts = c.config.demoMode ? body : {};
+        const startedAt = c.clock.now().toISOString();
         const r = await c.services.journeys.runDue({ ...opts, actor: principal.id });
         await c.events.drain();
+        await c.store.collection('job_runs').insert({ id: `J-${require('crypto').randomUUID().slice(0, 8)}`, kind: 'journey_run', actor: principal.id, startedAt, finishedAt: c.clock.now().toISOString(), status: 'succeeded', result: { channel: 'journeys', date: opts.date || c.clock.today(), ...r } });
         return r;
       } },
     { method: 'POST', path: '/api/ecosystem/events', auth: 'staff', perm: 'journeys:run', tag: 'Journeys', summary: 'Ingest a VETC ecosystem event (moment of truth)',
@@ -211,6 +247,26 @@ function buildRoutes() {
         if (p) await c.services.access.check(principal, 'read', { type: 'profile', region: p.province });
         return c.services.voice.start(body.profileId, principal);
       } },
+    { method: 'GET', path: '/api/voice/sessions', auth: 'staff', perm: 'voice:operate', tag: 'Voice bot', summary: 'Recent calls (newest first) with outcome, verification and handoff',
+      query: { outcome: { type: 'string', max: 40 }, profileId: S.id, limit: S.limit, offset: S.offset },
+      handler: async ({ c, principal, query }) => {
+        const where = {};
+        if (query.outcome) where.outcome = query.outcome;
+        if (query.profileId) where.profile_id = query.profileId;
+        const col = c.store.collection('voice_sessions');
+        const limit = query.limit || 50;
+        const [rows, total] = await Promise.all([col.find({ where, orderBy: ['created_at', 'desc'], limit: Math.min(500, limit + (query.offset || 0) + 200) }), col.count(where)]);
+        const items = [];
+        let skipped = 0;
+        for (const s of rows) {
+          try { await c.services.access.check(principal, 'read', { type: 'profile', region: s.region }); } catch { continue; }
+          if (skipped < (query.offset || 0)) { skipped++; continue; }
+          items.push({ id: s.id, customerId: s.customerId, plateMasked: s.ctx?.plateMasked || null, region: s.region, mode: s.mode || 'console', state: s.state === 'ended' ? 'ended' : 'in_progress',
+            outcome: s.outcome, verified: !!s.verified, turns: (s.transcript || []).length, startedAt: s.startedAt, endedAt: s.endedAt || null, handoffId: s.handoffId || null });
+          if (items.length >= limit) break;
+        }
+        return { items, total: principal.region && principal.region !== 'ALL' ? items.length : total };
+      } },
     { method: 'GET', path: '/api/voice/sessions/:id', auth: 'staff', perm: 'voice:operate', tag: 'Voice bot', summary: 'Get session transcript',
       handler: async ({ c, principal, params }) => {
         const s = await c.services.voice.get(params.id);
@@ -221,10 +277,28 @@ function buildRoutes() {
       body: { text: { type: 'string', max: 500, required: true } },
       handler: async ({ c, principal, params, body }) => { const s = await c.services.voice.turn(params.id, body.text, principal); await c.events.drain(); return s; } },
     { method: 'POST', path: '/api/voice/campaign', auth: 'staff', perm: 'journeys:run', tag: 'Voice bot', summary: 'Run an automated call campaign over top leads',
-      body: { limit: { type: 'integer', min: 1, max: 200, default: 20 }, tier: { type: 'string', enum: ['hot', 'warm'], default: 'hot' }, at: { type: 'string', max: 40 } },
+      body: {
+        limit: { type: 'integer', min: 1, max: 200, default: 20 }, tier: { type: 'string', enum: ['hot', 'warm'], default: 'hot' }, at: { type: 'string', max: 40 },
+        name: { type: 'string', max: 80 }, journey: { type: 'string', max: 40 }, region: { type: 'string', max: 60 }, dryRun: { type: 'boolean' },
+      },
       handler: async ({ c, principal, body }) => {
         const now = body.at && c.config.demoMode ? new Date(body.at) : c.clock.now();
-        const leads = await c.services.leads.list({ tier: body.tier, limit: 500 });
+        const audience = { tier: body.tier, journey: body.journey || null, region: body.region || null };
+        const leads = await c.services.leads.list({ tier: body.tier, journey: body.journey || undefined, region: body.region || undefined, limit: 500 });
+        if (body.dryRun) {
+          // Preview of the contact-policy effect: who would be called vs. held back (and why), without calling anyone.
+          const blocked = {};
+          let eligible = 0; let companies = 0;
+          for (const l of leads.items) {
+            const p = await c.store.collection('profiles').get(l.id);
+            if (!p) continue;
+            if (p.ownerType === 'company') { companies++; continue; }
+            const chk = await c.services.voice.canCall(l.id, now);
+            if (chk.ok) eligible++; else for (const r of chk.reasons) blocked[r] = (blocked[r] || 0) + 1;
+          }
+          return { audience: leads.total, eligible, willCall: Math.min(eligible, body.limit), routedToFleet: companies, blocked };
+        }
+        const run = async () => {
         const outcomes = {};
         const skipped = {};
         let called = 0;
@@ -241,6 +315,18 @@ function buildRoutes() {
         }
         await c.events.drain();
         return { called, outcomes, skipped };
+        };
+        // Recorded as a campaign run (job history + audit) so results can be reviewed later.
+        const r = await c.services.ops.recordRun('voice_campaign', principal.id, async () => ({ name: body.name || null, channel: 'voice_bot', audience, limit: body.limit, at: now.toISOString(), ...(await run()) }));
+        return { called: r.called, outcomes: r.outcomes, skipped: r.skipped, campaignId: r.runId };
+      } },
+    { method: 'GET', path: '/api/campaigns', auth: 'staff', perm: 'journeys:run', tag: 'Voice bot', summary: 'Campaign runs (voice campaigns and journey runs) with results',
+      query: { limit: S.limit },
+      handler: async ({ c, query }) => {
+        const runs = await c.store.collection('job_runs').find({ where: { kind: { in: ['voice_campaign', 'journey_run'] } }, orderBy: ['started_at', 'desc'], limit: query.limit || 50 });
+        const { userNames } = require('../../application/auditService');
+        const names = await userNames(c.store, runs.map((r) => r.actor));
+        return { items: runs.map((r) => ({ id: r.id, kind: r.kind, status: r.status, startedAt: r.startedAt, finishedAt: r.finishedAt || null, by: names.get(r.actor)?.replace(/\s*\([^)]*\)$/, '') || null, result: r.result || null })) };
       } },
     { method: 'GET', path: '/api/handoffs', auth: 'staff', perm: 'handoff:read', tag: 'Telesales', summary: 'Telesales work queue',
       query: { status: { type: 'string', enum: ['open', 'claimed', 'callback', 'won', 'lost'] }, mine: { type: 'boolean' }, limit: S.limit, offset: S.offset },
@@ -253,13 +339,22 @@ function buildRoutes() {
         for (const h of r.items) {
           try { await c.services.access.check(principal, 'read', { type: 'handoff', assignedTo: h.assignedTo, region: h.region }); visible.push(h); } catch { /* filtered by ABAC */ }
         }
-        return { items: visible, total: r.total };
+        return { items: await withHandoffNames(c, visible), total: r.total };
+      } },
+    { method: 'GET', path: '/api/handoffs/assignees', auth: 'staff', perm: 'handoff:assign', tag: 'Telesales', summary: 'Telesales staff a supervisor can assign handoffs to',
+      handler: async ({ c, principal }) => {
+        const users = await c.store.collection('users').find({ limit: 1000 });
+        const items = users
+          .filter((u) => u.status !== 'disabled' && (u.roles || []).some((r) => r === 'telesales_agent' || r === 'telesales_supervisor'))
+          .filter((u) => !principal.region || principal.region === 'ALL' || !u.region || u.region === 'ALL' || u.region === principal.region)
+          .map((u) => ({ id: u.id, name: u.displayName || u.username, region: u.region || 'ALL', roles: u.roles }));
+        return { items };
       } },
     { method: 'GET', path: '/api/handoffs/:id', auth: 'staff', perm: 'handoff:read', tag: 'Telesales', summary: 'Handoff detail',
       handler: async ({ c, principal, params }) => {
         const h = await c.services.voice.getHandoff(params.id);
         await c.services.access.check(principal, 'read', { type: 'handoff', assignedTo: h.assignedTo, region: h.region });
-        return h;
+        return (await withHandoffNames(c, [h]))[0];
       } },
     { method: 'PATCH', path: '/api/handoffs/:id', auth: 'staff', perm: 'handoff:work', tag: 'Telesales', summary: 'Claim / update / assign a handoff',
       body: { status: { type: 'string', enum: ['open', 'claimed', 'callback', 'won', 'lost'] }, note: S.text(1000), assignTo: { type: 'string', max: 40 }, version: { type: 'integer', min: 1 } },
@@ -267,7 +362,7 @@ function buildRoutes() {
         const h = await c.services.voice.getHandoff(params.id);
         await c.services.access.check(principal, 'update', { type: 'handoff', assignedTo: h.assignedTo, region: h.region });
         if (body.assignTo !== undefined) c.services.access.require(principal, 'handoff:assign');
-        return c.services.voice.updateHandoff(params.id, body, principal);
+        return (await withHandoffNames(c, [await c.services.voice.updateHandoff(params.id, body, principal)]))[0];
       } },
 
     // ---------- Products, quotes, orders, policies ----------
@@ -315,8 +410,19 @@ function buildRoutes() {
     { method: 'GET', path: '/api/rules', auth: 'staff', perm: 'rules:read', tag: 'Rules', summary: 'List rule sets (all versions)',
       query: { kind: { type: 'string', max: 60 }, status: { type: 'string', enum: ['draft', 'pending_approval', 'active', 'retired', 'rejected'] } },
       handler: async ({ c, query }) => c.services.rules.list(query) },
+    { method: 'GET', path: '/api/rules/context', auth: 'staff', perm: 'rules:read', tag: 'Rules', summary: 'Rules studio context: rating source, restricted rule kinds, simulatable kinds',
+      handler: async ({ c }) => createRuleSimulation(c).context() },
+    { method: 'GET', path: '/api/rules/sample-customers', auth: 'staff', perm: 'rules:read', tag: 'Rules', summary: 'Customers to simulate against (plate prefix or a spread across tiers; no personal data)',
+      query: { q: { type: 'string', max: 40 }, limit: { type: 'integer', min: 1, max: 20 } },
+      handler: async ({ c, query }) => createRuleSimulation(c).sampleCustomers(query) },
+    { method: 'POST', path: '/api/rules/simulate-sample', auth: 'staff', perm: 'rules:read', tag: 'Rules', summary: 'Aggregate dry-run of a candidate payload over a sample of customers (tier, action and journey movements)',
+      body: { kind: { type: 'string', enum: ['scoring', 'nba', 'journeys', 'benefits'], required: true }, payload: { type: 'object', required: true }, size: { type: 'integer', min: 3, max: 200 } },
+      handler: async ({ c, body }) => createRuleSimulation(c).simulateSample(body) },
     { method: 'GET', path: '/api/rules/:id', auth: 'staff', perm: 'rules:read', tag: 'Rules', summary: 'Rule set detail incl. payload',
       handler: async ({ c, params }) => c.services.rules.byId(params.id) },
+    { method: 'PATCH', path: '/api/rules/:id', auth: 'staff', perm: 'rules:author', tag: 'Rules', summary: 'Edit one\'s own draft in place (payload and/or description)',
+      body: { payload: { type: 'object' }, description: S.text(500) },
+      handler: async ({ c, principal, params, body }) => c.services.rules.updateDraft(params.id, body, principal) },
     { method: 'POST', path: '/api/rules', auth: 'staff', perm: 'rules:author', tag: 'Rules', summary: 'Create a draft version',
       body: { kind: { type: 'string', max: 60, required: true }, payload: { type: 'object', required: true }, description: S.text(500) },
       handler: async ({ c, principal, body }) => c.services.rules.createDraft(body, principal) },
@@ -337,7 +443,7 @@ function buildRoutes() {
         const candidate = evaluateLead({ ...r, [body.kind]: body.payload }, p, today, premium);
         return { current, candidate };
       } },
-    ...['submit', 'approve', 'reject', 'rollback'].map((action) => ({
+    ...['submit', 'withdraw', 'approve', 'reject', 'rollback'].map((action) => ({
       method: 'POST', path: `/api/rules/:id/${action}`, auth: 'staff', perm: ['approve', 'reject'].includes(action) ? 'rules:approve' : 'rules:author', tag: 'Rules',
       summary: `${action[0].toUpperCase()}${action.slice(1)} a rule set version`, body: { comment: S.text(500) },
       handler: async ({ c, principal, params, body }) => c.services.rules[action](params.id, principal, body),
@@ -353,7 +459,10 @@ function buildRoutes() {
       body: { status: { type: 'string', enum: ['active', 'suspended'], required: true } },
       handler: async ({ c, principal, params, body }) => c.services.partners.setStatus(params.id, body.status, principal) },
     { method: 'POST', path: '/api/partners/:id/keys', auth: 'staff', perm: 'partners:manage', tag: 'Partners', summary: 'Issue an API key (shown once)',
-      handler: async ({ c, principal, params }) => c.services.partners.issueApiKey(params.id, principal) },
+      body: { scopes: { type: 'array', max: 3, items: { type: 'string', enum: ['quote', 'purchase', 'policies:read'] } }, expiresInDays: { type: 'integer', min: 1, max: 730 } },
+      handler: async ({ c, principal, params, body }) => c.services.partners.issueApiKey(params.id, principal, body || {}) },
+    { method: 'GET', path: '/api/partners/:id/keys', auth: 'staff', perm: 'partners:manage', tag: 'Partners', summary: 'API keys of a partner (prefix, scopes, status — never the secret)',
+      handler: async ({ c, params }) => c.services.partners.listKeys(params.id) },
     { method: 'DELETE', path: '/api/partners/keys/:keyId', auth: 'staff', perm: 'partners:manage', tag: 'Partners', summary: 'Revoke an API key',
       handler: async ({ c, principal, params }) => c.services.partners.revokeApiKey(params.keyId, principal) },
     { method: 'GET', path: '/api/partners/:id/statement', auth: 'staff', perm: 'partners:manage', tag: 'Partners', summary: 'Commission statement',
@@ -404,15 +513,28 @@ function buildRoutes() {
     { method: 'GET', path: '/api/claims/:id', auth: 'staff', perm: 'claims:read', tag: 'Claims', summary: 'Claim detail',
       handler: async ({ c, params }) => c.services.claims.get(params.id) },
     { method: 'PATCH', path: '/api/claims/:id', auth: 'staff', perm: 'claims:update', tag: 'Claims', summary: 'Advance claim status',
-      body: { status: { type: 'string', max: 30, required: true }, note: S.text(1000) },
-      handler: async ({ c, principal, params, body }) => c.services.claims.transition(params.id, body.status, principal, body.note) },
+      body: {
+        status: { type: 'string', max: 30, required: true }, note: S.text(1000),
+        assessor: S.text(120), approvedAmount: { type: 'integer', min: 1, max: 100000000000 }, reason: S.text(500), paymentRef: S.text(80),
+      },
+      handler: async ({ c, principal, params, body }) => c.services.claims.transition(params.id, body.status, principal, body.note, body) },
+    { method: 'POST', path: '/api/claims/:id/notes', auth: 'staff', perm: 'claims:update', tag: 'Claims', summary: 'Add an internal handler note',
+      body: { text: { type: 'string', max: 1000, required: true } },
+      handler: async ({ c, principal, params, body }) => c.services.claims.addNote(params.id, body.text, principal) },
 
     // ---------- Data quality, ingestion, lineage ----------
     { method: 'GET', path: '/api/dq/issues', auth: 'staff', perm: 'dq:read', tag: 'Data', summary: 'Data-quality issues',
-      query: { type: { type: 'string', max: 40 }, status: { type: 'string', enum: ['open', 'resolved'] }, limit: S.limit, offset: S.offset },
+      query: { type: { type: 'string', max: 40 }, status: { type: 'string', enum: ['open', 'resolved'] }, profileId: S.id, limit: S.limit, offset: S.offset },
       handler: async ({ c, query }) => c.services.ops.dqIssues(query) },
+    { method: 'GET', path: '/api/dq/issues/:id', auth: 'staff', perm: 'dq:read', tag: 'Data', summary: 'One DQ issue with source, lineage and conflict context',
+      handler: async ({ c, params }) => c.services.ops.dqIssue(params.id) },
+    { method: 'GET', path: '/api/dq/assignees', auth: 'staff', perm: 'dq:read', tag: 'Data', summary: 'Staff who can work the data-quality queue',
+      handler: async ({ c }) => c.services.ops.dqAssignees(c.rbac) },
+    { method: 'POST', path: '/api/dq/issues/bulk', auth: 'staff', perm: 'dq:resolve', tag: 'Data', summary: 'Bulk assign or dismiss DQ issues',
+      body: { ids: { type: 'array', max: 200, required: true, items: { type: 'string', max: 200 } }, action: { type: 'string', enum: ['assign', 'dismiss'], required: true }, assignee: { type: 'string', max: 80 }, reason: S.text(500) },
+      handler: async ({ c, principal, body }) => c.services.ops.bulkDq(body, principal, c.rbac) },
     { method: 'POST', path: '/api/dq/issues/:id/resolve', auth: 'staff', perm: 'dq:resolve', tag: 'Data', summary: 'Resolve a DQ issue',
-      body: { resolution: { type: 'string', max: 500, required: true } },
+      body: { resolution: { type: 'string', max: 500, required: true }, outcome: { type: 'string', enum: ['confirmed', 'corrected', 'merged', 'dismissed'] }, evidence: S.text(300) },
       handler: async ({ c, principal, params, body }) => { const r = await c.services.ops.resolveDq(params.id, body, principal); if (!r) throw errors.notFound('Issue'); return r; } },
     { method: 'POST', path: '/api/data/ingest', auth: 'staff', perm: 'data:ingest', tag: 'Data', summary: 'Ingest a batch of source records (≤ 5,000)',
       body: { source: { type: 'string', max: 60, required: true }, records: { type: 'array', max: 5000, required: true, items: { type: 'object' } } },
@@ -434,12 +556,23 @@ function buildRoutes() {
 
     // ---------- Audit, users, ops, DSAR ----------
     { method: 'GET', path: '/api/audit', auth: 'staff', perm: 'audit:read', tag: 'Audit', summary: 'Audit trail search',
-      query: { entityId: { type: 'string', max: 80 }, actor: { type: 'string', max: 80 }, action: { type: 'string', max: 80 }, limit: S.limit, offset: S.offset },
-      handler: async ({ c, query }) => c.services.audit.list(query) },
+      query: {
+        entityId: { type: 'string', max: 80 }, actor: { type: 'string', max: 80 }, action: { type: 'string', max: 80 }, limit: S.limit, offset: S.offset,
+        category: { type: 'string', enum: Object.keys(AUDIT_CATEGORIES) }, from: S.date, to: S.date,
+      },
+      handler: async ({ c, query, principal }) => c.services.audit.list(query, { principal, access: c.services.access }) },
+    { method: 'GET', path: '/api/audit/actors', auth: 'staff', perm: 'audit:read', tag: 'Audit', summary: 'Staff who can appear in the audit trail (display name and roles, for filtering)',
+      handler: async ({ c }) => c.services.audit.actors() },
     { method: 'GET', path: '/api/audit/verify', auth: 'staff', perm: 'audit:read', tag: 'Audit', summary: 'Verify the audit hash chain',
       handler: async ({ c }) => c.services.audit.verify() },
     { method: 'GET', path: '/api/users', auth: 'staff', perm: 'users:manage', tag: 'Users', summary: 'List users',
       handler: async ({ c }) => c.services.identity.list() },
+    { method: 'GET', path: '/api/users/role-policy', auth: 'staff', perm: 'users:manage', tag: 'Users', summary: 'Assignable roles, separation-of-duties pairs and roles that require MFA',
+      handler: async ({ c }) => ({
+        roles: Object.keys(c.rbac.roles).filter((r) => !['customer', 'partner_api'].includes(r)),
+        separationOfDuties: c.rbac.separationOfDuties || [],
+        mfaRequiredRoles: c.config.mfaRequiredRoles || [],
+      }) },
     { method: 'POST', path: '/api/users', auth: 'staff', perm: 'users:manage', tag: 'Users', summary: 'Create a user',
       body: { username: { type: 'string', max: 60, required: true, pattern: /^[a-z0-9._-]+$/ }, password: { type: 'string', max: 128, required: true }, displayName: { type: 'string', max: 120, required: true }, roles: { type: 'array', max: 10, required: true, items: { type: 'string', max: 40 } }, region: { type: 'string', max: 60 }, enableMfa: { type: 'boolean' } },
       handler: async ({ c, principal, body }) => c.services.identity.createUser(body, principal) },
@@ -447,12 +580,18 @@ function buildRoutes() {
       body: { roles: { type: 'array', max: 10, items: { type: 'string', max: 40 } }, region: { type: 'string', max: 60 }, status: { type: 'string', enum: ['active', 'disabled'] } },
       handler: async ({ c, principal, params, body }) => c.services.identity.update(params.id, body, principal) },
     { method: 'POST', path: '/api/users/:id/reset', auth: 'staff', perm: 'users:manage', tag: 'Users', summary: 'Unlock an account and/or reset MFA (user re-enrols at next sign-in)',
-      body: { unlock: { type: 'boolean' }, resetMfa: { type: 'boolean' } },
+      body: { unlock: { type: 'boolean' }, resetMfa: { type: 'boolean' }, resetPassword: { type: 'boolean' } },
       handler: async ({ c, principal, params, body }) => c.services.identity.reset(params.id, body, principal) },
     { method: 'GET', path: '/api/ops/status', auth: 'staff', perm: 'ops:read', tag: 'Operations', summary: 'Integrations, store, rules and backlog status',
       handler: async ({ c }) => ({
         store: c.store.kind,
-        integrations: [c.gateways.payment, c.gateways.policyAdmin, c.gateways.coreRating, c.gateways.productCatalogue, c.gateways.telephony, ...Object.values(c.gateways.notify)].filter(Boolean).map((g) => ({ name: g.name, circuit: g.state() })),
+        integrations: [c.gateways.payment, c.gateways.policyAdmin, c.gateways.coreRating, c.gateways.productCatalogue, c.gateways.telephony, ...Object.values(c.gateways.notify)].filter(Boolean).map((g) => {
+          // Additive health fields: last call latency and times (null until the integration is first used).
+          const st = g.stats ? g.stats() : {};
+          return { name: g.name, circuit: g.state(), mode: g.mode || null, latencyMs: st.lastLatencyMs ?? null, lastCallAt: st.lastCallAt || null, lastSuccessAt: st.lastSuccessAt || null, lastFailureAt: st.lastFailureAt || null, calls: st.calls ?? null, failures: st.failures ?? null };
+        }),
+        checkedAt: new Date().toISOString(),
+        jobs: await c.services.ops.jobSchedule(),
         rules: await c.services.rules.snapshot(),
         eventBacklog: await c.store.collection('domain_events').countBy('status'),
         auditEntries: await c.services.audit.count(),

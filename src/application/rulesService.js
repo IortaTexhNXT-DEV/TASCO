@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { validatePayload } = require('../rules/validators');
 const { errors } = require('../shared/errors');
-const { userNames } = require('./auditService');
+const { userNames, userDirectory } = require('./auditService');
 
 /**
  * Rule registry with versioning and maker-checker governance.
@@ -24,18 +24,31 @@ function checksum(payload) {
   return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex').slice(0, 16);
 }
 
+/** Drop read-time display fields (resolved by withNames) before persisting a record. */
+function stripNames(r) {
+  const { createdByDisplayName, approvedByDisplayName, rejectedByDisplayName, withdrawnByDisplayName, ...rest } = r; // eslint-disable-line no-unused-vars
+  return rest;
+}
+
 function createRulesService({ store, audit, events, clock, logger, rbac }) {
   const col = store.collection('rulesets');
   let cache = new Map();
 
-  /** Resolve createdByName / approvedByName / rejectedByName from the user directory (usernames are also stored on write). */
+  /**
+   * Resolve createdByName / approvedByName / rejectedByName ("Display name (username)") and the plain
+   * *DisplayName variants from the user directory (usernames are also stored on write).
+   */
   async function withNames(rows) {
-    const names = await userNames(store, rows.flatMap((r) => [r.createdBy, r.approvedBy, r.rejectedBy]));
+    const ids = rows.flatMap((r) => [r.createdBy, r.approvedBy, r.rejectedBy, r.withdrawnBy]);
+    const [names, dir] = await Promise.all([userNames(store, ids), userDirectory(store, ids)]);
+    const display = (id) => dir.get(id)?.displayName || null;
     return rows.map((r) => ({
       ...r,
       createdByName: names.get(r.createdBy) || r.createdByName || r.createdBy,
-      ...(r.approvedBy ? { approvedByName: names.get(r.approvedBy) || r.approvedByName || r.approvedBy } : {}),
-      ...(r.rejectedBy ? { rejectedByName: names.get(r.rejectedBy) || r.rejectedByName || r.rejectedBy } : {}),
+      createdByDisplayName: display(r.createdBy),
+      ...(r.approvedBy ? { approvedByName: names.get(r.approvedBy) || r.approvedByName || r.approvedBy, approvedByDisplayName: display(r.approvedBy) } : {}),
+      ...(r.rejectedBy ? { rejectedByName: names.get(r.rejectedBy) || r.rejectedByName || r.rejectedBy, rejectedByDisplayName: display(r.rejectedBy) } : {}),
+      ...(r.withdrawnBy ? { withdrawnByDisplayName: display(r.withdrawnBy) } : {}),
     }));
   }
   let cacheAt = 0;
@@ -98,7 +111,7 @@ function createRulesService({ store, audit, events, clock, logger, rbac }) {
 
     async snapshot() {
       await refresh();
-      return [...cache.values()].map((r) => ({ kind: r.kind, version: r.version_no, checksum: r.checksum }));
+      return [...cache.values()].map((r) => ({ kind: r.kind, version: r.version_no, checksum: r.checksum, activatedAt: r.activatedAt || null }));
     },
 
     async list({ kind, status } = {}) {
@@ -128,12 +141,41 @@ function createRulesService({ store, audit, events, clock, logger, rbac }) {
       return rec;
     },
 
-    async submit(id, actor) {
+    /** Update the payload/description of one's own draft in place (no new version). */
+    async updateDraft(id, { payload, description }, actor) {
+      const r = await service.byId(id);
+      if (r.status !== 'draft') throw errors.rule(`Only drafts can be edited (status: ${r.status})`);
+      if (r.createdBy !== actor.id) throw errors.forbidden('Only the author can edit a draft');
+      const next = { ...r };
+      if (payload !== undefined) {
+        const errs = validatePayload(r.kind, payload, { bannedPhrases: r.kind === 'copy_guard' ? [] : await bannedPhrases() });
+        if (errs.length) throw errors.validation('Rule set is invalid', errs);
+        next.payload = payload;
+        next.checksum = checksum(payload);
+      }
+      if (description !== undefined) next.description = description;
+      next.updatedAt = clock.now().toISOString();
+      const stored = await col.update(stripNames(next));
+      await audit.record({ actor: actor.id, action: 'rules.draft_updated', entityType: 'ruleset', entityId: id, details: { checksum: stored.checksum } });
+      return stored;
+    },
+
+    async submit(id, actor, { comment } = {}) {
       const r = await service.byId(id);
       if (r.status !== 'draft') throw errors.rule(`Only drafts can be submitted (status: ${r.status})`);
       if (r.createdBy !== actor.id) throw errors.forbidden('Only the author can submit a draft');
-      const updated = await col.update({ ...r, status: 'pending_approval', submittedAt: clock.now().toISOString() });
-      await audit.record({ actor: actor.id, action: 'rules.submitted', entityType: 'ruleset', entityId: id });
+      const updated = await col.update(stripNames({ ...r, status: 'pending_approval', submittedAt: clock.now().toISOString(), submitComment: comment || null }));
+      await audit.record({ actor: actor.id, action: 'rules.submitted', entityType: 'ruleset', entityId: id, ...(comment ? { details: { comment } } : {}) });
+      return updated;
+    },
+
+    /** The author takes a pending change back to draft (e.g. to fix it before anyone reviews it). */
+    async withdraw(id, actor, { comment } = {}) {
+      const r = await service.byId(id);
+      if (r.status !== 'pending_approval') throw errors.rule(`Only pending rule sets can be withdrawn (status: ${r.status})`);
+      if (r.createdBy !== actor.id) throw errors.forbidden('Only the author can withdraw a submission');
+      const updated = await col.update(stripNames({ ...r, status: 'draft', submittedAt: null, withdrawnAt: clock.now().toISOString(), withdrawnBy: actor.id }));
+      await audit.record({ actor: actor.id, action: 'rules.withdrawn', entityType: 'ruleset', entityId: id, ...(comment ? { details: { comment } } : {}) });
       return updated;
     },
 
@@ -151,7 +193,7 @@ function createRulesService({ store, audit, events, clock, logger, rbac }) {
         const tcol = tx.collection('rulesets');
         const prev = await tcol.find({ where: { kind: r.kind, status: 'active' } });
         for (const p of prev) await tcol.update({ ...p, status: 'retired', retiredAt: now, supersededBy: id });
-        const upd = await tcol.update({ ...r, status: 'active', approvedBy: actor.id, approvedByName: actor.username || actor.id, approvalComment: comment || null, activatedAt: now });
+        const upd = await tcol.update({ ...stripNames(r), status: 'active', approvedBy: actor.id, approvedByName: actor.username || actor.id, approvalComment: comment || null, activatedAt: now });
         return { previous: prev, updated: upd };
       });
       cacheAt = 0;
@@ -165,7 +207,7 @@ function createRulesService({ store, audit, events, clock, logger, rbac }) {
       const r = await service.byId(id);
       if (r.status !== 'pending_approval') throw errors.rule('Only pending rule sets can be rejected');
       if (r.createdBy === actor.id) throw errors.forbidden('Maker-checker: you cannot review your own change');
-      const updated = await col.update({ ...r, status: 'rejected', rejectedBy: actor.id, rejectedByName: actor.username || actor.id, rejectionComment: comment || null });
+      const updated = await col.update({ ...stripNames(r), status: 'rejected', rejectedBy: actor.id, rejectedByName: actor.username || actor.id, rejectionComment: comment || null, rejectedAt: clock.now().toISOString() });
       await audit.record({ actor: actor.id, action: 'rules.rejected', entityType: 'ruleset', entityId: id, details: { comment } });
       return updated;
     },

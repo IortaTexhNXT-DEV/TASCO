@@ -202,6 +202,10 @@ test('customer app: signed-link session, home, declare expiry, quote, pay, conse
   assert.equal((await srv.call('GET', '/api/leads', { token: t })).status, 403, 'customer token cannot call staff APIs');
   const home = await srv.call('GET', '/api/customer/home', { token: t });
   assert.equal(home.body.vehicle.plate, p.plate);
+  // App greeting / checkout fields (additive): given name only, last known wallet balance.
+  assert.equal(home.body.customer.firstName, p.name ? p.name.trim().split(/\s+/).pop() : null);
+  assert.ok('balance' in home.body.wallet && typeof home.body.wallet.autoTopUp === 'boolean');
+  assert.ok(!JSON.stringify(home.body.customer).includes(p.name && p.name.includes(' ') ? p.name : '\u0000'), 'full name is not exposed');
   assert.equal((await srv.call('POST', '/api/customer/expiry', { token: t, body: { expiryDate: '2026-12-01', insurer: 'PTI' } })).status, 200);
   const q = await srv.call('POST', '/api/customer/quotes', { token: t, body: { products: [{ code: 'TNDS_CAR' }] } });
   const otherCustomer = await findProfile(c, (x) => x.id !== p.id && !x.anonymised);
@@ -213,6 +217,8 @@ test('customer app: signed-link session, home, declare expiry, quote, pay, conse
   const cl = await srv.call('POST', '/api/customer/claims', { token: t, body: { policyId: o.body.policies[0].certNo, incidentDate: o.body.policies[0].startDate, description: 'minor scratch' } });
   assert.equal(cl.status, 200);
   assert.equal((await srv.call('GET', '/api/customer/claims', { token: t })).body.length, 1);
+  const pol = (await srv.call('GET', '/api/customer/home', { token: t })).body.policies[0];
+  assert.ok(pol.policyNo && pol.total > 0 && pol.insurer, 'policy cards carry policy number, premium and insurer');
   assert.equal((await srv.call('GET', '/api/customer/data-export', { token: t })).body.profile.id, p.id);
   const ch = await srv.login('claims');
   assert.equal((await srv.call('GET', '/api/claims', { token: ch })).body.length >= 1, true);

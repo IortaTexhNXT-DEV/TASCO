@@ -82,8 +82,11 @@ function createLeadService({ store, rules, audit, clock, logger }) {
       return { recomputed: n };
     },
 
-    async list({ tier, journey, action, region, maxDays, minScore, limit = 50, offset = 0, sort = 'score' }) {
+    async list({ tier, journey, action, region, maxDays, minScore, q, limit = 50, offset = 0, sort = 'score' }) {
       const where = {};
+      // Plate search: prefix match on the normalised plate key ("30E949" → 30E-949.35).
+      const plateKey = String(q || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (plateKey) where.id = { gte: plateKey, lt: `${plateKey}\uffff` };
       if (tier) where.tier = tier;
       if (journey) where.journey = journey;
       if (action) where.action = action;

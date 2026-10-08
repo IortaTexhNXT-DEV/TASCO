@@ -1291,3 +1291,183 @@ export function sparkline(values, { width = 96, height = 24 } = {}) {
   const d = values.map((v, i) => `${i ? 'L' : 'M'}${((i / (values.length - 1)) * (width - 2) + 1).toFixed(1)},${(height - 2 - ((v - min) / span) * (height - 4)).toFixed(1)}`).join('');
   return s('svg', { class: 'sparkline', width, height, viewBox: `0 0 ${width} ${height}`, 'aria-hidden': 'true' }, s('path', { d }));
 }
+
+/* =========================================================================
+ * Workflow components (appended in phase 2): row actions, SLA chip, vertical workflow steps,
+ * vehicle cell, copy field. Used by every workflow table (claims, DQ, partners, users, rules…).
+ * ========================================================================= */
+import { addStrings as addUiStrings } from '../shared/i18n.js';
+
+addUiStrings({
+  vi: {
+    view: 'Xem', slaOnTrack: 'Trong hạn', slaDueSoon: 'Sắp đến hạn', slaBreached: 'Quá hạn', slaLeft: (d) => `còn ${d}`, slaOver: (d) => `trễ ${d}`,
+    slaDueAt: (d) => `Hạn: ${d}`, durDays: (n) => `${n} ngày`, durHours: (n) => `${n} giờ`, durMinutes: (n) => `${n} phút`, copyValue: 'Sao chép', copiedValue: 'Đã sao chép vào bộ nhớ tạm',
+    stepDone: 'Hoàn tất', stepCurrent: 'Đang thực hiện', stepUpcoming: 'Chưa đến',
+  },
+  en: {
+    view: 'View', slaOnTrack: 'On track', slaDueSoon: 'Due soon', slaBreached: 'Breached', slaLeft: (d) => `${d} left`, slaOver: (d) => `${d} over`,
+    slaDueAt: (d) => `Due ${d}`, durDays: (n) => `${n}d`, durHours: (n) => `${n}h`, durMinutes: (n) => `${n}m`, copyValue: 'Copy', copiedValue: 'Copied to clipboard',
+    stepDone: 'Done', stepCurrent: 'In progress', stepUpcoming: 'Not started',
+  },
+});
+
+/** Compact duration: "2d 4h", "3h 20m", "45m" (vi: "2 ngày 4 giờ"). */
+export function formatDuration(ms) {
+  const m = Math.max(0, Math.round(Math.abs(ms) / 60000));
+  const d = Math.floor(m / 1440);
+  const hr = Math.floor((m % 1440) / 60);
+  const mi = m % 60;
+  if (d) return hr ? `${t('durDays', d)} ${t('durHours', hr)}` : t('durDays', d);
+  if (hr) return mi ? `${t('durHours', hr)} ${t('durMinutes', mi)}` : t('durHours', hr);
+  return t('durMinutes', mi);
+}
+
+/**
+ * SLA chip: On track / Due soon / Breached with the time remaining (exact due time in the tooltip).
+ * soonMs: remaining time below which the clock is "due soon" (default 1 hour).
+ * @param {string|null} dueAt ISO @param {{soonMs?: number, now?: number}} [o]
+ */
+export function slaChip(dueAt, { soonMs = 3600000, now = Date.now() } = {}) {
+  if (!dueAt) return h('span', { class: 'muted' }, '—');
+  const left = new Date(dueAt).getTime() - now;
+  const [key, tone, ic] = left < 0 ? ['slaBreached', 'danger', 'alert-triangle'] : left < soonMs ? ['slaDueSoon', 'warn', 'clock'] : ['slaOnTrack', 'ok', 'check-circle'];
+  return h('span', { class: 'sla-chip', title: t('slaDueAt', fmtDateTime(dueAt)) },
+    badge(t(key), tone, { icon: ic }),
+    h('span', { class: 'sla-left' }, left < 0 ? t('slaOver', formatDuration(left)) : t('slaLeft', formatDuration(left))));
+}
+
+/**
+ * Workflow row actions: ONE fixed-width primary verb button (never a status name) plus an optional kebab
+ * menu for secondary/negative actions. Closed records pass {label: t('view'), muted: true}.
+ * Keeps column alignment when there is no menu (spacer of the kebab's width).
+ * @param {{primary?: {label: string, icon?: string, onClick: Function, variant?: string, muted?: boolean, disabled?: boolean, title?: string},
+ *          menu?: Array<object>, menuLabel?: string}} o
+ */
+export function rowActions({ primary, menu, menuLabel } = {}) {
+  const parts = [];
+  if (primary) {
+    const b = button({ label: primary.label, icon: primary.icon, size: 'sm', variant: primary.muted ? 'ghost' : (primary.variant || 'secondary'), disabled: primary.disabled, title: primary.title,
+      onClick: primary.onClick ? (e) => { e.stopPropagation(); return primary.onClick(e); } : undefined });
+    b.classList.add('row-action');
+    if (primary.muted) b.classList.add('muted');
+    parts.push(b);
+  }
+  const items = typeof menu === 'function' ? menu : (menu || []).filter(Boolean);
+  if (typeof items === 'function' || items.length) {
+    const k = iconButton({ icon: 'more-horizontal', label: menuLabel || t('moreActions'), size: 'sm', noTooltip: true });
+    k.addEventListener('click', (e) => e.stopPropagation());
+    dropdownMenu(k, items, { label: menuLabel || t('moreActions') });
+    parts.push(k);
+  } else {
+    parts.push(h('span', { class: 'row-kebab-spacer', 'aria-hidden': 'true' }));
+  }
+  return h('div', { class: 'row-actions' }, parts);
+}
+
+/**
+ * Vertical workflow steps with who/when (detail drawers). steps: [{label, state: 'complete'|'current'|'upcoming'|'error',
+ * who?, at? (ISO), note?, extra? (Node)}].
+ */
+export function workflowSteps(steps, { label: aria } = {}) {
+  return h('ol', { class: 'wsteps', 'aria-label': aria || null }, steps.map((s) => h('li', { class: `ws-${s.state || 'upcoming'}`, 'aria-current': s.state === 'current' ? 'step' : null },
+    h('span', { class: 'ws-marker', 'aria-hidden': 'true' }, s.state === 'complete' ? icon('check', { size: 14, strokeWidth: 2.5 }) : s.state === 'error' ? icon('x', { size: 14, strokeWidth: 2.5 }) : h('span', { class: 'ws-dot' })),
+    h('div', { class: 'ws-body' },
+      h('div', { class: 'ws-label' }, s.label, h('span', { class: 'sr-only' }, ` — ${t(s.state === 'complete' || s.state === 'error' ? 'stepDone' : s.state === 'current' ? 'stepCurrent' : 'stepUpcoming')}`)),
+      s.who || s.at ? h('div', { class: 'ws-meta' }, s.who || null, s.who && s.at ? ' · ' : null, s.at ? h('time', { datetime: s.at }, fmtDateTime(s.at)) : null) : null,
+      s.note ? h('p', { class: 'ws-note' }, s.note) : null,
+      s.extra || null))));
+}
+
+/** Plate tag with a masked owner line underneath (queue "Vehicle" cells). */
+export function vehicleCell(plate, owner) {
+  return h('div', { class: 'vehicle-cell' }, plate ? plateTag(plate) : h('span', { class: 'muted' }, '—'), owner ? h('span', { class: 'cell-sub' }, owner) : null);
+}
+
+/** Read-only value with a Copy button (e.g. a secret shown once). */
+export function copyField(value, { label: aria } = {}) {
+  const inp = h('input', { class: 'copy-input', readonly: true, value, 'aria-label': aria || null, spellcheck: 'false' });
+  inp.addEventListener('focus', () => inp.select());
+  return h('div', { class: 'copy-field' }, inp,
+    button({ label: t('copyValue'), icon: 'copy', onClick: async () => {
+      try { await navigator.clipboard.writeText(value); } catch { inp.select(); document.execCommand?.('copy'); }
+      toast(t('copiedValue'), 'ok', { timeout: 2500 });
+    } }));
+}
+
+/**
+ * Score ring: a 0–100 score as a circular gauge with the number in the middle (lead score, data score).
+ * tone follows the tier when given ('hot' danger, 'warm' warn, else brand). Accessible as role=img.
+ * @param {number} value @param {{max?: number, size?: number, tier?: string, label?: string}} [o]
+ */
+export function scoreRing(value, { max = 100, size = 56, tier, label: aria } = {}) {
+  const v = Math.max(0, Math.min(max, Number(value) || 0));
+  const stroke = size >= 48 ? 5 : 4;
+  const r = size / 2 - stroke;
+  const c = 2 * Math.PI * r;
+  const tone = tier === 'hot' ? 'hot' : tier === 'warm' ? 'warm' : 'brand';
+  const svg = s('svg', { width: size, height: size, viewBox: `0 0 ${size} ${size}`, 'aria-hidden': 'true' },
+    s('circle', { cx: size / 2, cy: size / 2, r, class: 'score-ring-track', fill: 'none', 'stroke-width': stroke }),
+    s('circle', { cx: size / 2, cy: size / 2, r, class: 'score-ring-fill', fill: 'none', 'stroke-width': stroke, 'stroke-linecap': 'round',
+      'stroke-dasharray': `${((v / max) * c).toFixed(1)} ${c.toFixed(1)}`, transform: `rotate(-90 ${size / 2} ${size / 2})` }));
+  return h('span', { class: `score-ring ${tone}${size < 40 ? ' sm' : ''}`, role: 'img', 'aria-label': aria || `${formatNumber(v)} / ${formatNumber(max)}` },
+    svg, h('span', { class: 'score-ring-value', 'aria-hidden': 'true' }, formatNumber(Math.round(v))));
+}
+
+addUiStrings({
+  vi: { reviewStep: 'Tiếp tục', backStep: 'Quay lại', fieldRequired: 'Vui lòng nhập thông tin này', confirmCheck: 'Kiểm tra lại trước khi xác nhận' },
+  en: { reviewStep: 'Review', backStep: 'Back', fieldRequired: 'This field is required', confirmCheck: 'Check the details before you confirm' },
+});
+
+/**
+ * Two-step decision dialog for workflow actions (approve, reject, pay, assign…): step 1 asks for the required
+ * data with inline validation; step 2 shows a summary to confirm; then onSubmit(values) runs (spinner on the
+ * confirm button). Resolves with onSubmit's result, or null when cancelled. With no fields it is a one-step confirm.
+ * fields: [{name, label, control, required?, help?, optional?, read?: (control) => value, validate?: (value, values) => string|null,
+ *           summary?: (value) => string|Node}]
+ * @param {{title: string, intro?: string|Node, fields?: Array<object>, confirmLabel: string, danger?: boolean, size?: string,
+ *          summaryTitle?: string, onSubmit: (values) => Promise<any>}} o
+ */
+export function decisionDialog({ title, intro, fields = [], confirmLabel, danger = false, size = 'md', summaryTitle, onSubmit } = {}) {
+  return new Promise((resolve) => {
+    let result = null;
+    const readOne = (f) => {
+      if (f.read) return f.read(f.control);
+      const c = f.control.input || f.control;
+      if (c.isoValue !== undefined) return c.isoValue;
+      return typeof c.value === 'string' ? c.value.trim() : c.value;
+    };
+    const wrapped = fields.map((f) => ({ ...f, field: formField({ label: f.label, control: f.control, help: f.help, required: f.required, optional: f.optional }) }));
+    const footer = h('div', { class: 'decision-footer' });
+    const body = h('div', { class: 'stack' });
+    const m = modal({ title, size, body, actions: [footer], onClose: () => resolve(result) });
+    const submitBtn = (values) => button({ label: confirmLabel, variant: danger ? 'danger solid' : 'primary', onClick: async () => {
+      try { result = await onSubmit(values); m.close(); } catch (e) { errorToast(e); }
+    } });
+    function stepForm() {
+      mount(body, intro ? h('p', { class: 'muted' }, intro) : null, wrapped.map((f) => f.field));
+      if (!fields.length) { mount(footer, button({ label: t('cancel'), onClick: () => m.close() }), submitBtn({})); return; }
+      mount(footer, button({ label: t('cancel'), onClick: () => m.close() }), button({ label: t('reviewStep'), variant: 'primary', iconRight: 'chevron-right', onClick: () => {
+        const values = {};
+        let bad = null;
+        for (const f of wrapped) {
+          values[f.name] = readOne(f);
+          const empty = values[f.name] === '' || values[f.name] === null || values[f.name] === undefined;
+          const msg = f.required && empty ? t('fieldRequired') : (!empty && f.validate ? f.validate(values[f.name], values) : null);
+          f.field.setError?.(msg || null);
+          if (msg && !bad) bad = f;
+        }
+        if (bad) { (bad.control.input || bad.control).focus?.(); return; }
+        stepConfirm(values);
+      } }));
+      requestAnimationFrame(() => body.querySelector(FOCUSABLE)?.focus());
+    }
+    function stepConfirm(values) {
+      const rows = wrapped.filter((f) => values[f.name] !== '' && values[f.name] !== null && values[f.name] !== undefined)
+        .map((f) => [f.label, f.summary ? f.summary(values[f.name], values) : String(values[f.name])]);
+      mount(body, banner({ tone: danger ? 'warn' : 'info', title: summaryTitle || t('confirmCheck') }), keyValueList(rows, { columns: 1, inline: true }));
+      mount(footer, button({ label: t('backStep'), icon: 'chevron-left', onClick: () => stepForm() }), submitBtn(values));
+      requestAnimationFrame(() => footer.querySelector('.btn.primary, .btn.danger')?.focus());
+    }
+    stepForm();
+  });
+}
