@@ -175,7 +175,7 @@ function handoffSummary(session, profile, lead) {
       session.signals.trustConcern ? 'Customer raised a trust concern: complete everything inside the VETC app; never take payment by phone.' : null,
       session.signals.priceAsked ? 'Customer asked about price: TNDS premium is regulated and identical everywhere — lead with service value.' : null,
       ...lead.benefits.map((b) => `Benefit: ${b.title} — ${b.why}`),
-      'Close by sending the one-tap link to the VETC app / Zalo OA while on the call.',
+      'Close by sending the renewal link to the VETC app / Zalo OA while on the call.',
     ].filter(Boolean),
     status: 'open',
     assignedTo: null,

@@ -57,7 +57,7 @@
         "reason": { "cat": [
           { "if": [{ "var": "priorVetcInsurancePurchase" }, "bought in VETC app before; ", ""] },
           { "if": [{ "==": [{ "var": "insurer" }, "TASCO"] }, "current TASCO customer; ", ""] },
-          { "if": [{ ">=": [{ "var": "walletBalance" }, { "var": "premium" }] }, "wallet covers premium (one-tap pay); ", ""] },
+          { "if": [{ ">=": [{ "var": "walletBalance" }, { "var": "premium" }] }, "wallet covers premium; ", ""] },
           { "if": [{ "var": "autoTopUp" }, "wallet auto top-up on; ", ""] },
           { "if": [{ "var": "complaints12m" }, "recent complaint(s); ", ""] } ] },
         "emptyReason": "no prior relationship with TASCO or VETC insurance"

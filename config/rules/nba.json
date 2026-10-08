@@ -135,7 +135,7 @@
         },
         "then": {
           "action": "digital_reminder",
-          "label": "One-tap renew link via app / Zalo",
+          "label": "Renewal link via app / Zalo",
           "reason": "reachable digitally"
         }
       },

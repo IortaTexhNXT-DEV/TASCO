@@ -8,8 +8,8 @@
         "en": "VETC: Help us remind you on time for {{plate}}'s TNDS. Confirm the expiry date or snap your certificate in the VETC app: {{link}}"
       },
       "first_reminder": {
-        "vi": "VETC: Bảo hiểm TNDS xe {{plate}} hết hạn ngày {{expiry}}. Gia hạn một chạm trong ứng dụng VETC, nhận giấy chứng nhận điện tử ngay: {{link}}",
-        "en": "VETC: TNDS for {{plate}} expires on {{expiry}}. Renew in one tap in the VETC app and get your e-certificate instantly: {{link}}"
+        "vi": "VETC: Bảo hiểm TNDS xe {{plate}} hết hạn ngày {{expiry}}. Gia hạn nhanh trong ứng dụng VETC, nhận giấy chứng nhận điện tử ngay: {{link}}",
+        "en": "VETC: TNDS for {{plate}} expires on {{expiry}}. Renew quickly in the VETC app and get your e-certificate instantly: {{link}}"
       },
       "conquest_reminder": {
         "vi": "VETC: Bảo hiểm TNDS xe {{plate}} sắp hết hạn ({{expiry}}). Lần này gia hạn ngay trong ứng dụng VETC cùng Bảo hiểm TASCO, kèm {{benefit}}: {{link}}",
@@ -32,8 +32,8 @@
         "en": "VETC: {{plate}} may be driving without compulsory TNDS. If you already bought it, update us to stop reminders; if not, renew here: {{link}}"
       },
       "new_vehicle_welcome": {
-        "vi": "Chào mừng xe {{plate}} đến với VETC! Lưu bảo hiểm TNDS vào ứng dụng để được nhắc hạn, đặt lịch đăng kiểm và cứu hộ 24/7: {{link}}",
-        "en": "Welcome {{plate}} to VETC! Save your TNDS in the app for expiry reminders, inspection booking and 24/7 roadside help: {{link}}"
+        "vi": "Chào mừng xe {{plate}} đến với VETC! Lưu bảo hiểm TNDS vào ứng dụng để được nhắc hạn, đặt lịch đăng kiểm và hỗ trợ cứu hộ: {{link}}",
+        "en": "Welcome {{plate}} to VETC! Save your TNDS in the app for expiry reminders, inspection booking and roadside help: {{link}}"
       },
       "inspection_tnds_check": {
         "vi": "VETC: Xe {{plate}} sắp đăng kiểm. Hãy đảm bảo bảo hiểm TNDS còn hiệu lực — kiểm tra hoặc gia hạn: {{link}}",

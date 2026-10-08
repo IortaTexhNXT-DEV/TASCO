@@ -719,7 +719,7 @@ function buildRoutes() {
       } },
     { method: 'GET', path: '/api/customer/quotes', auth: 'customer', tag: 'Customer', summary: 'Quotes waiting for my confirmation',
       handler: async ({ c, principal }) => c.services.sales.openQuotes(principal.customerId) },
-    { method: 'POST', path: '/api/customer/orders', auth: 'customer', tag: 'Customer', summary: 'One-tap pay with VETC wallet (Idempotency-Key)', idempotent: true,
+    { method: 'POST', path: '/api/customer/orders', auth: 'customer', tag: 'Customer', summary: 'Confirm and pay (VETC wallet or TASCO payment gateway by host; Idempotency-Key)', idempotent: true,
       body: { quoteId: { type: 'string', max: 80, required: true } },
       handler: async ({ c, principal, body, idempotencyKey }) => {
         const q = await c.services.sales.getQuote(body.quoteId);

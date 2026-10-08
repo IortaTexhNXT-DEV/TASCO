@@ -463,4 +463,4 @@ Story-level traceability (requirement, story, scenario, automated test) is in th
 
 ## Workbook alignment
 
-The workbook holds all 206 cases (TC-001 to TC-205 and TC-080a). For the Pass, Not Run and Blocked counts, see the workbook regenerated on 8 October 2026. The Blocked cases are TC-017, TC-029, TC-114 and TC-155, each tied to an open known issue. Not Run cases wait for SIT, UAT, the NFT window or a manual check; TC-180 waits for TASCO core UAT access. TC-080a passes; it cites KI-20 for context only, because the expected behaviour (one order, no double charge) is delivered.
+The workbook holds all 206 cases (TC-001 to TC-205 and TC-080a). The workbook regenerated on 8 October 2026 records 178 Pass, 24 Not Run and 4 Blocked. The Blocked cases are TC-017, TC-029, TC-114 and TC-155, each tied to an open known issue. Not Run cases wait for SIT, UAT, the NFT window or a manual check; TC-180 waits for TASCO core UAT access. TC-080a passes; it cites KI-20 for context only, because the expected behaviour (one order, no double charge) is delivered.

@@ -7634,7 +7634,7 @@
         "tags": [
           "Customer"
         ],
-        "summary": "One-tap pay with VETC wallet (Idempotency-Key)",
+        "summary": "Confirm and pay (VETC wallet or TASCO payment gateway by host; Idempotency-Key)",
         "operationId": "postApiCustomerOrders",
         "x-audience": "customer",
         "security": [

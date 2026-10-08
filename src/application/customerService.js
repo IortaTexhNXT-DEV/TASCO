@@ -12,7 +12,7 @@ const givenName = (name) => (name ? String(name).trim().split(/\s+/).pop() : nul
 
 /**
  * Customer self-service for the VETC app / Zalo mini app: my vehicle, my cover,
- * one-tap renew, verify expiry (closes the data gap), consent centre, and data
+ * quick or full renewal, verify expiry (closes the data gap), consent centre, and data
  * subject rights (access / erasure) under Vietnam's PDP law.
  */
 

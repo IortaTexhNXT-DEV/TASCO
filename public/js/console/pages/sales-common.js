@@ -252,7 +252,7 @@ const TALKING = [
   [/^Call from the official VETC hotline/, 'Gọi từ tổng đài chính thức của VETC và nhắc lại cuộc gọi của trợ lý.'],
   [/^Customer raised a trust concern/, 'Khách lo ngại lừa đảo: hoàn tất mọi bước trong ứng dụng VETC; không bao giờ nhận thanh toán qua điện thoại.'],
   [/^Customer asked about price/, 'Khách hỏi về phí: phí TNDS do Nhà nước quy định, giống nhau ở mọi DN — hãy nhấn mạnh giá trị dịch vụ.'],
-  [/^Close by sending the one-tap link/, 'Kết thúc bằng việc gửi link gia hạn một chạm vào ứng dụng VETC / Zalo OA ngay trong cuộc gọi.'],
+  [/^Close by sending the renewal link/, 'Kết thúc bằng việc gửi link gia hạn vào ứng dụng VETC / Zalo OA ngay trong cuộc gọi.'],
   [/^Customer has not responded to digital reminders/, 'Khách chưa phản hồi các lời nhắc qua kênh số.'],
 ];
 /*
@@ -273,7 +273,7 @@ const VI_PATTERNS = [
 const VI_PHRASES = {
   'expiry unknown': 'chưa rõ ngày hết hạn', 'app push': 'thông báo ứng dụng', Zalo: 'Zalo', 'phone (call consent)': 'điện thoại (đồng ý nhận cuộc gọi)',
   'SMS only (no call consent)': 'chỉ SMS (chưa đồng ý nhận cuộc gọi)', 'no reachable channel on file': 'chưa có kênh liên lạc',
-  'bought in VETC app before': 'đã từng mua trên ứng dụng VETC', 'current TASCO customer': 'khách hàng TASCO hiện tại', 'wallet covers premium (one-tap pay)': 'số dư ví đủ thanh toán (một chạm)',
+  'bought in VETC app before': 'đã từng mua trên ứng dụng VETC', 'current TASCO customer': 'khách hàng TASCO hiện tại', 'wallet covers premium': 'số dư ví đủ thanh toán',
   'wallet auto top-up on': 'đã bật tự động nạp ví', 'recent complaint(s)': 'có khiếu nại gần đây', 'no prior relationship with TASCO or VETC insurance': 'chưa từng mua bảo hiểm TASCO/VETC',
   'peace of mind on every trip': 'an tâm trên mọi hành trình', 'proof of cover always on your phone': 'luôn có giấy chứng nhận trên điện thoại', 'already uses wallet auto top-up': 'đã dùng tự động nạp ví',
   'one less thing to remember': 'không lo quên gia hạn', 'avoid queues and failed inspections': 'tránh xếp hàng và trượt đăng kiểm', 'help when it matters most': 'hỗ trợ khi cần nhất',

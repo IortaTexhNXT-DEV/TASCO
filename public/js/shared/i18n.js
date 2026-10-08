@@ -193,7 +193,7 @@ const LABELS = {
   en: {
     nba: {
       suppress: 'Do not contact', route_b2b: 'Route to fleet / B2B team', verify_expiry: 'Ask customer to confirm expiry', welcome_new_vehicle: 'Welcome new vehicle',
-      nurture: 'Schedule reminders', urgent_recovery: 'Urgent: vehicle uninsured', voice_bot: 'Voice assistant → telesales', digital_reminder: 'One-tap renew link (app / Zalo)',
+      nurture: 'Schedule reminders', urgent_recovery: 'Urgent: vehicle uninsured', voice_bot: 'Voice assistant → telesales', digital_reminder: 'Renewal link (app / Zalo)',
       sms_reminder: 'SMS reminder', enrich: 'Find a contact channel',
     },
     journey: {

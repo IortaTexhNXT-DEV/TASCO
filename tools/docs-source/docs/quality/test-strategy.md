@@ -425,7 +425,7 @@ The latest full run was on 8 October 2026 on release 1.0.0 (Node.js 22; PostgreS
 | Coverage (lines, branches, functions) | 99.4 %, 88.1 %, 97.2 % | 80 %, 70 %, 80 % |
 | Lint | 0 errors | 0 errors |
 | Load smoke (one process, 25 concurrent, 15 s) | 194 requests per second, p95 210 ms, 0 errors (8 October 2026) | p95 ≤ 300 ms, errors ≤ 1 % |
-| Catalogue cases in the workbook | 206; for the Pass, Not Run and Blocked counts, see the workbook regenerated on 8 October 2026 | — |
+| Catalogue cases in the workbook | 206: 178 Pass, 24 Not Run, 4 Blocked (workbook regenerated on 8 October 2026) | — |
 
 The Not Run cases are the SIT, UAT, DR, accessibility and at-scale performance cases, which belong to later phases. The Blocked cases depend on open known issues: TC-017 (KI-07), TC-029 (KI-10), TC-114 (KI-13) and TC-155 (KI-18). The automated cases for the data requests register and quick renewal (TC-184 to TC-205, except the manual TC-196 and TC-205) run in `test/api/dsarQuickRenewal.test.js` and `test/unit/quickRenewal.test.js`.
 
