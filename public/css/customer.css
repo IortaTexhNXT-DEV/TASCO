@@ -806,3 +806,7 @@ body.customer .c-input:focus { border-color: var(--primary); box-shadow: var(--f
 .v-head-title { font-family: var(--font-brand); font-weight: 500; color: var(--heading); }
 .v-card, .v-form { border-radius: var(--c-radius); box-shadow: var(--c-shadow); }
 .v-status h1 { font-weight: 600; }
+/* Headings on fixed-colour surfaces keep their own colour in both themes. */
+body.customer .c-greet h1, body.customer .c-greet-hi { color: var(--brand-navy); }
+body.customer .c-splash h1 { color: #ffffff; }
+body.customer .c-qrfull-title { color: #101828; }
