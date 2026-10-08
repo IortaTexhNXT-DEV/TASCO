@@ -301,7 +301,7 @@ test('data steward, compliance (DSAR), auditor, admin and support endpoints', as
 test('console shell: /api/auth/me display name and global customer search (plate prefix, phone, ABAC, masking)', async () => {
   const agent = await srv.login('agent.hn');
   const me = await srv.call('GET', '/api/auth/me', { token: agent });
-  assert.equal(me.body.displayName, 'Telesales Agent (Hà Nội)');
+  assert.equal(me.body.displayName, 'Phạm Thị Lan');
 
   const p = await findProfile(c, (x) => x.province === 'Hà Nội' && x.phone && !x.anonymised);
   const prefix = p.id.slice(0, 5);

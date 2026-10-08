@@ -14,7 +14,7 @@ addLabels({
       data_steward: 'Hiệu chỉnh của cán bộ dữ liệu', verified_certificate: 'TASCO — giấy chứng nhận đã xác minh', unknown: 'Nguồn chưa xác định',
     },
     integration: {
-      'tasco-core-rating': 'Định phí lõi TASCO', 'tasco-core-catalogue': 'Danh mục sản phẩm TASCO', 'tasco-core': 'Phát hành hợp đồng', 'vetc-wallet': 'Ví VETC',
+      'tasco-core-rating': 'Định phí lõi TASCO', 'tasco-core-catalogue': 'Danh mục sản phẩm TASCO', 'tasco-core': 'Phát hành hợp đồng', 'vetc-wallet': 'Ví VETC', 'tasco-payment': 'Cổng thanh toán TASCO',
       'voice-ai': 'Trợ lý gọi tự động', 'app-push': 'Thông báo ứng dụng', 'zalo-zns': 'Zalo ZNS', sms: 'SMS thương hiệu',
     },
     job: { reconciliation: 'Đối soát đơn hàng', retention: 'Lưu trữ dữ liệu', relay: 'Chuyển tiếp sự kiện', 'catalogue-sync': 'Đồng bộ danh mục', catalogue_sync: 'Đồng bộ danh mục', voice_campaign: 'Chiến dịch gọi tự động', journey_run: 'Chạy hành trình' },
@@ -32,7 +32,7 @@ addLabels({
       data_steward: 'Data steward correction', verified_certificate: 'TASCO — verified certificate', unknown: 'Unknown source',
     },
     integration: {
-      'tasco-core-rating': 'TASCO core rating', 'tasco-core-catalogue': 'TASCO product catalogue', 'tasco-core': 'Policy issuance', 'vetc-wallet': 'VETC wallet',
+      'tasco-core-rating': 'TASCO core rating', 'tasco-core-catalogue': 'TASCO product catalogue', 'tasco-core': 'Policy issuance', 'vetc-wallet': 'VETC wallet', 'tasco-payment': 'TASCO payment gateway',
       'voice-ai': 'Voice assistant', 'app-push': 'App push', 'zalo-zns': 'Zalo ZNS', sms: 'SMS brandname',
     },
     job: { reconciliation: 'Order reconciliation', retention: 'Data retention', relay: 'Event relay', 'catalogue-sync': 'Catalogue sync', catalogue_sync: 'Catalogue sync', voice_campaign: 'Voice campaign', journey_run: 'Journey run' },

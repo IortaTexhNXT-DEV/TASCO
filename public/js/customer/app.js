@@ -3,6 +3,7 @@ import { labelIn } from '../shared/i18n.js';
 import { createApi, idempotencyKey } from '../shared/api.js';
 import { qrSvg } from '../shared/qr.js';
 import { icon } from '../shared/icons.js';
+import { wordmark } from '../shared/brand.js';
 
 /**
  * Customer app — TASCO Insurance × VETC. Opens inside the VETC super-app (or Zalo mini app) WebView
@@ -29,8 +30,32 @@ function setHotline(meta) {
   SUPPORT_EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/.test(mail) ? mail : null;
 }
 
-const state = { token: null, meta: null, home: null, entryError: null };
-try { state.token = sessionStorage.getItem('ctoken'); } catch { /* storage unavailable */ }
+/**
+ * Host channel: the same app runs inside the VETC app, the Zalo mini app, the TASCO app and the TASCO website.
+ * Read from ?channel= (allowlist only), kept in sessionStorage, sent with the session request. Wording follows it.
+ */
+const CHANNELS = ['vetc_app', 'zalo_mini_app', 'tasco_app', 'tasco_web'];
+const HOSTS = {
+  vetc_app: { open: 'ứng dụng VETC', via: 'ứng dụng VETC', partner: 'VETC', tascoPay: false },
+  zalo_mini_app: { open: 'Zalo Mini App VETC', via: 'Zalo Mini App VETC', partner: 'VETC', tascoPay: false },
+  tasco_app: { open: 'ứng dụng Bảo hiểm TASCO', via: 'ứng dụng Bảo hiểm TASCO', partner: null, tascoPay: true },
+  tasco_web: { open: 'website Bảo hiểm TASCO', via: 'website Bảo hiểm TASCO', partner: null, tascoPay: true },
+};
+const store = {
+  get(k) { try { return sessionStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch { /* storage unavailable */ } },
+};
+const state = { token: null, meta: null, home: null, entryError: null, channel: 'vetc_app' };
+state.token = store.get('ctoken');
+{
+  const q = new URLSearchParams(location.search).get('channel');
+  const stored = store.get('cchannel');
+  state.channel = CHANNELS.includes(q) ? q : CHANNELS.includes(stored) ? stored : 'vetc_app';
+  store.set('cchannel', state.channel);
+}
+const host = () => HOSTS[state.channel] || HOSTS.vetc_app;
+/** Payment method wording for the current host. */
+const payMethod = () => (host().tascoPay ? 'Thanh toán qua cổng TASCO' : 'Ví VETC');
 const api = createApi({ getToken: () => state.token });
 
 // ---------------------------------------------------------------- helpers
@@ -78,7 +103,7 @@ const categoryText = (v) => {
 /** Vietnamese, customer-friendly message for any API error. Never shows English or codes. */
 function viError(ex) {
   const m = String(ex?.message || '');
-  if (ex?.status === 401) return 'Phiên làm việc đã hết hạn. Vui lòng mở lại từ ứng dụng VETC.';
+  if (ex?.status === 401) return `Phiên làm việc đã hết hạn. Vui lòng mở lại từ ${host().open}.`;
   if (ex?.status === 429) return 'Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.';
   if (ex?.status === 503 || ex?.status === 502 || ex?.status === 504) return 'Hệ thống TASCO đang bận. Vui lòng thử lại sau ít phút.';
   if (/indicative/i.test(m)) return 'Giá tạm tính cần được xác nhận trước khi thanh toán.';
@@ -174,7 +199,7 @@ function openQr(p, plate) {
   overlayReturn = document.activeElement;
   const close = () => { el.remove(); document.body.classList.remove('c-locked'); overlayReturn?.focus?.(); };
   const el = h('div', { class: 'c-qrfull', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'qr-title' },
-    h('div', { class: 'c-qrfull-bar' }, h('img', { src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }),
+    h('div', { class: 'c-qrfull-bar' }, wordmark({ size: 'sm', variant: 'navy' }),
       h('button', { class: 'c-iconbtn', type: 'button', 'aria-label': 'Đóng mã QR', onclick: close }, ic('x', 24))),
     h('h2', { class: 'c-qrfull-title', id: 'qr-title', tabindex: '-1' }, 'Giấy chứng nhận điện tử'),
     h('p', { class: 'c-qrfull-sub' }, productName(p)),
@@ -250,28 +275,55 @@ function tabbar(current) {
     TABS.map(([r, ico, text]) => h('a', { class: 'c-tab', href: `#/${r}`, 'aria-current': current === r ? 'page' : null },
       h('span', { class: 'c-tab-icon' }, ic(ico, 22, { strokeWidth: current === r ? 2.1 : 1.75 })), h('span', { class: 'c-tab-label' }, text))));
 }
-const brandMark = (onDark) => h('span', { class: onDark ? 'c-hero-brand' : 'c-brand' },
-  onDark ? h('span', { class: 'c-hero-logo' }, h('img', { src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' })) : h('img', { src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }),
-  h('span', { class: 'c-brand-x', 'aria-hidden': 'true' }, '×'), h('span', { class: 'c-vetc', 'aria-label': 'VETC' }, 'VETC'));
-const supportBtn = () => (HOTLINE ? h('a', { class: 'c-iconbtn', href: `tel:${HOTLINE.tel}`, 'aria-label': `Gọi tổng đài hỗ trợ ${HOTLINE.display}` }, ic('headset', 22)) : null);
+/** Wordmark (stand-in TASCO logo, see shared/brand.js) and, inside VETC hosts, the "× VETC" co-brand. */
+const brandMark = (variant = 'color') => h('span', { class: 'c-brand' },
+  wordmark({ size: 'sm', variant }),
+  host().partner ? [h('span', { class: 'c-brand-x', 'aria-hidden': 'true' }, '×'), h('span', { class: 'c-vetc', 'aria-label': host().partner }, host().partner)] : null);
 
-/** Tab page: branded app bar (except home, which has its own hero) + content + tab bar. */
+/** Support options for the floating button sheet and the Account tab (only what is configured). */
+function supportLinks() {
+  return [
+    HOTLINE ? { href: `tel:${HOTLINE.tel}`, icon: 'phone-call', tone: '', title: `Gọi ${HOTLINE.display}`, sub: 'Tổng đài hỗ trợ 24/7' } : null,
+    SUPPORT_LINKS.zalo ? { href: SUPPORT_LINKS.zalo, icon: 'message-square', tone: 'teal', title: 'Nhắn tin qua Zalo', sub: 'Zalo Official Account TASCO', ext: true } : null,
+    SUPPORT_LINKS.messenger ? { href: SUPPORT_LINKS.messenger, icon: 'message-square', tone: 'teal', title: 'Nhắn tin qua Messenger', sub: 'Fanpage Bảo hiểm TASCO', ext: true } : null,
+    SUPPORT_EMAIL ? { href: `mailto:${SUPPORT_EMAIL}`, icon: 'mail', tone: '', title: 'Gửi email', sub: SUPPORT_EMAIL } : null,
+    SUPPORT_LINKS.website ? { href: SUPPORT_LINKS.website, icon: 'globe', tone: '', title: 'Trang web Bảo hiểm TASCO', sub: new URL(SUPPORT_LINKS.website).host.replace(/^www\./, ''), ext: true } : null,
+  ].filter(Boolean);
+}
+function supportSheet() {
+  openSheet({
+    title: 'Hỗ trợ khách hàng',
+    sub: 'TASCO luôn sẵn sàng hỗ trợ bạn.',
+    body: h('ul', { class: 'c-list c-support-list' }, supportLinks().map((l) => h('li', {}, h('a', { class: 'c-item', href: l.href, target: l.ext ? '_blank' : null, rel: l.ext ? 'noopener noreferrer' : null },
+      h('span', { class: `c-ichip sm ${l.tone}` }, ic(l.icon, 18)),
+      h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, l.title), h('span', { class: 'c-item-sub' }, l.sub)),
+      h('span', { class: 'c-item-end' }, ic(l.ext ? 'external-link' : 'chevron-right', 18), l.ext ? h('span', { class: 'sr-only' }, ' (mở trong thẻ mới)') : null))))),
+  });
+}
+/** Floating support button (round, navy, bottom-right above the tab or action bar). Never shown in checkout/payment. */
+const supportFab = () => (supportLinks().length
+  ? h('button', { class: 'c-fab', type: 'button', 'aria-label': 'Hỗ trợ khách hàng', 'aria-haspopup': 'dialog', onclick: supportSheet }, ic('headset', 24))
+  : null);
+
+/** Tab page: white branded app bar, optional hero, content, floating support button and tab bar. */
 function tabPage(current, content, { hero } = {}) {
-  return h('div', { class: 'c-app' },
-    hero || h('header', { class: 'c-appbar' }, brandMark(false), supportBtn()),
+  return h('div', { class: 'c-app c-has-fab' },
+    h('header', { class: 'c-appbar' }, brandMark()),
+    hero || null,
     h('main', { class: 'c-main', id: 'app-main', tabindex: '-1' }, content),
+    supportFab(),
     tabbar(current));
 }
 
 /** Full-screen task flow: back button + title, optional stepper, main, optional sticky action bar. */
-function flowPage({ title, onBack, top }) {
+function flowPage({ title, onBack, top, support = false }) {
   const main = h('main', { class: 'c-main', id: 'app-main', tabindex: '-1' });
   const bar = h('div', { class: 'c-actionbar' });
-  const app = h('div', { class: 'c-app c-app--flow' },
+  const app = h('div', { class: `c-app c-app--flow${support ? ' c-has-fab' : ''}` },
     h('header', { class: 'c-appbar c-appbar--flow' },
       h('button', { class: 'c-iconbtn', type: 'button', 'aria-label': 'Quay lại', onclick: onBack }, ic('arrow-left', 24)),
       h('h1', { class: 'c-appbar-title', tabindex: '-1' }, title), h('span', { class: 'c-appbar-spacer' })),
-    top || null, main, bar);
+    top || null, main, bar, support ? supportFab() : null);
   const setBar = (...children) => {
     const empty = !children.flat().some(Boolean);
     app.classList.toggle('c-no-actionbar', empty);
@@ -378,9 +430,10 @@ async function viewHome() {
   const pending = quotes.filter((q) => q.sentToCustomerAt || q.channel !== 'vetc_app');
   const cover = coverInfo(home);
   const name = home.customer?.firstName;
-  const hero = h('header', { class: 'c-hero' },
-    h('div', { class: 'c-hero-bar' }, brandMark(true), supportBtn()),
-    h('div', { class: 'c-greet' }, h('p', { class: 'c-greet-hi' }, greetingWord()), h('h1', { tabindex: '-1' }, name ? `Xin chào, ${name}` : 'Xin chào quý khách')));
+  // Slim teal band with the diagonal parallelogram motif of the TASCO website (navy text on light teal: 6.1:1).
+  const hero = h('section', { class: 'c-hero', 'aria-labelledby': 'greet-h' },
+    h('span', { class: 'c-hero-band c-hero-band-a', 'aria-hidden': 'true' }), h('span', { class: 'c-hero-band c-hero-band-b', 'aria-hidden': 'true' }),
+    h('div', { class: 'c-greet' }, h('p', { class: 'c-greet-hi' }, greetingWord()), h('h1', { tabindex: '-1', id: 'greet-h' }, name ? `Xin chào, ${name}` : 'Xin chào quý khách')));
   const content = [
     vehicleCard(home, cover, !!pending[0]),
     pending[0] ? pendingQuoteCard(pending[0], home.vehicle.plate) : null,
@@ -390,7 +443,7 @@ async function viewHome() {
     benefitsCarousel(home.benefits),
     footnote(),
   ];
-  return tabPage('home', content, { hero: [hero] });
+  return tabPage('home', content, { hero });
 }
 function greetingWord() {
   const hr = new Date(Date.now() + 7 * 3600000).getUTCHours();
@@ -692,7 +745,8 @@ async function viewBuy(query) {
   // Step 3 — pay with the VETC wallet
   function step3() {
     const q = s.quote;
-    const bal = home.wallet?.balance;
+    const tascoPay = host().tascoPay;
+    const bal = tascoPay ? null : home.wallet?.balance;
     const short = typeof bal === 'number' && bal < q.total;
     const agree = h('input', { type: 'checkbox', id: 'agree', checked: s.agree });
     const agreeErr = h('span', { class: 'c-err', id: 'agree-err', 'aria-live': 'polite' });
@@ -701,11 +755,11 @@ async function viewBuy(query) {
       h('section', { class: 'c-section', 'aria-labelledby': 'pm-h' },
         h('div', { class: 'c-section-head' }, h('h2', { id: 'pm-h' }, 'Phương thức thanh toán')),
         h('div', { class: 'c-pay' },
-          h('span', { class: 'c-ichip' }, ic('wallet', 22)),
-          h('div', { class: 'c-item-text' }, h('span', { class: 'c-item-title c-strong' }, 'Ví VETC'),
-            h('span', { class: 'c-item-sub' }, typeof bal === 'number' ? ['Số dư: ', h('strong', { class: 'c-num' }, fmtVnd(bal))] : 'Số dư hiển thị trong ví VETC')),
+          h('span', { class: 'c-ichip' }, ic(tascoPay ? 'credit-card' : 'wallet', 22)),
+          h('div', { class: 'c-item-text' }, h('span', { class: 'c-item-title c-strong' }, payMethod()),
+            h('span', { class: 'c-item-sub' }, tascoPay ? 'Thẻ ATM nội địa, thẻ quốc tế, QR ngân hàng' : typeof bal === 'number' ? ['Số dư: ', h('strong', { class: 'c-num' }, fmtVnd(bal))] : 'Số dư hiển thị trong ví VETC')),
           h('span', { class: 'c-pay-check' }, ic('check', 16, { strokeWidth: 3, label: 'Đã chọn' }))),
-        short ? notice('warn', 'wallet', 'Số dư ví chưa đủ', 'Ứng dụng VETC sẽ hướng dẫn bạn nạp thêm khi xác nhận thanh toán.') : null),
+        short ? notice('warn', 'wallet', 'Số dư ví chưa đủ', `${host().open[0].toUpperCase()}${host().open.slice(1)} sẽ hướng dẫn bạn nạp thêm khi xác nhận thanh toán.`) : null),
       h('section', { class: 'c-card', 'aria-labelledby': 'ord-h' },
         h('h2', { id: 'ord-h', class: 'c-card-title' }, 'Thông tin thanh toán'),
         h('dl', { class: 'c-kv' },
@@ -715,7 +769,7 @@ async function viewBuy(query) {
           h('dt', {}, 'Phí giao dịch'), h('dd', {}, 'Miễn phí'),
           h('dt', { class: 'c-kv-total' }, 'Tổng thanh toán'), h('dd', { class: 'c-kv-total' }, fmtVnd(q.total)))),
       h('div', {}, h('label', { class: 'c-check', for: 'agree' }, agree, h('span', {}, 'Tôi xác nhận thông tin xe chính xác và đồng ý với quy tắc bảo hiểm của TASCO.')), agreeErr),
-      h('p', { class: 'c-meta-row' }, ic('lock', 16), 'Thanh toán được bảo mật bởi VETC.'));
+      h('p', { class: 'c-meta-row' }, ic('lock', 16), tascoPay ? 'Thanh toán được bảo mật bởi cổng thanh toán TASCO.' : 'Thanh toán được bảo mật bởi VETC.'));
     const pay = h('button', { class: 'c-btn primary block', type: 'button' }, `Thanh toán ${fmtVnd(q.total)}`);
     pay.addEventListener('click', () => {
       if (!s.agree) { mount(agreeErr, ic('alert-circle', 16), 'Vui lòng xác nhận trước khi thanh toán.'); agree.focus(); return; }
@@ -732,7 +786,7 @@ async function viewBuy(query) {
       body: [
         h('div', { class: 'c-amount-hero' }, h('span', { class: 'c-xs' }, 'Số tiền'), h('strong', {}, fmtVnd(q.total))),
         h('dl', { class: 'c-kv' },
-          h('dt', {}, 'Từ'), h('dd', {}, 'Ví VETC'),
+          h('dt', {}, 'Phương thức'), h('dd', {}, payMethod()),
           h('dt', {}, 'Đến'), h('dd', {}, 'Bảo hiểm TASCO'),
           h('dt', {}, 'Nội dung'), h('dd', {}, `Bảo hiểm xe ${home.vehicle.plate}`)),
       ],
@@ -788,8 +842,8 @@ async function viewBuy(query) {
 /** E-certificate card (success screen and policies). */
 function certCard(p, plate) {
   return h('article', { class: 'c-cert', 'aria-label': `Giấy chứng nhận ${p.certNo}` },
-    h('div', { class: 'c-cert-head' }, h('span', { class: 'c-hero-logo' }, h('img', { src: '/assets/tasco-logo-tight.png', alt: '' })),
-      h('div', { class: 'c-cert-head-text' }, h('strong', {}, 'Giấy chứng nhận điện tử'), 'TASCO Insurance × VETC')),
+    h('div', { class: 'c-cert-head' }, wordmark({ size: 'sm', variant: 'white', label: null }),
+      h('div', { class: 'c-cert-head-text' }, h('strong', {}, 'Giấy chứng nhận điện tử'), host().partner ? `TASCO Insurance × ${host().partner}` : 'TASCO Insurance')),
     h('div', { class: 'c-cert-body' },
       h('p', { class: 'c-cert-name' }, productName(p)),
       h('dl', { class: 'c-cert-fields' },
@@ -1131,7 +1185,7 @@ async function viewAccount() {
         h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, title), h('span', { class: 'c-item-sub' }, sub(SUPPORT_LINKS[k]))),
         h('span', { class: 'c-item-end' }, ic('external-link', 18), h('span', { class: 'sr-only' }, ' (mở trong thẻ mới)'))))),
       h('li', {}, h('div', { class: 'c-item' }, h('span', { class: 'c-ichip sm' }, ic('languages', 18)),
-        h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, 'Ngôn ngữ'), h('span', { class: 'c-item-sub' }, 'Theo ngôn ngữ của ứng dụng VETC')), h('span', { class: 'c-item-end' }, 'Tiếng Việt')))),
+        h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, 'Ngôn ngữ'), h('span', { class: 'c-item-sub' }, `Theo ngôn ngữ của ${host().open}`)), h('span', { class: 'c-item-end' }, 'Tiếng Việt')))),
     state.meta?.demoMode ? h('ul', { class: 'c-list' }, h('li', {}, h('button', { class: 'c-item', type: 'button', onclick: () => demoSheet() },
       h('span', { class: 'c-ichip sm amber' }, ic('users', 18)), h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, 'Đổi khách hàng demo'), h('span', { class: 'c-item-sub' }, 'Chỉ có trong môi trường demo')), h('span', { class: 'c-item-end' }, ic('chevron-right', 18))))) : null,
     h('ul', { class: 'c-list' }, h('li', {}, h('button', { class: 'c-item', type: 'button', onclick: signOut }, h('span', { class: 'c-ichip sm rose' }, ic('log-out', 18)),
@@ -1167,28 +1221,32 @@ function demoSheet() {
 async function viewEntry() {
   state.meta = state.meta || await api.get('/api/meta');
   const demo = state.meta.demoMode && state.meta.demoCustomers?.length;
+  const H = host();
   return h('div', { class: 'c-app' }, h('main', { class: 'c-splash', id: 'app-main' },
-    h('div', { class: 'c-hero-brand' }, h('span', { class: 'c-hero-logo' }, h('img', { src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' })), h('span', { class: 'c-brand-x', 'aria-hidden': 'true' }, '×'), h('span', { class: 'c-vetc' }, 'VETC')),
+    h('span', { class: 'c-splash-band', 'aria-hidden': 'true' }),
+    h('div', { class: 'c-hero-brand' }, wordmark({ size: 'lg', variant: 'white' }),
+      H.partner ? [h('span', { class: 'c-brand-x', 'aria-hidden': 'true' }, '×'), h('span', { class: 'c-vetc' }, H.partner)] : null),
     h('div', { class: 'c-splash-mid' },
-      h('h1', { tabindex: '-1' }, 'Bảo hiểm xe ngay trong ứng dụng VETC'),
-      h('p', {}, state.entryError || 'Mở từ ứng dụng VETC hoặc liên kết gia hạn được gửi cho bạn để tiếp tục.'),
+      h('h1', { tabindex: '-1' }, H.partner ? `Bảo hiểm xe ngay trong ${H.open}` : 'Bảo hiểm xe trực tuyến cùng TASCO'),
+      h('p', {}, state.entryError || `Mở từ ${H.open} hoặc liên kết gia hạn được gửi cho bạn để tiếp tục.`),
       h('ul', { class: 'c-splash-points' },
         h('li', {}, ic('check-circle', 20), 'Gia hạn bảo hiểm TNDS trong một chạm'),
         h('li', {}, ic('check-circle', 20), 'Giấy chứng nhận điện tử có mã QR'),
         h('li', {}, ic('check-circle', 20), 'Cứu hộ 24/7 và báo tai nạn nhanh'))),
     h('div', { class: 'c-splash-foot' },
       demo ? h('button', { class: 'c-btn light block', type: 'button', onclick: demoSheet }, ic('users', 20), 'Chọn khách hàng demo') : null,
-      h('p', { class: 'c-splash-note' }, demo ? 'Chế độ demo · dữ liệu mô phỏng' : 'Bảo hiểm TASCO · Phân phối qua VETC'))));
+      h('p', { class: 'c-splash-note' }, demo ? 'Chế độ demo · dữ liệu mô phỏng' : `Bảo hiểm TASCO · Phân phối qua ${H.via}`))));
 }
 
 async function startSession(body) {
   try {
-    const r = await api.post('/api/customer/session', body);
+    const r = await api.post('/api/customer/session', { ...body, channel: state.channel });
     state.token = r.token; state.home = null; state.entryError = null;
-    try { sessionStorage.setItem('ctoken', r.token); } catch { /* ignore */ }
+    if (CHANNELS.includes(r.channel)) { state.channel = r.channel; store.set('cchannel', r.channel); }
+    store.set('ctoken', r.token);
     history.replaceState(null, '', '/app/#/home');
   } catch (ex) {
-    state.entryError = ex.status === 401 ? 'Liên kết đã hết hạn hoặc không hợp lệ. Vui lòng mở lại từ ứng dụng VETC.' : viError(ex);
+    state.entryError = ex.status === 401 ? `Liên kết đã hết hạn hoặc không hợp lệ. Vui lòng mở lại từ ${host().open}.` : viError(ex);
     history.replaceState(null, '', '/app/');
   }
   await render();
@@ -1217,14 +1275,14 @@ async function render() {
     else node = await viewHome();
   } catch (ex) {
     if (ex.status === 401 && state.token) {
-      state.token = null; state.entryError = 'Phiên làm việc đã hết hạn. Vui lòng mở lại từ ứng dụng VETC.';
+      state.token = null; state.entryError = `Phiên làm việc đã hết hạn. Vui lòng mở lại từ ${host().open}.`;
       try { sessionStorage.removeItem('ctoken'); } catch { /* ignore */ }
       return render();
     }
     node = tabPage(path.split('/')[0], [emptyState('alert-triangle', 'Không tải được dữ liệu', viError(ex), h('button', { class: 'c-btn primary', type: 'button', onclick: () => render() }, 'Thử lại'))]);
   }
   if (seq !== renderSeq) return undefined;
-  document.title = `${state.token ? TITLES[path] || 'Trang chủ' : 'Bảo hiểm xe'} · TASCO × VETC`;
+  document.title = `${state.token ? TITLES[path] || 'Trang chủ' : 'Bảo hiểm xe'} · ${host().partner ? `TASCO × ${host().partner}` : 'Bảo hiểm TASCO'}`;
   mount(root, node);
   window.scrollTo(0, 0);
   if (rendered) (root.querySelector('h1[tabindex="-1"]') || root.querySelector('main'))?.focus({ preventScroll: true });

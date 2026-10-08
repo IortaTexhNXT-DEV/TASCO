@@ -11,21 +11,22 @@ const { ROOT } = require('./container');
 
 const DEMO_PASSWORD = 'Tasco@Demo2026!';
 
+/** Demo staff: realistic Vietnamese display names (the role is shown separately, translated through i18n). */
 const DEMO_USERS = [
-  { username: 'admin', displayName: 'Platform Admin', roles: ['admin'], mfa: true },
-  { username: 'exec', displayName: 'Executive (CEO office)', roles: ['executive'] },
-  { username: 'campaign', displayName: 'Campaign Manager', roles: ['campaign_manager'] },
-  { username: 'agent.hn', displayName: 'Telesales Agent (Hà Nội)', roles: ['telesales_agent'], region: 'Hà Nội' },
-  { username: 'agent.hcm', displayName: 'Telesales Agent (TP.HCM)', roles: ['telesales_agent'], region: 'TP. Hồ Chí Minh' },
-  { username: 'supervisor', displayName: 'Telesales Supervisor', roles: ['telesales_supervisor'] },
-  { username: 'author', displayName: 'Rule Author (Product)', roles: ['rule_author'] },
-  { username: 'approver', displayName: 'Rule Approver (Compliance)', roles: ['rule_approver'], mfa: true },
-  { username: 'compliance', displayName: 'Compliance Officer', roles: ['compliance_officer'], mfa: true },
-  { username: 'steward', displayName: 'Data Steward', roles: ['data_steward'], mfa: true },
-  { username: 'claims', displayName: 'Claims Handler', roles: ['claims_handler'] },
-  { username: 'partners', displayName: 'Partner Manager', roles: ['partner_manager'] },
-  { username: 'auditor', displayName: 'Internal Auditor', roles: ['auditor'] },
-  { username: 'support', displayName: 'Production Support', roles: ['support_engineer'] },
+  { username: 'admin', displayName: 'Đỗ Minh Quân', roles: ['admin'], mfa: true },
+  { username: 'exec', displayName: 'Nguyễn Hoàng Long', roles: ['executive'] },
+  { username: 'campaign', displayName: 'Trần Thu Hà', roles: ['campaign_manager'] },
+  { username: 'agent.hn', displayName: 'Phạm Thị Lan', roles: ['telesales_agent'], region: 'Hà Nội' },
+  { username: 'agent.hcm', displayName: 'Lê Văn Tài', roles: ['telesales_agent'], region: 'TP. Hồ Chí Minh' },
+  { username: 'supervisor', displayName: 'Vũ Đức Thắng', roles: ['telesales_supervisor'] },
+  { username: 'author', displayName: 'Hoàng Mai Anh', roles: ['rule_author'] },
+  { username: 'approver', displayName: 'Bùi Quang Huy', roles: ['rule_approver'], mfa: true },
+  { username: 'compliance', displayName: 'Đặng Thu Trang', roles: ['compliance_officer'], mfa: true },
+  { username: 'steward', displayName: 'Ngô Thanh Tùng', roles: ['data_steward'], mfa: true },
+  { username: 'claims', displayName: 'Đinh Văn Khoa', roles: ['claims_handler'] },
+  { username: 'partners', displayName: 'Lý Ngọc Diệp', roles: ['partner_manager'] },
+  { username: 'auditor', displayName: 'Trịnh Hải Yến', roles: ['auditor'] },
+  { username: 'support', displayName: 'Phan Gia Bảo', roles: ['support_engineer'] },
 ];
 
 const DEMO_PARTNERS = [

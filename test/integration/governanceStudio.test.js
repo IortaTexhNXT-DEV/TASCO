@@ -55,7 +55,7 @@ test('audit: business categories, date range, actor directory and object labels'
   assert.ok(rules.body.length > 0);
   assert.ok(rules.body.every((e) => e.category === 'rules' && e.action.startsWith('rules.')));
   const access = await srv.call('GET', '/api/audit?category=access&limit=50', { token: auditor });
-  const login = access.body.find((e) => e.action === 'auth.login' && e.actorDisplayName === 'Rule Author (Product)');
+  const login = access.body.find((e) => e.action === 'auth.login' && e.actorDisplayName === 'Hoàng Mai Anh');
   assert.ok(login, 'login of the author resolved to a display name');
   assert.deepEqual(login.actorRoles, ['rule_author']);
   assert.match(login.actorName, /\(author\)$/, 'legacy actorName format kept');
@@ -66,7 +66,7 @@ test('audit: business categories, date range, actor directory and object labels'
   assert.equal((await srv.call('GET', '/api/audit?category=nope', { token: auditor })).status, 400);
   assert.equal((await srv.call('GET', '/api/audit?from=yesterday', { token: auditor })).status, 400);
   const actors = await srv.call('GET', '/api/audit/actors', { token: auditor });
-  assert.ok(actors.body.some((a) => a.displayName === 'Internal Auditor' && a.roles.includes('auditor')));
+  assert.ok(actors.body.some((a) => a.displayName === 'Trịnh Hải Yến' && a.roles.includes('auditor')));
   assert.ok(actors.body.every((a) => !('passwordHash' in a) && !('totpSecret' in a)));
   assert.equal((await srv.call('GET', '/api/audit/actors', { token: author })).status, 403);
   // Customer objects: plate always, name masked for readers without the personal-data permission.
@@ -121,5 +121,5 @@ test('rules studio API: context, sample customers, aggregate simulation, draft P
   const w = await srv.call('POST', `/api/rules/${encodeURIComponent(draft.id)}/withdraw`, { token: author, body: {} });
   assert.equal(w.body.status, 'draft');
   const listed = (await srv.call('GET', '/api/rules?kind=scoring', { token: author })).body.find((r) => r.id === draft.id);
-  assert.equal(listed.createdByDisplayName, 'Rule Author (Product)');
+  assert.equal(listed.createdByDisplayName, 'Hoàng Mai Anh');
 });

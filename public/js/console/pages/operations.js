@@ -37,7 +37,7 @@ const t = pageStrings('ops', {
 
 /** Display order and icon of integrations (names from the gateway registry). */
 const INTEGRATIONS = [
-  ['tasco-core-rating', 'gauge'], ['tasco-core-catalogue', 'layers'], ['tasco-core', 'file-check'], ['vetc-wallet', 'wallet'],
+  ['tasco-core-rating', 'gauge'], ['tasco-core-catalogue', 'layers'], ['tasco-core', 'file-check'], ['vetc-wallet', 'wallet'], ['tasco-payment', 'wallet'],
   ['voice-ai', 'mic'], ['app-push', 'smartphone'], ['zalo-zns', 'message-square'], ['sms', 'send'],
 ];
 const CIRCUIT_TONE = { closed: 'ok', half_open: 'warn', open: 'danger' };

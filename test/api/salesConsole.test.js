@@ -57,7 +57,7 @@ test('voice campaign: dry-run preview, recorded run, campaign list and call list
   assert.equal(rec.kind, 'voice_campaign');
   assert.equal(rec.result.name, 'Hot renewals');
   assert.equal(rec.result.called, run.body.called);
-  assert.equal(rec.by, 'Campaign Manager');
+  assert.equal(rec.by, 'Trần Thu Hà');
 
   await srv.call('POST', '/api/journeys/run', { token: camp, body: { date: '2026-10-07', at: '2026-10-07T03:00:00Z' } });
   assert.ok((await srv.call('GET', '/api/campaigns', { token: camp })).body.items.some((x) => x.kind === 'journey_run'));
@@ -84,10 +84,10 @@ test('handoffs: assignee names, SLA due time and assignee list for supervisors',
   assert.ok(h.slaDueAt);
   assert.equal(new Date(h.slaDueAt).getTime() - new Date(h.createdAt).getTime(), 2 * 3600000);
   const claimed = await srv.call('PATCH', `/api/handoffs/${h.id}`, { token: sup, body: { status: 'claimed', note: 'Calling now' } });
-  assert.equal(claimed.body.assignedToName, 'Telesales Supervisor');
-  assert.equal(claimed.body.notes[0].byName, 'Telesales Supervisor');
+  assert.equal(claimed.body.assignedToName, 'Vũ Đức Thắng');
+  assert.equal(claimed.body.notes[0].byName, 'Vũ Đức Thắng');
   const people = await srv.call('GET', '/api/handoffs/assignees', { token: sup });
-  assert.ok(people.body.items.some((u) => u.name.startsWith('Telesales Agent')));
+  assert.ok(people.body.items.some((u) => u.name === 'Phạm Thị Lan'));
   const agent = await srv.login('agent.hn');
   assert.equal((await srv.call('GET', '/api/handoffs/assignees', { token: agent })).status, 403);
 });

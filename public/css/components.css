@@ -683,3 +683,54 @@ td > .wf-summary { max-width: 100%; }
 td > .wf-summary { width: 0; min-width: 100%; max-width: none; }
 td:has(> .wf-summary) { width: auto; max-width: none; min-width: 10rem; }
 @media (max-width: 1439px) { .row-actions .btn.row-action { width: 8.75rem; } .card.wf-dense th, .card.wf-dense td { padding-left: 10px; padding-right: 10px; } }
+
+/* ==========================================================================
+   TASCO brand layer (v3 re-skin after baohiemtasco.vn) — see the teal rule in tokens.css.
+   Lexend (--font-brand) for headings, navigation, buttons and KPI values; Inter (--font) for data.
+   ========================================================================== */
+h1, h2, h3, h4 { font-family: var(--font-brand); color: var(--heading); letter-spacing: 0; }
+h1 { font-weight: var(--fw-semibold); }
+h2, h3 { font-weight: var(--fw-medium); }
+.btn { font-family: var(--font-brand); font-weight: var(--fw-medium); border-radius: var(--radius); letter-spacing: 0; }
+.btn, .btn.secondary { --btn-fg: var(--secondary-fg); --btn-border: var(--secondary-border); }
+.btn:hover, .btn.secondary:hover { background: var(--primary-soft); }
+.btn.primary { --btn-bg: var(--primary); --btn-fg: var(--primary-contrast); --btn-border: var(--primary); box-shadow: none; }
+.btn.ghost, .btn.link { --btn-border: transparent; }
+.btn.danger { --btn-fg: var(--danger); --btn-border: var(--danger-border); }
+.btn.danger.solid { --btn-fg: #fff; --btn-border: var(--danger); }
+.btn.ghost:hover { background: var(--surface-3); }
+/* Dense data keeps Inter: table cells, row actions and toolbars. */
+td, th, td .btn, .row-actions .btn, .dt-toolbar .btn, .dt-footer .btn { font-family: var(--font); }
+input, select, textarea { font-family: var(--font); }
+.btn.sm, .btn.small { font-weight: var(--fw-medium); }
+
+/* Page title: Lexend navy 600 with a 32×3 teal accent underline. */
+.page-header h1 { font-family: var(--font-brand); font-weight: var(--fw-semibold); color: var(--heading); letter-spacing: -0.005em; position: relative; padding-bottom: 10px; }
+.page-header h1::after { content: ""; position: absolute; left: 0; bottom: 0; width: 32px; height: 3px; border-radius: 2px; background: var(--brand-teal); }
+.page-header { align-items: flex-end; }
+.card-header h2, .card-header h3, .card > h2, .card > h3 { font-family: var(--font-brand); font-weight: var(--fw-medium); color: var(--heading); }
+.tabs button, .tabs [role="tab"] { font-family: var(--font-brand); font-weight: var(--fw-regular); }
+.tabs button[aria-selected="true"] { color: var(--heading); font-weight: var(--fw-medium); }
+
+/* KPI tiles: Lexend values and a teal top accent line. */
+.kpi-tile { position: relative; overflow: hidden; border-top: 0; }
+.kpi-tile::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--brand-teal); }
+.kpi-tile .kpi-value, .kpi .value { font-family: var(--font-brand); font-weight: var(--fw-medium); color: var(--heading); letter-spacing: -0.01em; }
+.kpi-tile .kpi-label { font-family: var(--font-brand); font-weight: var(--fw-regular); }
+
+/* Selected / checked states use the light brand teal surface with navy text. */
+.chip[aria-pressed="true"] { background: var(--brand-teal-tint); border-color: var(--primary); color: var(--nav-active-fg); }
+.menu .menu-check { color: var(--link); }
+
+/* ---------- Wordmark (stand-in for the official TASCO logo — see public/js/shared/brand.js) ---------- */
+.wordmark { display: inline-flex; flex-direction: column; align-items: stretch; line-height: 1; font-family: var(--font-brand); color: var(--brand-navy); text-decoration: none; user-select: none; --wm-size: 26px; }
+.wordmark .wm-tasco { font-size: var(--wm-size); font-weight: 700; letter-spacing: 0.06em; margin-right: -0.06em; color: var(--brand-navy); }
+.wordmark .wm-ins { font-size: calc(var(--wm-size) * 0.335); font-weight: 400; letter-spacing: 0.52em; margin-right: -0.52em; margin-top: calc(var(--wm-size) * 0.14); color: var(--brand-teal-ink); white-space: nowrap; }
+.wordmark.sm { --wm-size: 18px; }
+.wordmark.lg { --wm-size: 40px; }
+.wordmark.xl { --wm-size: 56px; }
+.wordmark.white .wm-tasco, .wordmark.white .wm-ins { color: #ffffff; }
+.wordmark.white .wm-ins { font-weight: 300; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wordmark:not(.navy):not(.white) .wm-tasco { color: #ffffff; } :root:not([data-theme="light"]) .wordmark:not(.navy):not(.white) .wm-ins { color: var(--brand-teal); } }
+:root[data-theme="dark"] .wordmark:not(.navy):not(.white) .wm-tasco { color: #ffffff; }
+:root[data-theme="dark"] .wordmark:not(.navy):not(.white) .wm-ins { color: var(--brand-teal); }

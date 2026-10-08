@@ -49,9 +49,9 @@ test('claims: decision data, notes, SLA and enriched detail', async () => {
 
   const d = (await srv.call('GET', `/api/claims/${claim.id}`, { token: ch })).body;
   assert.equal(d.sla.stage, 'payment');
-  assert.equal(d.history.at(-1).byName, 'Claims Handler');
+  assert.equal(d.history.at(-1).byName, 'Đinh Văn Khoa');
   assert.equal(d.history[0].byName, null, 'customer steps carry no staff name');
-  assert.equal(d.notes[0].byName, 'Claims Handler');
+  assert.equal(d.notes[0].byName, 'Đinh Văn Khoa');
   assert.ok(d.policy.product);
   assert.ok(d.customer.plate);
   assert.ok(!/\s/.test(d.customer.name) || d.customer.name.includes('.'), 'customer name is masked');
@@ -79,12 +79,12 @@ test('data quality: business origin instead of batch ids, detail, assignees, bul
   assert.equal((await srv.call('GET', '/api/dq/issues/nope', { token: st })).status, 404);
 
   const people = (await srv.call('GET', '/api/dq/assignees', { token: st })).body;
-  const steward = people.find((u) => u.displayName === 'Data Steward');
+  const steward = people.find((u) => u.displayName === 'Ngô Thanh Tùng');
   assert.ok(steward);
   const ids = list.body.items.slice(0, 2).map((x) => x.id);
   assert.equal((await srv.call('POST', '/api/dq/issues/bulk', { token: st, body: { ids, action: 'assign', assignee: steward.id } })).body.updated, 2);
   const after = (await srv.call('GET', `/api/dq/issues/${encodeURIComponent(ids[0])}`, { token: st })).body;
-  assert.equal(after.assigneeName, 'Data Steward');
+  assert.equal(after.assigneeName, 'Ngô Thanh Tùng');
   const admin = await srv.login('admin');
   const adminId = (await srv.call('GET', '/api/auth/me', { token: admin })).body.id;
   assert.equal((await srv.call('POST', '/api/dq/issues/bulk', { token: st, body: { ids, action: 'assign', assignee: adminId } })).status, 400);
@@ -168,7 +168,7 @@ test('operations: integration health fields and job schedule', async () => {
   assert.equal(s2.jobs.find((j) => j.kind === 'reconciliation').lastRun.status, 'succeeded');
   assert.ok(s2.rules.every((r) => 'activatedAt' in r));
   const runs = (await srv.call('GET', '/api/ops/jobs', { token: sup })).body;
-  assert.equal(runs[0].actorName, 'Production Support');
+  assert.equal(runs[0].actorName, 'Phan Gia Bảo');
 });
 
 test('UX review: customer app reads support contacts and vehicle details it pre-fills; copy says "voice assistant" and dates are dd/MM/yyyy', async () => {

@@ -30,6 +30,11 @@ const STRINGS = {
     viewAll: 'Xem tất cả', userMenu: 'Tài khoản', profileRegion: 'Khu vực', allRegions: 'Toàn quốc',
     languageLabel: 'Ngôn ngữ', themeLight: 'Sáng', themeDark: 'Tối', themeSystem: 'Theo hệ thống', changePassword: 'Đổi mật khẩu',
     collapseSidebar: 'Thu gọn thanh bên', expandSidebar: 'Mở rộng thanh bên', mainNav: 'Điều hướng chính', breadcrumb: 'Đường dẫn',
+    // Brand shell (v3)
+    hotline: 'Hotline', hotlineCall: (n) => `Gọi hotline ${n}`, envUat: 'UAT', envUatLabel: 'Môi trường thử nghiệm (UAT)', utilityBar: 'Thanh tiện ích',
+    productTagline: 'Nền tảng tăng trưởng bảo hiểm xe cơ giới', productName: 'Growth Platform',
+    loginTitle: 'Đăng nhập', forgotPassword: 'Quên mật khẩu?', forgotPasswordHelp: 'Vui lòng liên hệ quản trị viên hệ thống của đơn vị để được cấp lại mật khẩu. Vì lý do bảo mật, mật khẩu không được gửi qua email.',
+    usernamePlaceholder: 'Nhập tên đăng nhập', passwordPlaceholder: 'Nhập mật khẩu',
     footerCredit: '© 2026 Bảo hiểm TASCO · Phát triển bởi iorta TechNXT · v1.0', skipToContent: 'Bỏ qua đến nội dung chính',
     pageNotFound: 'Không tìm thấy trang', noAccess: 'Bạn không có quyền truy cập trang này.', sessionExpired: 'Phiên làm việc đã hết hạn — vui lòng đăng nhập lại',
     setOwnPassword: 'Vui lòng đặt mật khẩu của riêng bạn', currentPassword: 'Mật khẩu hiện tại', newPassword: 'Mật khẩu mới', newPasswordHelp: 'Tối thiểu 12 ký tự',
@@ -72,6 +77,11 @@ const STRINGS = {
     viewAll: 'View all', userMenu: 'Account', profileRegion: 'Region', allRegions: 'All regions',
     languageLabel: 'Language', themeLight: 'Light', themeDark: 'Dark', themeSystem: 'System', changePassword: 'Change password',
     collapseSidebar: 'Collapse sidebar', expandSidebar: 'Expand sidebar', mainNav: 'Main navigation', breadcrumb: 'Breadcrumb',
+    // Brand shell (v3)
+    hotline: 'Hotline', hotlineCall: (n) => `Call the hotline ${n}`, envUat: 'UAT', envUatLabel: 'Test environment (UAT)', utilityBar: 'Utility bar',
+    productTagline: 'Motor insurance growth platform', productName: 'Growth Platform',
+    loginTitle: 'Sign in', forgotPassword: 'Forgot password?', forgotPasswordHelp: 'Please contact your system administrator to have your password reset. For security, passwords are never sent by e-mail.',
+    usernamePlaceholder: 'Enter your username', passwordPlaceholder: 'Enter your password',
     footerCredit: '© 2026 TASCO Insurance · Powered by iorta TechNXT · v1.0', skipToContent: 'Skip to main content',
     pageNotFound: 'Page not found', noAccess: 'You do not have access to this page.', sessionExpired: 'Session expired — please sign in again',
     setOwnPassword: 'Please set your own password', currentPassword: 'Current password', newPassword: 'New password', newPasswordHelp: 'At least 12 characters',
@@ -152,7 +162,7 @@ const LABELS = {
       plate_mismatch: 'Biển số không khớp', unverified: 'Chưa xác minh', callback_later: 'Hẹn gọi lại', no_answer: 'Không nghe máy', scam_concern: 'Lo ngại lừa đảo',
     },
     voiceState: { intro: 'Giới thiệu', verify_plate: 'Xác minh biển số', confirm_expiry: 'Xác nhận hạn', offer: 'Chào sản phẩm', capture_competitor: 'Ghi nhận DN khác', ended: 'Kết thúc' },
-    channel: { app_push: 'Thông báo app', zalo_zns: 'Zalo ZNS', sms: 'SMS', voice_bot: 'Trợ lý giọng nói', telesales: 'Telesales', vetc_app: 'Ứng dụng VETC', zalo: 'Zalo', partner_api: 'API đối tác', email: 'Email' },
+    channel: { app_push: 'Thông báo app', zalo_zns: 'Zalo ZNS', sms: 'SMS', voice_bot: 'Trợ lý giọng nói', telesales: 'Telesales', vetc_app: 'Ứng dụng VETC', zalo: 'Zalo', partner_api: 'API đối tác', zalo_mini_app: 'Zalo Mini App', tasco_app: 'Ứng dụng TASCO', tasco_web: 'Website TASCO', email: 'Email' },
     dq: {
       phone: 'Thiếu số điện thoại', name: 'Thiếu tên', reliable_expiry: 'Ngày hết hạn chưa tin cậy', vehicle_category: 'Chưa rõ loại xe', current_insurer: 'Chưa rõ DN bảo hiểm',
       conflicting_phone: 'Số điện thoại mâu thuẫn', invalid_plate: 'Biển số không hợp lệ', wrong_person: 'Sai người (cuộc gọi)', plate_mismatch: 'Biển số không khớp (cuộc gọi)',
@@ -221,7 +231,7 @@ const LABELS = {
       plate_mismatch: 'Plate mismatch', unverified: 'Not verified', callback_later: 'Call back later', no_answer: 'No answer', scam_concern: 'Scam concern',
     },
     voiceState: { intro: 'Introduction', verify_plate: 'Verifying plate', confirm_expiry: 'Confirming expiry', offer: 'Offer', capture_competitor: 'Capturing competitor', ended: 'Ended' },
-    channel: { app_push: 'App push', zalo_zns: 'Zalo ZNS', sms: 'SMS', voice_bot: 'Voice assistant', telesales: 'Telesales', vetc_app: 'VETC app', zalo: 'Zalo', partner_api: 'Partner API', email: 'Email' },
+    channel: { app_push: 'App push', zalo_zns: 'Zalo ZNS', sms: 'SMS', voice_bot: 'Voice assistant', telesales: 'Telesales', vetc_app: 'VETC app', zalo: 'Zalo', partner_api: 'Partner API', zalo_mini_app: 'Zalo mini app', tasco_app: 'TASCO app', tasco_web: 'TASCO website', email: 'Email' },
     dq: {
       phone: 'Missing phone', name: 'Missing name', reliable_expiry: 'Unreliable expiry date', vehicle_category: 'Uncertain vehicle category', current_insurer: 'Unknown insurer',
       conflicting_phone: 'Conflicting phone numbers', invalid_plate: 'Invalid plate', wrong_person: 'Wrong person (call)', plate_mismatch: 'Plate mismatch (call)',

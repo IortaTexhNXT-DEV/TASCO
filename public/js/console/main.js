@@ -9,6 +9,7 @@ import {
 } from './ui.js';
 import { PAGES } from './pages/index.js';
 import { qrSvg } from '../shared/qr.js';
+import { wordmark } from '../shared/brand.js';
 
 /**
  * Staff console: authentication (password + TOTP), the application shell (grouped, permission-filtered sidebar
@@ -253,8 +254,8 @@ function loginView() {
   }
 
   // Step 1: username + password.
-  const user = h('input', { id: 'u', autocomplete: 'username', required: true, name: 'username', autocapitalize: 'none', spellcheck: 'false', 'aria-describedby': 'u-err' });
-  const pass = h('input', { id: 'p', type: 'password', autocomplete: 'current-password', required: true, name: 'password', 'aria-describedby': 'p-err p-caps' });
+  const user = h('input', { id: 'u', autocomplete: 'username', required: true, name: 'username', autocapitalize: 'none', spellcheck: 'false', placeholder: t('usernamePlaceholder'), 'aria-describedby': 'u-err' });
+  const pass = h('input', { id: 'p', type: 'password', autocomplete: 'current-password', required: true, name: 'password', placeholder: t('passwordPlaceholder'), 'aria-describedby': 'p-err p-caps' });
   const toggle = h('button', { class: 'login-pw-toggle', type: 'button', 'aria-controls': 'p', 'aria-pressed': 'false', 'aria-label': L('Show password', 'Hiện mật khẩu') }, icon('eye', { size: 18 }));
   toggle.addEventListener('click', () => {
     const show = pass.type === 'password';
@@ -272,13 +273,24 @@ function loginView() {
   user.addEventListener('input', () => { fieldError(user, ''); showAlert(''); });
   pass.addEventListener('input', () => { fieldError(pass, ''); showAlert(''); });
   const submitBtn = h('button', { class: 'btn primary block lg', type: 'submit' }, h('span', {}, t('signIn')));
+  // "Forgot password?" shows the existing guidance (accounts are reset by an administrator; nothing is e-mailed).
+  const forgotHelp = h('p', { class: 'login-forgot-help', id: 'forgot-help', hidden: true }, icon('info', { size: 16 }), h('span', {}, t('forgotPasswordHelp')));
+  const forgot = h('button', { class: 'login-forgot', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'forgot-help' }, t('forgotPassword'));
+  forgot.addEventListener('click', () => {
+    const show = forgotHelp.hidden;
+    forgotHelp.hidden = !show;
+    forgot.setAttribute('aria-expanded', String(show));
+  });
+  const req = () => h('span', { class: 'login-req', 'aria-hidden': 'true' }, ' *');
   const form = h('form', { class: 'login-form', novalidate: true },
-    h('h1', { class: 'login-title' }, t('welcome')),
+    h('h1', { class: 'login-title' }, t('loginTitle')),
     h('p', { class: 'login-sub' }, t('signInHelp')),
     alertBox,
-    h('div', { class: 'field' }, h('label', { for: 'u' }, t('username')), user, h('span', { class: 'login-field-error', id: 'u-err' })),
-    h('div', { class: 'field' }, h('label', { for: 'p' }, t('password')),
+    h('div', { class: 'field' }, h('label', { for: 'u' }, t('username'), req()), user, h('span', { class: 'login-field-error', id: 'u-err' })),
+    h('div', { class: 'field' }, h('label', { for: 'p' }, t('password'), req()),
       h('div', { class: 'login-pw' }, pass, toggle), caps, h('span', { class: 'login-field-error', id: 'p-err' })),
+    h('div', { class: 'login-forgot-row' }, forgot),
+    forgotHelp,
     submitBtn,
     h('p', { class: 'login-hint' }, icon('lock', { size: 14 }), h('span', {}, t('securityNote'))));
   form.addEventListener('submit', async (e) => {
@@ -310,18 +322,22 @@ function loginView() {
       type: 'button', lang: code, 'aria-pressed': String(getLang() === code), 'aria-label': full, title: full,
       onclick: () => { if (getLang() !== code) { setLang(code); render(); } },
     }, short)));
+  const contact = [state.meta?.supportHotline ? `${t('hotline')} ${state.meta.supportHotline}` : null, state.meta?.supportEmail || null].filter(Boolean).join(' · ');
   return h('div', { class: 'login' },
+    // Brand panel: pure CSS/SVG art (no photography rights) — navy→teal gradient, diagonal bands, facade lines.
     h('section', { class: 'login-hero', 'aria-label': t('heroLabel') },
+      h('span', { class: 'login-band login-band-a', 'aria-hidden': 'true' }),
+      h('span', { class: 'login-band login-band-b', 'aria-hidden': 'true' }),
+      h('img', { class: 'login-facade', src: '/assets/brand-facade.svg', alt: '' }),
       h('div', { class: 'login-hero-inner' },
-        h('img', { class: 'login-hero-logo', src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }),
-        h('p', { class: 'login-kicker' }, 'TASCO Insurance × VETC'),
-        h('h2', { class: 'login-headline' }, t('heroHeadline')),
-        h('ul', { class: 'login-points' }, ['heroPoint1', 'heroPoint2', 'heroPoint3'].map((k) => h('li', {}, h('span', { class: 'login-point-icon' }, icon('check', { size: 14, strokeWidth: 3 })), h('span', {}, t(k)))))),
-      h('img', { class: 'login-hero-art', src: '/assets/login-hero.svg', alt: '' })),
+        wordmark({ size: 'xl', variant: 'white' }),
+        h('p', { class: 'login-tagline' }, t('productTagline')))),
     h('main', { id: 'main', class: 'login-panel' },
-      h('div', { class: 'login-top' }, h('img', { class: 'login-mobile-logo', src: '/assets/tasco-logo-tight.png', alt: 'TASCO Insurance' }), h('span', { class: 'spacer' }), langSwitch),
+      h('div', { class: 'login-top' }, wordmark({ size: 'sm', attrs: { class: 'wordmark sm login-mobile-mark' } }), h('span', { class: 'spacer' }), langSwitch),
       card,
-      h('footer', { class: 'login-credit' }, h('span', {}, t('poweredBy')), h('img', { src: '/assets/iorta-technxt-logo-tight.png', alt: 'iorta TechNXT' }))));
+      h('footer', { class: 'login-foot' },
+        contact ? h('p', { class: 'login-contact' }, icon('phone', { size: 14 }), h('span', {}, contact)) : null,
+        h('p', { class: 'login-credit' }, h('span', {}, t('poweredBy')), h('img', { src: '/assets/iorta-technxt-logo-tight.png', alt: 'iorta TechNXT' })))));
 }
 
 
@@ -435,10 +451,10 @@ function buildShell() {
     syncCollapse(on);
   });
   const sidebar = h('aside', { class: 'sidebar', id: 'sidebar' },
-    h('a', { class: 'sidebar-brand', href: '#/', 'aria-label': 'TASCO Insurance — Growth Platform' },
-      h('span', { class: 'brand-logo' }, h('img', { src: '/assets/tasco-logo-tight.png', alt: '' })),
+    h('a', { class: 'sidebar-brand', href: '#/', 'aria-label': `TASCO Insurance — ${t('productName')}` },
+      wordmark({ label: null, attrs: { class: 'wordmark brand-logo' } }),
       h('span', { class: 'brand-mark', 'aria-hidden': 'true' }, 'T'),
-      h('span', { class: 'brand-product' }, 'Growth Platform')),
+      h('span', { class: 'brand-product' }, t('productName'))),
     nav,
     h('div', { class: 'sidebar-foot' }, collapseBtn));
 
@@ -461,10 +477,10 @@ function buildShell() {
 
   const roleText = user.roles.map((r) => label('role', r)).join(', ');
   const regionText = user.region && user.region !== 'ALL' ? user.region : t('allRegions');
-  const userBtn = h('button', { type: 'button', class: 'user-btn', 'aria-label': `${t('userMenu')}: ${user.displayName || user.username}` },
-    avatar(user.displayName || user.username),
+  const userBtn = h('button', { type: 'button', class: 'user-btn', 'aria-label': `${t('userMenu')}: ${user.displayName || user.username}, ${roleText}` },
+    avatar(user.displayName || user.username, { size: 'sm' }),
     h('span', { class: 'user-text' }, h('span', { class: 'user-name' }, user.displayName || user.username), h('span', { class: 'user-role' }, roleText)),
-    icon('chevron-down', { size: 16, class: 'user-chev' }));
+    icon('chevron-down', { size: 14, class: 'user-chev' }));
   dropdownMenu(userBtn, () => [
     { node: h('div', { class: 'menu-profile', role: 'presentation' }, avatar(user.displayName || user.username, { size: 'lg' }),
       h('div', { class: 'grow' }, h('div', { class: 'strong' }, user.displayName || user.username), h('div', { class: 'small muted' }, roleText),
@@ -483,17 +499,28 @@ function buildShell() {
   ], { label: t('userMenu'), width: 280 });
 
   const search = can('profile:read') ? globalSearch() : null;
+  // Teal utility strip (as on baohiemtasco.vn): hotline left; environment, language and the user menu right.
+  const hotline = state.meta?.supportHotline ? String(state.meta.supportHotline) : null;
+  const langSwitch = h('div', { class: 'strip-lang', role: 'group', 'aria-label': t('languageLabel') },
+    [['en', 'EN', 'English'], ['vi', 'VI', 'Tiếng Việt']].map(([code, short, full]) => h('button', {
+      type: 'button', lang: code, 'aria-pressed': String(getLang() === code), 'aria-label': full, title: full, onclick: () => switchLang(code),
+    }, short)));
+  const strip = h('div', { class: 'util-strip', role: 'region', 'aria-label': t('utilityBar') },
+    hotline ? h('a', { class: 'strip-hotline', href: `tel:${hotline.replace(/[^0-9+]/g, '')}`, 'aria-label': t('hotlineCall', hotline) },
+      icon('phone', { size: 14 }), h('span', { class: 'strip-hotline-label' }, t('hotline')), h('strong', {}, hotline)) : null,
+    h('span', { class: 'spacer' }),
+    state.meta?.demoMode ? h('span', { class: 'strip-env', title: t('envUatLabel'), 'aria-label': t('envUatLabel') }, t('envUat')) : null,
+    langSwitch,
+    userBtn);
   const topbar = h('header', { class: 'topbar' },
     menuBtn, crumbs, h('span', { class: 'spacer' }),
     search,
-    h('div', { class: 'topbar-actions' }, bell, helpBtn),
-    h('span', { class: 'topbar-divider', 'aria-hidden': 'true' }),
-    userBtn);
+    h('div', { class: 'topbar-actions' }, bell, helpBtn));
 
   const main = h('main', { id: 'main', tabindex: '-1' });
   const footer = h('footer', { class: 'app-footer' }, t('footerCredit'));
   const scrim = h('div', { class: 'nav-scrim', onclick: () => closeMobileNav() });
-  const el = h('div', { class: 'app-shell' }, sidebar, scrim, h('div', { class: 'app-main' }, topbar, h('div', { class: 'app-content' }, main), footer));
+  const el = h('div', { class: 'app-shell' }, sidebar, scrim, h('div', { class: 'app-main' }, strip, topbar, h('div', { class: 'app-content' }, main), footer));
   syncCollapse(collapsedPref);
 
   function setCrumbs(items) {
