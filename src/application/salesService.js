@@ -99,6 +99,8 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
         channel: input.channel,
         partnerId: input.partnerId || null,
         journey: input.journey || null,
+        // 'quick' = 3-step quick renewal in the customer app (eligibility checked by the route); null = standard flow.
+        flow: input.flow || null,
         lines,
         total: lines.reduce((s, l) => s + l.total, 0),
         benefits: benefitsFor(benefitRules, facts),
@@ -205,7 +207,7 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
       const order = {
         id: orderId, quoteId: q.id, profileId: q.profileId, channel: q.channel, partnerId: q.partnerId, journey: q.journey,
         amount: q.total, status: 'pending_payment', createdBy: actor.id, createdAt: clock.now().toISOString(), createdDate: clock.today(),
-        coreQuoteRef: q.coreQuoteRef || null,
+        coreQuoteRef: q.coreQuoteRef || null, flow: q.flow || null,
       };
       await orders.insert(order);
 
@@ -241,6 +243,8 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
             startDate: line.startDate, endDate: line.endDate, premiumNet: line.premiumNet, vat: line.vat, total: line.total,
             status: 'active', channel: q.channel, partnerId: q.partnerId, orderId, certificateUrl: pol.certificateUrl, issuedAt: pol.issuedAt, insurer: 'TASCO',
             coreQuoteRef: q.coreQuoteRef || null,
+            // Vehicle as rated and issued by TASCO core (use and seats set the compulsory tariff category).
+            vehicle: { usage: profile?.vehicle?.usage ?? null, seats: profile?.vehicle?.seats ?? null, category: profile?.vehicle?.category ?? null },
           };
           await policies.insert(rec);
           issued.push(rec);

@@ -83,6 +83,25 @@ const SPECIFIC = {
     const w = p.contactWindow || {};
     if (!(w.startHour >= 0 && w.endHour <= 24 && w.startHour < w.endHour)) e.push('contactWindow invalid');
   },
+  service_levels: (p, e) => {
+    const posInt = (k, max) => { if (p[k] !== undefined && !(Number.isInteger(p[k]) && p[k] >= 1 && p[k] <= max)) e.push(`${k} must be a whole number from 1 to ${max}`); };
+    for (const k of ['quoteTtlHours', 'paymentLinkTtlHours', 'claimAckSlaHours', 'claimDecisionSlaHours', 'claimPaymentSlaHours', 'handoffFirstContactHours']) posInt(k, 720);
+    // Statutory response time for data-subject requests (to be confirmed by TASCO legal; Decree 13/2023, PDP Law 91/2025).
+    posInt('dsarResponseHours', 2160);
+    for (const k of ['customerDeclaredConfidence', 'stewardCorrectionConfidence', 'botRenewedElsewhereConfidence']) {
+      if (p[k] !== undefined && !(typeof p[k] === 'number' && p[k] >= 0 && p[k] <= 1)) e.push(`${k} must be between 0 and 1`);
+    }
+    const q = p.quickRenewal;
+    if (q === undefined) return;
+    if (!q || typeof q !== 'object' || Array.isArray(q)) { e.push('quickRenewal must be an object'); return; }
+    for (const k of ['enabled', 'requireConfirmedVehicle', 'allowAddOns', 'requireWalletBalance']) {
+      if (q[k] !== undefined && typeof q[k] !== 'boolean') e.push(`quickRenewal.${k} must be true or false`);
+    }
+    if (q.journeys !== undefined && (!Array.isArray(q.journeys) || q.journeys.some((j) => typeof j !== 'string' || !/^[a-z_]{2,40}$/.test(j)))) e.push('quickRenewal.journeys must be a list of journey names');
+    if (q.vehicleConfirmationMaxAgeDays !== undefined && !(Number.isInteger(q.vehicleConfirmationMaxAgeDays) && q.vehicleConfirmationMaxAgeDays >= 1 && q.vehicleConfirmationMaxAgeDays <= 1825)) {
+      e.push('quickRenewal.vehicleConfirmationMaxAgeDays must be a whole number from 1 to 1825');
+    }
+  },
   commission: (p, e) => {
     for (const r of p.table?.rules || []) {
       const prodMatch = JSON.stringify(r.when || {});

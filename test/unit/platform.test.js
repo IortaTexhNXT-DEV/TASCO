@@ -13,7 +13,8 @@ const { loadConfig } = require('../../src/shared/config');
 const { errors, AppError } = require('../../src/shared/errors');
 const util = require('../../src/shared/util');
 const { createClock } = require('../../src/shared/clock');
-const { collectionsDdl } = require('../../src/adapters/persistence/schemaSql');
+const { collectionsDdl, tableDdl } = require('../../src/adapters/persistence/schemaSql');
+const { COLLECTIONS } = require('../../src/adapters/persistence/schema');
 const { KEY, testEnv } = require('../helpers');
 
 test('field cipher: AES-256-GCM round trip, key rotation, tamper detection', () => {
@@ -211,8 +212,15 @@ test('errors, util and clock helpers', () => {
   assert.match(createClock(null).today(), /^\d{4}-\d{2}-\d{2}$/);
 });
 
-test('migration 001 matches the collection registry (schema drift guard)', () => {
-  const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'db', 'migrations', '001_init.sql'), 'utf8');
-  assert.ok(sql.includes(collectionsDdl().trim()), 'regenerate 001 or add a new migration when schema.js changes');
-  assert.match(sql, /audit_log is append-only/);
+test('migrations match the collection registry (schema drift guard)', () => {
+  const dir = path.join(__dirname, '..', '..', 'db', 'migrations');
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+  const all = files.map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
+  // Every collection's table DDL appears verbatim in one numbered migration (applied files are never edited).
+  for (const [name, def] of Object.entries(COLLECTIONS)) {
+    assert.ok(all.includes(tableDdl(name, def).trim()), `add a new numbered migration for collection ${name}`);
+  }
+  assert.ok(collectionsDdl().length > 0);
+  assert.match(fs.readFileSync(path.join(dir, '001_init.sql'), 'utf8'), /audit_log is append-only/);
+  assert.ok(files.includes('003_dsar_requests.sql'), 'data-subject request register migration');
 });

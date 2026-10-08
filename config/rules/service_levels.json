@@ -1,6 +1,6 @@
 {
   "kind": "service_levels",
-  "description": "Operational service levels and evidence weights used by services (no hardcoded numbers in code).",
+  "description": "Operational service levels and evidence weights used by services (no hardcoded numbers in code). dsarResponseHours (72 h) is the response time for data-subject requests (access / erasure) and is TO BE CONFIRMED BY TASCO LEGAL against Decree 13/2023/ND-CP and the Personal Data Protection Law 91/2025/QH15. quickRenewal sets when the customer app offers the 3-step quick renewal instead of the full 6-step flow.",
   "payload": {
     "quoteTtlHours": 24,
     "claimAckSlaHours": 4,
@@ -10,6 +10,15 @@
     "botRenewedElsewhereConfidence": 0.6,
     "paymentLinkTtlHours": 48,
     "claimDecisionSlaHours": 120,
-    "claimPaymentSlaHours": 72
+    "claimPaymentSlaHours": 72,
+    "dsarResponseHours": 72,
+    "quickRenewal": {
+      "enabled": true,
+      "journeys": ["renewal"],
+      "requireConfirmedVehicle": true,
+      "vehicleConfirmationMaxAgeDays": 365,
+      "allowAddOns": false,
+      "requireWalletBalance": true
+    }
   }
 }

@@ -5,6 +5,7 @@ const { applyDeclaredExpiry } = require('../domain/enrichment');
 const { benefitsFor, factsFor } = require('../domain/leads');
 const { signJwt } = require('../shared/crypto');
 const { maskName } = require('../shared/util');
+const { evaluateQuickRenewal, quickRenewalSettings } = require('../domain/quickRenewal');
 
 /** Vietnamese full names put the given name last ("Nguyễn Văn An" → "An"). */
 const givenName = (name) => (name ? String(name).trim().split(/\s+/).pop() : null);
@@ -15,7 +16,7 @@ const givenName = (name) => (name ? String(name).trim().split(/\s+/).pop() : nul
  * subject rights (access / erasure) under Vietnam's PDP law.
  */
 
-function createCustomerService({ store, rules, audit, events, clock, config }) {
+function createCustomerService({ store, rules, audit, events, clock, config, gateways }) {
   const profiles = store.collection('profiles');
   const leads = store.collection('leads');
   const policies = store.collection('policies');
@@ -36,7 +37,35 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
     return p;
   }
 
+  /**
+   * Quick-renewal eligibility for a customer on a host channel (see src/domain/quickRenewal.js).
+   * Vehicle evidence: TASCO core (a core source record, or the vehicle as issued on the customer's TASCO policy when it
+   * still matches the profile) or the customer's own confirmation in the app, with its date.
+   */
+  async function quickRenewal(p, { channel = 'vetc_app', lead, pols } = {}) {
+    const [levels, catalogue, recs] = await Promise.all([
+      rules.get('service_levels'), rules.get('products'),
+      sources.find({ where: { plate_key: p.id }, limit: 200 }),
+    ]);
+    const lead0 = lead === undefined ? await leads.get(p.id) : lead;
+    const pols0 = pols || await policies.find({ where: { profile_id: p.id }, orderBy: ['end_date', 'desc'], limit: 20 });
+    const evidence = recs
+      .filter((r) => ['tasco_core', 'customer_vehicle_confirmed'].includes(r.source) && r.seatsDeclared && r.usageDeclared)
+      .map((r) => ({ source: r.source, at: r.ingestedAt || null }));
+    const v = p.vehicle || {};
+    if (pols0.some((x) => x.insurer === 'TASCO' && x.vehicle?.seats && x.vehicle.seats === v.seats && x.vehicle.usage === v.usage)) evidence.push({ source: 'tasco_core', at: null });
+    const source = config?.ratingSource || 'rules';
+    const coreAvailable = source === 'rules' || (gateways?.coreRating?.state ? gateways.coreRating.state() !== 'open' : true);
+    const r = evaluateQuickRenewal({
+      settings: quickRenewalSettings(levels), profile: p, lead: lead0, policies: pols0, vehicleEvidence: evidence, catalogue,
+      channel, coreAvailable, today: clock.today(), nowMs: clock.now().getTime(),
+    });
+    return { eligible: r.eligible, reasons: r.reasons, products: r.products, termYears: r.termYears, reasonCodes: r.codes };
+  }
+
   return {
+    quickRenewal: async (profileId, opts) => quickRenewal(await mine(profileId), opts),
+
     /**
      * Token exchange: in production the VETC app's SSO token is verified with
      * VETC's identity provider; the sandbox issues a customer token for a
@@ -73,9 +102,11 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
       return out;
     },
 
-    async home(profileId) {
+    /** @param {{channel?: string}} [opts] host channel of the customer session (quick renewal depends on it). */
+    async home(profileId, { channel = 'vetc_app' } = {}) {
       const p = await mine(profileId);
       const [lead, pols, benefitRules] = await Promise.all([leads.get(profileId), policies.find({ where: { profile_id: profileId }, orderBy: ['end_date', 'desc'], limit: 20 }), rules.get('benefits')]);
+      const quick = await quickRenewal(p, { channel, lead, pols });
       return {
         // Greeting only: the given name, never the full name.
         customer: { firstName: givenName(p.name) },
@@ -91,6 +122,8 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
         policies: pols.map((x) => ({ certNo: x.certNo, policyNo: x.policyNo || null, total: x.total ?? null, issuedAt: x.issuedAt || null, insurer: x.insurer || 'TASCO', product: x.product, productNameVi: x.productNameVi || x.product, startDate: x.startDate, endDate: x.endDate, status: x.status, certificateUrl: x.certificateUrl })),
         benefits: benefitsFor(benefitRules, factsFor(p, clock.today())),
         consent: p.consent,
+        // Additive: 3-step quick renewal offered by the server when the case allows it (reasons in Vietnamese).
+        quickRenewal: { eligible: quick.eligible, reasons: quick.reasons, products: quick.products, termYears: quick.termYears },
       };
     },
 

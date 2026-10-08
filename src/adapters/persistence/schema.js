@@ -11,7 +11,8 @@
  *   pii:     document fields encrypted at rest (AES-256-GCM)
  *   blind:   { column: field }            — HMAC blind index for equality search on PII
  *
- * db/migrations/*.sql must match this file (verified by test/unit/schema.test.js).
+ * db/migrations/*.sql must match this file (verified by test/unit/platform.test.js — every collection's
+ * DDL must appear in one numbered migration; applied migrations are never edited).
  */
 
 const COLLECTIONS = {
@@ -121,6 +122,17 @@ const COLLECTIONS = {
   },
   job_runs: {
     indexes: { kind: { path: 'kind', type: 'text' }, started_at: { path: 'startedAt', type: 'timestamptz' } },
+  },
+  /** Data-subject requests (access / erasure) under Decree 13/2023 and PDP Law 91/2025 — register added in migration 003. */
+  dsar_requests: {
+    indexes: {
+      profile_id: { path: 'profileId', type: 'text' },
+      type: { path: 'type', type: 'text' },
+      status: { path: 'status', type: 'text' },
+      received_at: { path: 'receivedAt', type: 'timestamptz' },
+      due_at: { path: 'dueAt', type: 'timestamptz' },
+    },
+    pii: ['note'],
   },
 };
 
