@@ -54,7 +54,7 @@ All documents are delivered in Word format. Documents are counted by topic, not 
 
 # Versioning
 
-All documents in this set are issued as version 1.0, dated 07/10/2026, for submission. After contract signature:
+All documents in this set are issued as version 1.0, dated 08/10/2026, for submission. After contract signature:
 
 - a minor change (correction or clarification) increases the version by 0.1;
 - a change of substance (scope, design, plan or commitment) increases the major version and needs the approval named on the cover;

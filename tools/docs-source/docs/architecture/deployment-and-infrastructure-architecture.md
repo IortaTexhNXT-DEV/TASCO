@@ -351,7 +351,7 @@ These assumptions are validated in pre-production (TGP-QA-03 Performance and Cap
 
 | Workload | Estimate | Implication |
 |---|---|---|
-| API | 10 to 20 requests per second normally; about 150 for 15 minutes after a push wave | Three pods are ample: one process sustained 337 requests per second (95th percentile 103 ms, no errors) in the load smoke |
+| API | 10 to 20 requests per second normally; about 150 for 15 minutes after a push wave | Three pods are ample: one process sustained 194 requests per second (95th percentile 210 ms, no errors) in the load smoke |
 | Journey runs | About 115,000 touchpoint evaluations a day | 15 to 25 minutes per run with providers at 100 ms; parallel workers and asynchronous calls are needed before full scale |
 | Nightly re-scoring | 6 million profiles | Sharded workers with keyset paging to finish in about an hour |
 | Orders | About 2,500 a day, peak about 1 per second | Bound by wallet and core latency |

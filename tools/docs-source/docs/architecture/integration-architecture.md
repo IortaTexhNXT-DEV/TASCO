@@ -532,7 +532,7 @@ The message content rule set holds the canonical wording, and the Zalo template 
 
 ## SMS
 
-Messages go out under a registered TASCO brandname through an SMS aggregator, under the anti-spam and advertising rules of Decree 91/2020/ND-CP (to be confirmed by TASCO legal). Vietnamese diacritics force UCS-2 encoding at 70 characters per segment, so templates are checked for segment count before approval.
+Messages go out under a registered brandname through an SMS aggregator; today's templates are sent in VETC's name as the owner of the customer relationship, and the sender name is confirmed with the consent basis in discovery. They follow the anti-spam and advertising rules of Decree 91/2020/ND-CP (to be confirmed by TASCO legal). Vietnamese diacritics force UCS-2 encoding at 70 characters per segment, so templates are checked for segment count before approval.
 
 # Voice AI vendor
 

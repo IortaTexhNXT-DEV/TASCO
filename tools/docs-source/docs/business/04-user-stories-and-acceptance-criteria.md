@@ -242,7 +242,7 @@ Scenario Outline: First matching NBA rule wins
     | 60 days to expiry, confidence 0.8              | Schedule reminders              |
     | uninsured recovery journey                     | Urgent: vehicle uninsured       |
     | hot, call consent, has phone, 20 days          | AI voice assistant → telesales  |
-    | warm, app push enabled, 20 days                | One-tap renew link (app / Zalo) |
+    | warm, app push enabled, 20 days                | Renewal link (app / Zalo)       |
     | phone only, 20 days                            | SMS reminder                    |
     | no phone, app or Zalo, 20 days                 | Find a contact channel          |
 ```
@@ -429,7 +429,7 @@ Scenario: Expiry far away
 
 ## US-021 Remind me when I am in the app with money
 
-As a customer (PC-2) topping up my VETC wallet, I want a renewal prompt at that moment, so that I can pay in one tap. Requirement FR-026. Priority S.
+As a customer (PC-2) topping up my VETC wallet, I want a renewal prompt at that moment, so that I can renew and pay straight away. Requirement FR-026. Priority S.
 
 ```gherkin
 Scenario: Wallet top-up within ±30 days of expiry

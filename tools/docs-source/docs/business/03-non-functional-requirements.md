@@ -79,7 +79,7 @@ TASCO IT architecture, IT security and operations, VETC integration, and the ior
 
 Requirements are numbered NFR-nnn. Status is Built (in place and tested), Partial (in place with a gap noted) or Planned. Targets are proposed; they are agreed with TASCO and VETC IT during discovery and confirmed by a full-scale performance test in pre-production before the base grows beyond the pilot.
 
-The current quality baseline is 271 automated tests (268 pass, 0 fail, 3 to-do for manual or roadmap scenarios), plus a separate PostgreSQL suite of 8 tests, all passing. Line coverage is above 99%, and there are no lint errors. TGP-QA-01 Test Strategy records the coverage figures of each build. A load smoke test on a single instance on 7 October 2026 reached 337 requests per second with a 95th-percentile response time of 103 ms and no errors.
+The current quality baseline is 271 automated tests (268 pass, 0 fail, 3 to-do for manual or roadmap scenarios), plus a separate PostgreSQL suite of 8 tests, all passing. Line coverage is above 99%, and there are no lint errors. TGP-QA-01 Test Strategy records the coverage figures of each build. A load smoke test on a single instance on 8 October 2026 reached 194 requests per second with a 95th-percentile response time of 210 ms and no errors.
 
 ## Workload model
 
