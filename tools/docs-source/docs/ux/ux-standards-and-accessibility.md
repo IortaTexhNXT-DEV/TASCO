@@ -25,8 +25,8 @@ acronyms:
   - [WCAG, Web Content Accessibility Guidelines]
 signoff:
   - ["Customer-facing wording in the customer app (payment declaration, claim declaration, lapsed-cover messages) to be confirmed by TASCO legal", "TASCO Compliance", Open]
-  - ["Rejection, dismissal and lost-sale reason lists approved as business wording", "TASCO Product Owner", Open]
-  - ["Accessibility gaps in the Appendix closed in the build sprints and re-tested before UAT", "iorta TechNXT UX Lead", Open]
+  - ["Rejection, dismissal, lost-sale and data-request refusal reason lists approved as business wording", "TASCO Product Owner and TASCO Compliance", Open]
+  - ["Automated accessibility scan in continuous integration (gap G-5) added in the build sprints and the pages re-tested before UAT", "iorta TechNXT UX Lead", Open]
   - ["Independent accessibility audit before go-live commissioned, or waived by TASCO", "TASCO Programme Sponsor", Open]
 ---
 
@@ -83,7 +83,7 @@ Customer text is Vietnamese, warm and short. The app addresses the customer as "
 Two safety messages sit at the foot of the main customer screens and appear in every relevant flow:
 
 - "Phí bảo hiểm TNDS bắt buộc theo quy định của Bộ Tài chính." The TNDS premium is set by regulation.
-- "VETC và TASCO không bao giờ yêu cầu mã OTP qua điện thoại." Payment happens only inside the app.
+- "VETC và TASCO không bao giờ yêu cầu mã OTP qua điện thoại." in VETC hosts, and "TASCO không bao giờ yêu cầu mã OTP qua điện thoại." in TASCO's own hosts. Payment happens only inside the app.
 
 ## No discount wording
 
@@ -131,7 +131,7 @@ Every list where records move through steps (claims, telesales handoffs, data is
 1. The last column, "Next step", holds one primary action: a single fixed-width button, one line, labelled with a verb for what the user does next.
 2. Secondary and negative actions sit in the ⋯ menu next to it ("More actions"), with negative actions in red at the bottom after a separator.
 3. Closed records (paid, rejected, closed, won, lost) show a muted "View" instead of an empty cell.
-4. Decisions (approve, reject, pay, assign, dismiss, suspend) never act on one click. They open a dialog that asks for what the decision needs and then shows a summary to confirm (the decision dialog in TGP-UX-01).
+4. Decisions (approve, reject, pay, assign, dismiss, suspend, export, erase, refuse) never act on one click. They open a dialog that asks for what the decision needs and then shows a summary to confirm (the decision dialog in TGP-UX-01). An irreversible decision states its consequence in a notice at the top of the dialog and asks the user to type the record's key value to confirm.
 5. After the decision a toast confirms the result, the row updates in place and badge counts refresh.
 6. The detail drawer shows the record's progress as workflow steps, with who did each step and when, and an SLA chip with the time left.
 
@@ -146,6 +146,7 @@ Every list where records move through steps (claims, telesales handoffs, data is
 | Business rules | Save draft; Submit for approval; Approve and activate; Roll back to this version | | Change note; approval comment; rejection reason |
 | Users | Edit roles; Unlock; Enable | View details, Reset two-step verification, Reset password, Disable | Roles and region; confirmation |
 | Operations | Run now | View history | Confirmation that the job runs on live data |
+| Data requests | Export data (access); Erase personal data (erasure) | View, Open customer, Start handling, Record identity verified, Refuse | Identity check if not recorded; erasure reason and the plate typed to confirm; refusal reason and explanation for the customer |
 
 A rule author cannot approve their own change, and the approve action is not offered to them. Restricted rule kinds (contact policy, copy guard, commission, data retention, attribute access policies) are offered only to compliance officers.
 
@@ -159,7 +160,7 @@ A rule author cannot approve their own change, and the approve action is not off
 - One line of help under a field gives the format or the reason ("Whole đồng, after deductible", "Ngày/tháng/năm, ví dụ 07/10/2026").
 - Questions the system can answer are not asked. The plate and vehicle are filled from the session, the quote carries into payment, and a confirmed expiry date is reused.
 - Inputs keep what the user typed after an error or a failed request.
-- Financial and irreversible steps have a review step before the final button: the customer purchase has a review screen and a confirmation sheet; staff decisions use the decision dialog.
+- Financial and irreversible steps have a review step before the final button. The full purchase flow has a review screen and a confirmation sheet. Quick renewal has one review screen that shows the plate, vehicle, period, premium, total and payment method, with the declaration tick before "Xác nhận thanh toán". Staff decisions use the decision dialog, and erasure adds the typed plate.
 
 ## Validation
 
@@ -213,7 +214,7 @@ The staff console, the customer app and the certificate check page conform to WC
 | Dragging and target size | 2.5.7, 2.5.8 | No action needs dragging; console targets are at least 32 px (24 px minimum), customer app targets 44 px, buttons 52 px |
 | Language | 3.1.1, 3.1.2 | The page language follows the console setting; the customer app and certificate check are marked Vietnamese |
 | Predictable | 3.2.1, 3.2.2, 3.2.6 | Nothing navigates on focus or on choosing a filter; Help is always in the same place in the top bar, and the support button in the customer app |
-| Errors and prevention | 3.3.1 to 3.3.4, 3.3.7 | Errors named next to the field with a fix; review and confirm before payment and decisions; no repeated entry |
+| Errors and prevention | 3.3.1 to 3.3.4, 3.3.7 | Errors named next to the field with a fix; review and confirm before payment and decisions (on the quick renewal path the review screen and the declaration tick come before payment); erasure needs the plate typed; no repeated entry |
 | Authentication | 3.3.8 | Paste and password managers allowed; the six-box code accepts a pasted code and the phone's one-time-code autofill; the authenticator set-up offers a typed key as an alternative to the QR code; no puzzles |
 | Name, role, value | 4.1.2 | Native controls first; switches, tabs, menus, the search combobox and dialogs carry ARIA roles and states; icon-only buttons have names |
 | Status messages | 4.1.3 | Toasts sit in a polite live region, errors in alert regions; the payment progress and result are announced |
@@ -238,7 +239,7 @@ When the system asks for reduced motion, all transition durations become zero, s
 - Every touch target is at least 44 × 44 px; buttons and inputs are 52 px; tabs are 64 px tall.
 - The app reads correctly with VoiceOver and TalkBack in Vietnamese: the plate is read as "Biển số 30E-949.35", the day ring as "Còn 26 ngày bảo hiểm", the claim progress bar as "Bước 2 trên 5".
 - The QR code of the certificate has a text alternative with the certificate number.
-- The floating support button never appears in the purchase flow, so it cannot hide the payment button.
+- The floating support button never appears in the purchase flow or on the quick renewal screen, so it cannot hide the payment button.
 - Portrait and landscape both work.
 
 # Localisation

@@ -22,6 +22,7 @@ acronyms:
   - [UAT, User Acceptance Testing]
   - [WCAG, Web Content Accessibility Guidelines]
 signoff:
+  - ["Data request response time of 72 hours, used in UAT-CO-08, to be confirmed by TASCO legal", TASCO Legal, Open]
   - [Named UAT testers per persona confirmed by 08/01/2027, TASCO Product Owner, Open]
   - ["VETC CX testers, test devices and funded test wallets available by 14/01/2027", VETC Product Owner, Open]
   - ["Rating mode for UAT (core only, or core with indicative fallback) chosen in discovery", TASCO Business Owner, Open]
@@ -85,13 +86,13 @@ On the hosted UAT the demo accounts are used. They are unlocked and reset at eve
 | Data set | Source | Volume |
 |---|---|---|
 | Vehicle base | Synthetic generator with a fixed seed per cycle, plus the reference profiles below | 50,000 |
-| Reference profiles | Hand-crafted for deterministic scenarios | 12 |
+| Reference profiles | Hand-crafted for deterministic scenarios | 13 |
 | Customer test identities | VETC test accounts with test wallets, Zalo test accounts, test SIMs | 20 |
 | Partner keys | `P-BANK-UAT`, `P-SHOWROOM-UAT` | 2 |
 
 | Reference | Profile | Used in |
 |---|---|---|
-| UAT-REF-01 | Hà Nội car under 6 seats, TASCO-insured, expiry in 30 days, verified, all consents | UAT-CM-01, UAT-CU-01 |
+| UAT-REF-01 | Hà Nội car under 6 seats, TASCO TNDS only, expiry in 30 days, verified, all consents, use and seats confirmed, VETC wallet covers the premium (eligible for quick renewal) | UAT-CM-01, UAT-CU-01, UAT-CO-08 |
 | UAT-REF-02 | TP. Hồ Chí Minh car, other insurer, expiry in 14 days, confidence 0.7, call consent | UAT-TS-01, UAT-VB-01 |
 | UAT-REF-03 | Hà Nội, expiry unknown (confidence below 0.5) | UAT-CU-02, UAT-DS-01 |
 | UAT-REF-04 | Hà Nội, lapsed 10 days | UAT-CM-02 |
@@ -103,6 +104,7 @@ On the hosted UAT the demo accounts are used. They are unlocked and reset at eve
 | UAT-REF-10 | New toll tag activated 3 days ago | UAT-CM-04 |
 | UAT-REF-11 | Conflicting phones across two sources | UAT-DS-02 |
 | UAT-REF-12 | Plate not in the base | UAT-PA-01 |
+| UAT-REF-13 | As UAT-REF-01, but use and seats never confirmed (not eligible for quick renewal until confirmed) | UAT-CU-01 |
 
 # Business scenarios
 
@@ -147,11 +149,11 @@ Run by VETC customer service testers on test devices.
 
 | ID | Scenario | Acceptance criteria | Related cases |
 |---|---|---|---|
-| UAT-CU-01 | Receive a renewal reminder, open the link and renew in three taps or fewer with the VETC wallet | Link opens the right vehicle; regulated premium; paid once; e-certificate shown; confirmation received; reminders stop | TC-073, TC-059, TC-150 |
+| UAT-CU-01 | Receive a renewal reminder, open the link and renew by both paths: quick renewal for UAT-REF-01, the full flow for UAT-REF-13 and by choice | Link opens the right vehicle. Where the case is eligible, "Gia hạn nhanh" renews in 3 steps: open, tick the declaration, "Xác nhận thanh toán". Where it is not, the reason is shown and the full flow is offered. The full flow (6 steps, "Gia hạn ngay" to "Xác nhận thanh toán") is always available as "Tùy chỉnh gói bảo hiểm". Regulated premium; paid once; e-certificate shown; confirmation received; reminders stop; median renewal time 60 seconds or less | TC-059, TC-073, TC-150, TC-202 to TC-205 |
 | UAT-CU-02 | Confirm the current expiry date | Date saved; confirmation prompt cleared; lead re-evaluated | TC-035 |
 | UAT-CU-03 | Turn off marketing and calls in the consent centre | Takes effect at once; service messages still arrive | TC-053, TC-054 |
 | UAT-CU-04 | Report an accident with photos | Claim reference shown; status visible; acknowledgement time communicated | TC-100 |
-| UAT-CU-05 | Download my data | Export complete and readable | TC-105 |
+| UAT-CU-05 | Download my data | Export complete and readable; recorded in the data requests register as a completed access request from the app | TC-105, TC-194 |
 | UAT-CU-06 | Scan the certificate QR as a third party (for example traffic police) | Validity, product, period and masked plate shown; no name or phone | TC-074 |
 | UAT-CU-07 | Renew with a screen reader on iOS and Android | Flow can be completed; WCAG 2.2 AA issues logged | TC-145 |
 
@@ -174,9 +176,10 @@ Run by VETC customer service testers on test devices.
 | UAT-CO-02 | Marketing attempted at 07:30 and 20:15, and to a customer without marketing consent | Blocked with the right reasons | TC-050, TC-052, TC-053 |
 | UAT-CO-03 | Any contact with a do-not-contact customer | Blocked on every channel; voice session refused | TC-055 |
 | UAT-CO-04 | Frequency caps | At most 1 marketing message a day and 3 a week; at most 2 calls a week | TC-056, TC-057 |
-| UAT-CO-05 | Erasure requests for UAT-REF-09 (active policy) and UAT-REF-08 | REF-09 refused with the legal-obligation message; REF-08 anonymised; activity recorded | TC-106, TC-107 |
+| UAT-CO-05 | Erasure requests for UAT-REF-09 (active policy) and UAT-REF-08, logged in the data requests register | "Erase personal data" asks for a reason and the typed plate; REF-09 refused with the policy end date and the legal-obligation message; REF-08 anonymised; activity recorded | TC-106, TC-107, TC-189, TC-190 |
 | UAT-CO-06 | Review the audit trail and check its integrity | Integrity verified; actions traceable to named users | TC-110 |
 | UAT-CO-07 | Benefits pending legal review do not reach customers | Loyalty points not visible in the app | TC-041 |
+| UAT-CO-08 | Handle a data request in Governance › "Data requests" ("Yêu cầu dữ liệu cá nhân"): "Log request" for an access request received by the hotline for UAT-REF-01, verify identity, "Export data" and download; refuse a second request with a reason; review due and overdue requests | Due date set from the response time (72 hours, to be confirmed by TASCO legal); export not possible before identity is verified; file named TASCO-data-<plate>-<date>.json; refusal reason recorded; open, "Due within 24 h", "Overdue" and "Completed in 30 days" counts correct; timeline per request; screen not available to other roles; activity recorded | TC-184, TC-186, TC-187, TC-191 to TC-193, TC-196 |
 
 ## Data steward
 
@@ -230,7 +233,7 @@ Run by VETC customer service testers on test devices.
 |---|---|
 | X1 | All scenarios executed; at least 95 % passed |
 | X2 | No open Sev 1 or Sev 2 defects, or Sev 2 waived in writing by the Business Owner with a fix date before the ramp-up to the full pilot cohort on 15/02/2027 |
-| X3 | All compliance scenarios (UAT-CO-01 to 07, UAT-RU-02, 03, 05, UAT-VB-01, 03) passed. No waiver is possible |
+| X3 | All compliance scenarios (UAT-CO-01 to 08, UAT-RU-02, 03, 05, UAT-VB-01, 03) passed. No waiver is possible |
 | X4 | Usability: task success at least 90 % on UAT-TS-01, UAT-TS-02 and UAT-CU-01; SUS at least 70 |
 | X5 | Sign-off sheet (Appendix) signed by every persona lead and the Business Owner |
 
@@ -279,11 +282,11 @@ Defects carry the request ID shown on screen or in the API response, the persona
 | Voice bot campaign | UAT-VB-01 to 04 | | | | |
 | Customer (VETC app and Zalo) | UAT-CU-01 to 07 | | | VETC Product Owner | |
 | Rules | UAT-RU-01 to 06 | | | | |
-| Compliance | UAT-CO-01 to 07 | | No waivers permitted | TASCO Compliance Officer | |
+| Compliance | UAT-CO-01 to 08 | | No waivers permitted | TASCO Compliance Officer | |
 | Data steward | UAT-DS-01 to 03 | | | | |
 | Partners | UAT-PA-01 to 05 | | | | |
 | Claims | UAT-CL-01 | | | | |
 | Executive, auditor, administrator, support | UAT-EX-01, UAT-AU-01, UAT-AD-01, UAT-AD-02, UAT-OP-01 | | | | |
-| Overall acceptance | 50 scenarios | | | TASCO Business Owner | |
+| Overall acceptance | 51 scenarios | | | TASCO Business Owner | |
 
 Decisions are Accept, Accept with conditions, or Reject. Conditions attached to an acceptance are copied to TGP-OPS-04 Production Readiness Checklist with an owner and due date.

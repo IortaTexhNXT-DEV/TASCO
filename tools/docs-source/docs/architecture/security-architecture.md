@@ -3,12 +3,14 @@ id: TGP-ARC-04
 title: Security Architecture
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Solution Architecture
 reviewed_by: TASCO Insurance, Information Security
 approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
+  - [ADR, Architecture decision record]
+  - [AES, Advanced Encryption Standard]
   - [AI, Artificial intelligence]
   - [API, Application programming interface]
   - [ASVS, OWASP Application Security Verification Standard]
@@ -16,7 +18,8 @@ acronyms:
   - [CI, Continuous integration]
   - [CI/CD, Continuous integration and continuous delivery]
   - [CSP, Content Security Policy]
-  - [DSAR, Data subject access request]
+  - [GCM, Galois/Counter Mode]
+  - [HMAC, Hash-based message authentication code]
   - [HSTS, HTTP Strict Transport Security]
   - [HTTP, Hypertext Transfer Protocol]
   - [IP, Internet Protocol]
@@ -34,6 +37,7 @@ acronyms:
   - [RBAC, Role-based access control]
   - [RFC, Request for Comments (IETF standard)]
   - [SBOM, Software bill of materials]
+  - [SHA, Secure Hash Algorithm]
   - [SIEM, Security information and event management]
   - [SIT, System integration testing]
   - [SQL, Structured Query Language]
@@ -47,7 +51,9 @@ acronyms:
   - [WAF, Web application firewall]
 signoff:
   - [Personal data breach notification deadlines and channel, to be confirmed by TASCO legal, Open]
-  - [Applicable PDP obligations (Decree 13/2023/ND-CP and the Law on Personal Data Protection 2025), to be confirmed by TASCO legal, Open]
+  - [Applicable PDP obligations (Decree 13/2023/ND-CP and the Personal Data Protection Law 91/2025/QH15), to be confirmed by TASCO legal, Open]
+  - [Response time for data-subject requests (72 hours in the service levels rule set), to be confirmed by TASCO legal, Open]
+  - [Identity verification evidence accepted for data-subject requests by each channel, TASCO Compliance and DPO, Open]
   - [Independent penetration test before go-live, TASCO Information Security, Open]
   - [Database role separation and audit-chain anchoring in production, TASCO IT Infrastructure, Open]
 ---
@@ -56,7 +62,7 @@ signoff:
 
 ## Purpose
 
-This document describes how the TASCO Growth Platform protects personal data, money movement, regulated rules and the audit trail. It sets out the assets and threats, the trust boundaries and zero-trust controls, identity and access control, cryptography and secrets, application security, monitoring, the secure delivery pipeline and the residual risks with their treatment.
+This document describes how the TASCO Growth Platform protects personal data, money movement, regulated rules and the audit trail. It sets out the assets and threats, the trust boundaries and zero-trust controls, identity and access control, cryptography and secrets, the handling of data-subject requests, application security, monitoring, the secure delivery pipeline and the residual risks with their treatment.
 
 ## Scope
 
@@ -83,7 +89,7 @@ TASCO Insurance Chief Information Security Officer and information security team
 | Asset | Why it matters | Primary objective |
 |---|---|---|
 | Personal data of about 6 million vehicle owners | Personal data protection law and customer trust (to be confirmed by TASCO legal) | Confidentiality, lawful processing |
-| Money movement: wallet debits, refunds, partner commission | Fraud and double charging | Integrity, non-repudiation |
+| Money movement: VETC wallet and TASCO payment gateway debits, refunds, partner commission | Fraud and double charging | Integrity, non-repudiation |
 | Regulated rules: tariffs, copy guard, commission caps, consent policy | Mis-selling and unlawful discounts on compulsory cover | Integrity, four-eyes control |
 | Policies and e-certificates | Legal proof of compulsory cover | Integrity, availability |
 | Audit trail | Accountability to regulators and auditors | Tamper evidence |
@@ -146,7 +152,7 @@ Personal data crosses into third parties only where a provider needs it: phone n
 
 # Threat model
 
-The threat model follows STRIDE. The table lists the main threats per component, the key controls and the residual risk after those controls. Residual risks rated Medium are tracked in section 11.
+The threat model follows STRIDE. The table lists the main threats per component, the key controls and the residual risk after those controls. Residual risks rated Medium are tracked in section 12.
 
 | Component | Main threats | Key controls | Residual risk |
 |---|---|---|---|
@@ -155,7 +161,7 @@ The threat model follows STRIDE. The table lists the main threats per component,
 | Customer session | Link forgery; link reuse; session after erasure | HMAC-signed links that expire after 30 days; customer tokens cannot reach staff routes; erased customers lose sessions | Medium (SR-05) |
 | Partner API | Stolen key; scope abuse; data exposure; data poisoning | Hashed keys, scopes per route, ownership checks, partner status check; partner data at lower trust | Medium (SR-03) |
 | Rules engine | Code injection through rules; approving one's own change | No code evaluation, operator allow-list, prototype keys forbidden; four-eyes approval; restricted kinds need a compliance officer; transactional activation | Low (SR-09) |
-| Sales and payment | Staff debiting a wallet; double charging; paying an unconfirmed price | Only the customer can pay; atomic quote claim; idempotent orders; indicative quotes blocked; saga refund | Low (SR-11) |
+| Sales and payment | Staff taking a payment; double charging; paying an unconfirmed price | Only the customer can pay; atomic quote claim; idempotent orders; indicative quotes blocked; saga refund | Low (SR-11) |
 | Journeys and messaging | Unlawful or misleading messages; double sends | Contact policy, consent and caps; copy guard at approval and at send; overlapping runs prevented | Low (SR-10) |
 | Voice assistant | Vishing; disclosure of customer data on a call | Customer says the plate, bot never reads data; disclosure and trust line; transcript encrypted | Medium (SR-07) |
 | Persistence | SQL injection; data theft from database or backups | Parameterised SQL only, column allow-list, field encryption, TLS with certificate verification | Low |
@@ -195,7 +201,7 @@ Authorisation runs in two steps: role-based permissions first, then attribute-ba
 | Telesales supervisor | As telesales agent, plus assign handoffs and view dashboards | Yes, own region | Recommended |
 | Rule author | Draft, simulate and submit rule changes | No | No |
 | Rule approver | Approve or reject rule changes, view audit | No | Yes |
-| Compliance officer | Approve rule changes including restricted kinds, view audit, handle data subject requests | Masked | Yes |
+| Compliance officer | Approve rule changes including restricted kinds, view audit, keep the data requests register (log, verify, export, erase, refuse) | Masked | Yes |
 | Data steward | Resolve data quality issues, correct customer data, load data | Yes, own region | Yes |
 | Claims handler | View and update claims, view policies and customers | Masked | No |
 | Partner manager | Manage partners and API keys, view statements and policies | No | Recommended |
@@ -204,7 +210,7 @@ Authorisation runs in two steps: role-based permissions first, then attribute-ba
 | Customer | Own data, quotes, payments, consent and claims | Own only | Not applicable |
 | Partner system | Quote, order, own policies and statements, within key scopes | Own sales only | Not applicable |
 
-No role can take payment. Telesales create a quote and send it to the customer, who confirms and pays inside the VETC app.
+No role can take payment. Telesales create a quote and send it to the customer, who confirms and pays inside the customer app.
 
 ## Permissions
 
@@ -225,7 +231,7 @@ No role can take payment. Telesales create a quote and send it to the customer, 
 | `claims:read`, `claims:update` | View and progress claims | Claims handler |
 | `dq:read`, `dq:resolve`, `data:ingest` | Data quality and data loading | Data steward |
 | `partners:manage` | Partners, keys and statements | Partner manager |
-| `dsar:manage` | Data subject export and erasure | Compliance officer |
+| `dsar:manage` | Data requests register: log, start, export, erase and refuse data-subject requests | Compliance officer |
 | `customer:self`, `partner:transact` | Customer and partner channels | Customer, partner system |
 
 ## Separation of duties
@@ -248,7 +254,7 @@ A policy applies to anyone holding one of its roles, unless another role held by
 
 ## Masking
 
-Without permission to see personal data, names become initials and phones are masked (for example `0912***678`). Handoffs carry only a masked phone, the voice assistant speaks a masked plate, and the public certificate check returns a masked plate. Every customer 360 view is audited with whether personal data was visible.
+Without permission to see personal data, names become initials and phones are masked (for example `0912***678`). The data requests register shows only a masked name and the plate, and its detail view counts the records held instead of showing them. Handoffs carry only a masked phone, the voice assistant speaks a masked plate, and the public certificate check returns a masked plate. Every customer 360 view is audited with whether personal data was visible.
 
 # Data protection and cryptography
 
@@ -267,6 +273,40 @@ Without permission to see personal data, names become initials and phones are ma
 Keys are mounted as read-only files from the secret store and held in process memory. The production target wraps data keys with a KMS key and unwraps them at start-up through workload identity, with key use logged by the KMS and keys kept in a Vietnamese region (to be confirmed by TASCO legal).
 
 Secrets are delivered as files, never in images, Git or configuration maps (TGP-ARC-05 Deployment and Infrastructure Architecture). Production refuses to start if the token secret, blind-index key or data keys are missing, if a data key is not 32 bytes, if the database URL is missing or if demo mode is on. Outside production, a missing secret is replaced by an ephemeral value with a start-up warning. Secret scanning runs in CI, and the logger redacts secrets, tokens, keys and authorisation headers.
+
+# Data-subject requests
+
+Customers can ask TASCO for a copy of their personal data (access) or for its erasure. The platform keeps a register of these requests so that compliance can show each one was verified, answered on time and recorded. The legal basis is Decree 13/2023/ND-CP and the Personal Data Protection Law 91/2025/QH15; the response time and the identity evidence accepted are to be confirmed by TASCO legal.
+
+## Process
+
+A request can arrive by hotline, email, the app, a branch or letter. A compliance officer logs it in the "Data requests" screen ("Yêu cầu dữ liệu cá nhân") in the Governance group of the staff console, finding the customer by plate, phone or profile. The register sets the due time from the received time plus `dsarResponseHours` in the service levels rule set: 72 hours, to be confirmed by TASCO legal. The diagram shows the states a request moves through.
+
+```mermaid
+%% caption: States of a data-subject request in the register
+stateDiagram-v2
+  [*] --> received: Logged by compliance
+  received --> in_progress: Started
+  received --> completed: Exported or erased
+  in_progress --> completed: Exported or erased
+  received --> refused: Refused with reason
+  in_progress --> refused: Refused with reason
+  completed --> [*]
+  refused --> [*]
+```
+
+| Step | Control |
+|---|---|
+| Identity verification | The officer must record that the requester's identity was verified before any export or erasure; without it the action is rejected. The verification time and officer are kept on the request. |
+| Access | The export runs the customer data export and downloads a JSON file named `TASCO-data-<plate>-<date>.json`. The request is completed with the outcome "exported". |
+| Erasure | Needs a reason of at least five characters and the vehicle plate typed again to confirm. Personal data is anonymised, not deleted, so legally required records stay but are no longer linked to a person (TGP-ARC-03 Data Architecture lists what is cleared). |
+| Policy in force | Erasure is refused while the customer has a policy in force, because the policy must be kept by law. The request is closed as refused, with the reason and the policy end date in business language. |
+| Other refusals | The officer can refuse with a written reason, for example when identity cannot be verified. |
+| Self-service | A customer's own "download my data" in the app is recorded as a completed access request on the app channel, verified by the signed-in session. |
+
+## Monitoring and audit
+
+The register shows four figures: open requests, requests due within 24 hours, overdue requests and requests completed in the last 30 days. Each request keeps a timeline of its status changes with the time and the officer. Every action is written to the hash-chained audit trail: viewing the register, logging, viewing a request, starting it, verifying identity, completing and refusing. The register holds a masked name and the plate only, and its free-text note is encrypted at rest. All register routes (`/api/dsar` and its sub-paths) need the `dsar:manage` permission, held only by the compliance officer.
 
 # Application security
 
@@ -300,7 +340,7 @@ Every route declares an allow-list schema: unknown fields are rejected, strings 
 | V5 Validation and encoding | Implemented | Allow-list schemas; JSON only; parameterised SQL; safe rule interpreter | SR-13 |
 | V6 Stored cryptography | Partial | AES-256-GCM with key ids; scrypt; secrets from files | KMS-wrapped keys; re-key and index rotation jobs |
 | V7 Errors and logging | Implemented | Generic errors with request id; JSON logs; redaction; audit chain | SIEM integration |
-| V8 Data protection | Partial | Field encryption; masking; no-store; DSAR export and erasure; retention rules | SR-07; legal hold flag |
+| V8 Data protection | Partial | Field encryption; masking; no-store; data-subject request register with verified export and erasure; retention rules | SR-07; legal hold flag |
 | V9 Communication | Infrastructure | TLS at ingress; HSTS; TLS to the database | mTLS to providers |
 | V10 Malicious code | Implemented | Minimal dependencies; static analysis; dependency and secret scanning | None |
 | V11 Business logic | Implemented | Maker-checker; customer-only payment; idempotency; quote validity; inspection gate; caps; copy guard | SR-09 |
@@ -315,7 +355,8 @@ The audit trail is append-only and hash-chained (ADR-008). It records:
 - sign-in, failures, lockouts, MFA enrolment and password changes;
 - user and partner changes, key issue and revocation;
 - rule drafts, submissions, approvals, rejections and catalogue sync proposals;
-- data loads, profile views (with whether personal data was visible), corrections, consent changes, data subject exports and erasures, data quality resolutions;
+- data loads, profile views (with whether personal data was visible), corrections, consent changes, data quality resolutions;
+- data-subject requests: register views, requests logged, viewed, started, identity verified, completed (export or erasure) and refused;
 - quotes, re-rates, inspections, quotes sent to customers, completed and failed orders, claims and claim status changes;
 - call outcomes, handoff updates, journey runs, ecosystem events, re-scoring and jobs.
 
@@ -337,7 +378,7 @@ Audit details hold ids, reasons and IP addresses, never names or phones. Securit
 | Dynamic scan | OWASP ZAP baseline driven by the OpenAPI document | High alerts fail |
 | SBOM | CycloneDX attached to the build | Must exist |
 
-The latest recorded run, on 08/10/2026, executed 255 tests: 252 passed, none failed and 3 are marked to-do (manual or roadmap scenarios). Coverage was 99.41% of lines, 88.25% of branches and 97.12% of functions, and ESLint reported no errors. The PostgreSQL suite of 8 tests runs separately. Results are recorded in the test cases and results workbook (TGP-QA-02 Test Case Catalogue). Changes to cryptography, the HTTP pipeline, security configuration and migrations require a security reviewer; a code-owners file will enforce this.
+The latest recorded run, on 08/10/2026, executed 271 tests: 268 passed, none failed and 3 are marked to-do (manual or roadmap scenarios). Line coverage is above 99%, and ESLint reported no errors; the exact coverage figures are in TGP-QA-01 Test Strategy. The PostgreSQL suite of 8 tests runs separately. Results are recorded in the test cases and results workbook (TGP-QA-02 Test Case Catalogue). Changes to cryptography, the HTTP pipeline, security configuration and migrations require a security reviewer; a code-owners file will enforce this.
 
 # Security controls and residual risks
 
@@ -401,9 +442,9 @@ flowchart TB
 | Contain | Revoke partner keys or suspend a partner; disable a user (effective on the next request); force MFA re-enrolment; suspend the journeys job; rotate the token secret to end all sessions and links; roll back a rule set |
 | Investigate | Audit search by actor and action; audit-chain verification; request-id correlation across logs; messages and call sessions for customer impact |
 | Recover | Point-in-time restore if needed; verify the audit chain; reconcile orders |
-| Personal data breach | Scope from the audit trail (profile views with personal data, data subject actions). Notify the competent authority within 72 hours of discovery and affected individuals where required, under Decree 13/2023/ND-CP and the 2025 law's implementing rules (deadlines and channel to be confirmed by TASCO legal). |
+| Personal data breach | Scope from the audit trail (profile views with personal data, data subject actions). Notify the competent authority within 72 hours of discovery and affected individuals where required, under Decree 13/2023/ND-CP and the Personal Data Protection Law 91/2025/QH15 with its implementing rules (deadlines and channel to be confirmed by TASCO legal). |
 | Evidence | Preserve the audit-chain head hash, logs in write-once storage, a database snapshot and cluster events, with chain of custody |
-| Communication | Pre-approved customer statement that VETC never asks for one-time passwords or payment by phone |
+| Communication | Pre-approved customer statement that TASCO Insurance and VETC never ask for one-time passwords or payment by phone |
 
 # Appendix
 
@@ -413,7 +454,7 @@ All references are to be confirmed by TASCO legal before production.
 
 | Topic | Reference |
 |---|---|
-| Personal data protection | Decree 13/2023/ND-CP; Law on Personal Data Protection 2025 and its implementing decree |
+| Personal data protection | Decree 13/2023/ND-CP; Personal Data Protection Law 91/2025/QH15 and its implementing decree |
 | Data residency | Cybersecurity Law 2018; Decree 53/2022/ND-CP |
 | Insurance business and compulsory cover | Law on Insurance Business 08/2022/QH15; Decree 67/2023/ND-CP |
 | Marketing messages and calls | Decree 91/2020/ND-CP |

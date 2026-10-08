@@ -499,7 +499,7 @@ The console has a grouped sidebar, a global search by plate or phone, notificati
 | Data requests | Compliance | Log, verify identity, export, erase or refuse; due times and timeline | FR-080, FR-118 |
 | Users and Operations | Admin, support engineer | Users, integration status, jobs | FR-094, FR-103, FR-104, FR-114 |
 
-Workflow actions use verbs: Claim, Send to customer, Record inspection, Submit for approval, Approve, Reject, Roll back, Export data, Erase.
+Workflow actions use verbs: Claim, Send to customer, Record inspection, Submit for approval, Approve, Reject, Roll back, Log request, Export data, Erase personal data.
 
 ## Customer app
 

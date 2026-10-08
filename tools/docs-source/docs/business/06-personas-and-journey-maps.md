@@ -9,6 +9,7 @@ reviewed_by: TASCO Insurance, Product Owner
 approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
+  - [AI, Artificial intelligence]
   - [API, Application Programming Interface]
   - [B2B, Business to business]
   - [FR, Functional requirement]
@@ -150,7 +151,7 @@ The TASCO product owner, campaign managers, the telesales lead, compliance, and 
 | PS-02 | Telesales supervisor | Team productivity and compliance | No view of lead quality or script adherence |
 | PS-03 | Campaign manager | Grow policies at a controlled cost | No reliable expiry data; blunt campaigns |
 | PS-04 | Rule author (product) | Change scoring, journeys and wording quickly and safely | An IT ticket for every change |
-| PS-05 | Compliance approver | Nothing unlawful reaches a customer | Manual review of wording; opaque automated calls |
+| PS-05 | Compliance approver | Nothing unlawful reaches a customer; every data request answered on time | Manual review of wording; opaque automated calls; no single record of data requests |
 | PS-06 | Data steward | Customer data the business can trust | Duplicates; one record in ten verified |
 | PS-07 | Claims handler | Fast and complete first notices | Late, incomplete notifications |
 | PS-08 | Partner manager | Grow partner sales; settle commission cleanly | Manual statements; disputes |
@@ -168,7 +169,7 @@ The TASCO product owner, campaign managers, the telesales lead, compliance, and 
 | PS-02 | Assign handoffs; rehearse assistant scripts; monitor outcomes | Telesales inbox, Voice assistant | Win rate; service-level adherence |
 | PS-03 | Prioritised queue, journeys, assistant campaigns, event simulator, economics | Leads, Journeys, Voice assistant, Dashboard | K-00, K-10 |
 | PS-04 | Draft, validate, simulate and submit rule changes | Business rules | Rule-change lead time of one day or less |
-| PS-05 | Four-eyes approval; copy guard; governance KPIs; data-subject requests | Approvals, Audit, governance dashboard | No copy-guard or contact-policy breaches |
+| PS-05 | Four-eyes approval; copy guard; governance KPIs; log data requests, verify identity, export or erase, or refuse with a reason | Approvals, Audit, Data requests, governance dashboard | No copy-guard or contact-policy breaches; no overdue data request |
 | PS-06 | Ingest data; work the data-quality queue; lineage; corrections with evidence | Data quality, Customer 360 | K-01 usable-expiry rate |
 | PS-07 | Accident-report queue and status changes within the acknowledgement time | Claims | Share acknowledged within 4 hours |
 | PS-08 | Onboard partners, issue keys, suspend, review statements | Partners | Active partners on the API; no disputes |
@@ -226,7 +227,7 @@ flowchart TB
   end
   subgraph C["Buy"]
     direction LR
-    c1["Opens link, sees regulated price and benefits"]:::f4 --> c2["Pays from the VETC wallet"]:::f5 --> c3["Receives TASCO e-certificate with QR"]:::f5
+    c1["Opens link, offered quick renewal"]:::f4 --> c2["Ticks declaration, pays from wallet"]:::f5 --> c3["Receives TASCO e-certificate with QR"]:::f5
   end
   subgraph D["After"]
     direction LR
@@ -243,14 +244,16 @@ flowchart TB
 | Stage | Touchpoint | Customer doing and feeling | Pain point | Design response | Measure |
 |---|---|---|---|---|---|
 | Day 45: verify | Verify-expiry service message by push or Zalo | Confirms or corrects expiry; "how do they know?" is answered by the VETC app context | A wrong date erodes trust | Data repair in ten seconds | Confirmation rate |
-| Day 30: first reminder | First reminder by push, Zalo or SMS | Notices it; may renew straight away | Too many messages | Caps of one a day and three a week; renew in three taps or fewer | Click-through, conversion |
+| Day 30: first reminder | First reminder by push, Zalo or SMS | Notices it; may renew straight away | Too many messages | Caps of one a day and three a week; quick renewal in three steps when he qualifies | Click-through, conversion |
 | Day 21: value | Value reminder | "Same price everywhere, so what else do I get?" | Generic benefits | Benefits chosen for this driver, with the reason | Conversion |
 | Day 14: assistant | Assistant call (hot or warm) | Suspicion turns to trust; verifies plate, asks price, chooses link or adviser | Plate misheard | Plate first, three attempts, link option | Outcomes, opt-out rate |
 | Day 7: urgent | Urgent reminder | Mild urgency; renews in the app | Payment friction | Wallet payment, idempotent | Conversion |
 | Day 3: telesales | Telesales call (hot) | Wants help or reassurance | Feels like a sales call | Talking points, trust script, quote sent to the app, no payment by phone | Win rate |
 | Day 0: expiry | Expiry-day service message | Worried about fines | None | Clear lapse message, no scare tactics | Lapse rate |
 
-All steps stop as soon as the vehicle has an active TASCO TNDS policy; any touchpoint that falls due afterwards is cancelled with the reason "already insured with TASCO". The target is renewal in three taps or fewer from the reminder (NFR-035).
+Anh Minh is offered quick renewal ("Gia hạn nhanh") when nothing needs to change: his vehicle use and seats were confirmed in the last year, the cover is TNDS only and his wallet covers the premium. He opens the link, ticks the declaration and taps "Xác nhận thanh toán". If he wants to add personal accident cover, or the app needs him to confirm his vehicle first, he uses the full six-step flow, which is always one tap away as "Tùy chỉnh gói bảo hiểm" (FR-119).
+
+All steps stop as soon as the vehicle has an active TASCO TNDS policy; any touchpoint that falls due afterwards is cancelled with the reason "already insured with TASCO". The target is a median renewal time of 60 seconds or less (NFR-035).
 
 ## Conquest: insured elsewhere or insurer unknown (PC-1, PC-2)
 
@@ -393,6 +396,10 @@ Routing to the B2B team and exclusion from consumer journeys are in place today.
 
 The author has an idea ("long-distance drivers convert better"), drafts the change in the rules studio, validates it, simulates it on five customers and submits it with a description. The approver receives a notification, reviews the differences and the simulation, and approves with a comment. The change is active within seconds and leads are recomputed. There is no IT ticket, no release and no spreadsheet. Self-approval is impossible, and every step is in the audit trail.
 
+## Compliance officer answering a data request
+
+A customer writes to TASCO asking for all the data held about her car. The compliance officer logs the request in "Data requests" with the channel (letter) and the date received, and the platform sets the due time from the service levels, 72 hours, to be confirmed by TASCO legal. She checks the customer's identity, records the check, and exports the data file to send back by a secure channel. The request closes as completed, with its timeline in the audit trail. An erasure request is handled the same way, except that the platform refuses it, with the reason recorded, while a policy is still in force. Requests due within 24 hours or overdue appear in her notifications.
+
 # Service blueprints
 
 ## Renewal and conquest
@@ -446,7 +453,7 @@ sequenceDiagram
 | Reminders (days 30, 21, 7) | Reads and opens the link | First or conquest reminder, value reminder, urgent reminder | Contact policy and copy guard checked before sending | Cap reached: skipped with the reason. Outside hours: deferred to the next run inside the window |
 | Assistant (day 14; hot or warm for renewal, hot for conquest) | Verifies the plate | Voice assistant | Outcome written back to the record | Plate not recognised: three attempts, then "not verified". Scam concern: trust script |
 | Telesales (day 3, hot) | Talks to an adviser | Telesales agent | Handoff, quote priced by TASCO core, quote sent to the app | Staff never take payment; the quote goes to the app |
-| Purchase | Pays | Customer app | Quote claimed, wallet debited, TASCO core issues | Wallet slow: circuit breaker. Issuance fails: automatic refund. Core unavailable: no payable quote until re-rated |
+| Purchase | Pays: quick renewal in three steps, or the full flow | Customer app | Quote claimed, wallet debited, TASCO core issues | Wallet slow: circuit breaker. Issuance fails: automatic refund. Core unavailable: no payable quote until re-rated |
 | After sale | Receives the certificate | Purchase confirmation message | Journeys stop; cross-sell planned | None |
 
 ## New-vehicle onboarding through a showroom
@@ -514,6 +521,7 @@ sequenceDiagram
 | PP-12 | Data: "Only one record in ten is verified." | PS-06 | One record per vehicle, data-quality queue, lineage, data-repair loop | FR-004 to FR-010 |
 | PP-13 | Partner: "Commission statements are late and disputed." | PS-08, PS-09 | Self-service statement; commission capped by rule | FR-067 to FR-069 |
 | PP-14 | Claims: "Accidents are reported late with poor information." | PS-07, PC-1 | Accident reporting in the app with location and photos; acknowledgement within 4 hours | FR-071, FR-072 |
+| PP-15 | Compliance: "Data requests arrive by phone, email and letter, and I can't show we answered each one in time." | PS-05 | One register of data requests with due times, identity checks and a timeline for each | FR-118 |
 
 # Moments of truth
 

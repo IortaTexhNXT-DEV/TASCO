@@ -19,6 +19,7 @@ CAPTIONS = {
  'console-supervisor-customer-data': 'Customer 360: data sources and confidence', 'console-steward-dq': 'Data-quality work queue',
  'console-claims-claims': 'Claims queue', 'console-partners-statement': 'Partner commission statement',
  'console-support-ops': 'Operations and integration health',
+ 'console-compliance-dsar': 'Data-request register',
 }
 
 SHOTMAP = {
@@ -38,7 +39,7 @@ SHOTMAP = {
 FRONT = '''---
 id: ITN-TASCO-2026-001
 title: Proposal for the TASCO Motor Insurance Growth Platform
-subtitle: Prepared for TASCO Insurance, in partnership with VETC
+subtitle: Prepared for TASCO Insurance
 version: "1.0"
 date: 08/10/2026
 prepared_by: iorta TechNXT, Engagement Lead
@@ -60,7 +61,7 @@ ABOUT = '''# About this proposal
 
 | Item | Detail |
 |---|---|
-| Prepared for | TASCO Insurance, in partnership with VETC |
+| Prepared for | TASCO Insurance |
 | Prepared by | iorta TechNXT |
 | Reference | ITN-TASCO-2026-001 |
 | Validity | 90 days from the date of issue |

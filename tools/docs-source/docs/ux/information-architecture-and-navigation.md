@@ -19,7 +19,7 @@ acronyms:
 signoff:
   - ["Sidebar groups and page names (English and Vietnamese) accepted as the navigation for production", "TASCO Product Owner", Open]
   - ["Navigation and start page per role confirmed against the production role list", "TASCO IT Security", Open]
-  - ["Renewal tap count reconciled with the payment declaration and confirmation steps: target of three taps (NFR-035) restated, or the flow shortened", "TASCO Product Owner and TASCO Compliance", Open]
+  - ["Quick renewal eligibility conditions confirmed (journey or TASCO TNDS renewal, vehicle use and seats confirmed within 365 days, TNDS only, no indicative price, VETC wallet balance)", "TASCO Product Owner and TASCO Compliance", Open]
   - ["Hosting of the customer app in the TASCO app and on the TASCO website (scale module S3) and in the Zalo Mini App (S4) confirmed, with the link format each host will use", "TASCO IT and VETC Product Owner", Open]
   - ["Renewal link validity of 30 days confirmed", "TASCO Compliance", Open]
 ---
@@ -82,10 +82,10 @@ Pages are grouped by what the business does, not by system module. A user sees o
 | Serve | Claims | Claims within two hours of, or past, their acknowledgement deadline |
 | Partners | Partners | |
 | Data | Data quality | Open data issues |
-| Governance | Business rules, Approvals, Audit | Approvals: changes this user may decide |
+| Governance | Business rules, Approvals, Audit, Data requests | Approvals: changes this user may decide. Data requests: requests due within 24 hours or overdue |
 | Administration | Users, Operations | |
 
-Customer 360 has no sidebar entry. It opens from Leads, the telesales inbox, Data quality, Claims and the global search, and the sidebar keeps Leads highlighted while it is open.
+Customer 360 has no sidebar entry. It opens from Leads, the telesales inbox, Data quality, Claims, Data requests and the global search, and the sidebar keeps Leads highlighted while it is open. For compliance officers its More actions menu links back to the customer's data requests and to logging a new one.
 
 ## Breadcrumbs
 
@@ -97,7 +97,7 @@ Roles that can view customers have a search box in the top bar ("Search plate or
 
 ## Notifications
 
-The bell appears for roles that have work arriving: telesales agents and supervisors (new hot handoffs), rule approvers and compliance officers (changes awaiting their decision), claims handlers (acknowledgement deadlines due soon or breached) and data stewards (open data issues). Its badge counts handoffs, approvals and claims; each entry links to the page where the work is done. Counts are taken from the same lists the pages show. They refresh on every page change and after each action, at most every 30 seconds unless an action forces a refresh.
+The bell appears for roles that have work arriving: telesales agents and supervisors (new hot handoffs), rule approvers and compliance officers (changes awaiting their decision), compliance officers (data requests due within 24 hours or overdue), claims handlers (acknowledgement deadlines due soon or breached) and data stewards (open data issues). Its badge counts handoffs, approvals, claims and data requests; each entry links to the page where the work is done. Counts are taken from the same lists the pages show. They refresh on every page change and after each action, at most every 30 seconds unless an action forces a refresh.
 
 ## Help and user menu
 
@@ -116,11 +116,12 @@ flowchart LR
   D --> SRV["Serve: Claims"]
   D --> PAR["Partners"]
   D --> DAT["Data: Data quality"]
-  D --> GOV["Governance: Business rules, Approvals, Audit"]
+  D --> GOV["Governance: Business rules, Approvals, Audit, Data requests"]
   D --> ADM["Administration: Users, Operations"]
   SELL --> C360["Customer 360"]
   SRV --> C360
   DAT --> C360
+  GOV --> C360
   Q["Global search"] --> C360
 ```
 
@@ -136,7 +137,7 @@ The console reads the user's permissions at sign-in and builds the sidebar from 
 | Telesales agent | My work today | My work today; Leads, Telesales inbox, Voice assistant | Both |
 | Rule author | Dashboard | Dashboard; Business rules | Neither |
 | Rule approver | Dashboard | Dashboard; Business rules, Approvals, Audit | Bell |
-| Compliance officer | Dashboard | Dashboard; Business rules, Approvals (including restricted rules), Audit | Both |
+| Compliance officer | Dashboard | Dashboard; Business rules, Approvals (including restricted rules), Audit, Data requests | Both |
 | Data steward | Dashboard | Dashboard; Leads; Data quality | Both |
 | Claims handler | Claims | Claims | Both |
 | Partner manager | Dashboard | Dashboard; Partners | Neither |
@@ -168,6 +169,7 @@ The console reads the user's permissions at sign-in and builds the sidebar from 
 | Business rules | `#/rules` | Rule sets by business area; form editor, what changes, simulation, version history | Rule author, approver, compliance; others read only |
 | Approvals | `#/approvals` | Changes waiting for this approver, with review drawer and past decisions | Rule approver, compliance officer |
 | Audit | `#/audit` | Audit trail in plain sentences with filters and the integrity banner | Rule approver, compliance, administrator, auditor |
+| Data requests | `#/dsar` | Register of requests to access or erase personal data, with response deadlines; log, verify identity, export, erase, refuse | Compliance officer |
 | Users | `#/users` | Staff accounts with roles, region, two-step status; create, edit roles, unlock, reset, disable | Administrator |
 | Operations | `#/ops` | Integration health, background jobs with run history, active rule versions | Administrator, support engineer |
 
@@ -182,6 +184,7 @@ Lists open records without leaving the page wherever the user is likely to retur
 | Data issue | Right drawer | Issue, current values, data lineage, guided resolution |
 | Rule change for approval | Right drawer | Who may decide, what changes, effect on customers, check a customer |
 | Audit record | Right drawer | Before and after; technical details for auditors |
+| Data request | Right drawer | Progress steps with who and when; request details; outcome; counts of the data TASCO holds; export, erase or refuse |
 | User, partner | Right drawer | Profile, roles or contract, keys, actions |
 | Customer | Full page (Customer 360) | Header card and six tabs |
 | Rule version | Full page | Workflow stepper, form editor, what changes, simulation, version history |
@@ -190,7 +193,7 @@ Lists open records without leaving the page wherever the user is likely to retur
 
 ## Structure
 
-The customer app has four tabs for looking things up and three full-screen flows for getting things done. Tab pages carry the bottom tab bar and the support button (in the app bar on Home, floating on the other tabs); flows replace the tab bar with a back arrow and a fixed action bar.
+The customer app has four tabs for looking things up and four full-screen flows for getting things done. Tab pages carry the bottom tab bar and the support button (in the app bar on Home, floating on the other tabs); flows replace the tab bar with a back arrow and a fixed action bar.
 
 | Tab | Vietnamese label | Contents |
 |---|---|---|
@@ -201,7 +204,8 @@ The customer app has four tabs for looking things up and three full-screen flows
 
 | Flow | Opened from | Steps |
 |---|---|---|
-| Buy or renew (Mua bảo hiểm) | Home vehicle card, quick action, quote card, renewal link | Chọn gói, Xác nhận, Thanh toán, then the result |
+| Quick renewal (Gia hạn nhanh) | "Gia hạn nhanh" on the Home vehicle card, when the case allows it | One review-and-pay screen, then the result |
+| Buy or renew (Mua bảo hiểm) | Home vehicle card ("Gia hạn ngay", "Tùy chỉnh gói bảo hiểm"), quick action, quote card, renewal link | Chọn gói, Xác nhận, Thanh toán, then the result |
 | Confirm expiry (Ngày hết hạn bảo hiểm) | Home prompt or vehicle card | One form: expiry date and current insurer |
 | Report an accident (Báo tai nạn) | Claims tab, Home quick action | Five steps: policy, when and where, what happened, photos, review and send |
 
@@ -211,22 +215,48 @@ The diagram shows the tabs, the flows and where each flow returns.
 %% caption: Customer app map: entry, tabs and task flows
 flowchart TB
   E["Signed link from the host"] --> H["Home"]
+  H --> QR["Quick renewal"]
   H --> B["Buy or renew"]
+  QR -.->|Customise| B
   H --> CE["Confirm expiry"]
   H --> P["My insurance"]
   H --> C["Claims"]
   H --> A["Account"]
   C --> R["Report an accident"]
   B --> CERT["E-certificate with QR"]
+  QR --> CERT
   P --> CERT
   CERT --> V["Public certificate check"]
   CE --> H
   R --> C
 ```
 
+## Renewal paths
+
+A renewal follows one of two paths. The server decides which one the Home vehicle card offers, from the Quick renewal section of the Service levels rule set, and sends the decision with its reasons to the app with the Home data. The app never decides on its own.
+
+| Path | Taps from Home | Offered when |
+|---|---|---|
+| Quick renewal | 3: "Gia hạn nhanh", the declaration tick, "Xác nhận thanh toán" | The case is eligible (rule below) and the cover is due or lapsed |
+| Full flow | 6: "Gia hạn ngay", "Xem phí bảo hiểm", "Tiếp tục", the declaration tick, "Thanh toán", "Xác nhận thanh toán" | Every other case; always reachable through "Tùy chỉnh gói bảo hiểm" |
+
+Eligibility rule. A customer qualifies for quick renewal when all of these hold:
+
+| No. | Condition | Setting in the rules studio (Service levels › Quick renewal) |
+|---|---|---|
+| 1 | Quick renewal is switched on | "Offer quick renewal": on |
+| 2 | The lead's journey is a renewal, or the customer is renewing a TASCO TNDS policy | "For these journeys": Renewal |
+| 3 | The vehicle has not already been renewed | Fixed |
+| 4 | Vehicle use and seats are confirmed by TASCO core, a matching TASCO policy, or the customer within 365 days | "Vehicle use and seats must be confirmed": on; "Customer confirmation valid for": 365 days |
+| 5 | The cover is TNDS, with no physical damage cover | "Renew personal accident cover too": off |
+| 6 | The price will not be indicative | Fixed |
+| 7 | In VETC hosts, the last known VETC wallet balance covers the premium | "VETC wallet balance must cover the premium": on |
+
+The quick path keeps the same safeguards as the full flow: the declaration is still an explicit tick, the review screen shows the plate, vehicle, period, premium, total and payment method before the customer pays, and payment is idempotent. When a reason is one the customer can act on (vehicle details to confirm, wallet balance too low), Home shows it as a hint under "Gia hạn ngay". The conditions are listed for confirmation by TASCO.
+
 ## Purchase flow
 
-The purchase flow is the same for a renewal, a new purchase and a quote sent by telesales; a telesales quote opens directly at the review step, where the diagram starts. Payment is possible only when the quote is ready. Its decision points protect the customer: an indicative price must be confirmed by TASCO core before payment, physical damage cover needs a vehicle inspection, and a failed payment never charges the customer.
+The full purchase flow is the same for a renewal, a new purchase and a quote sent by telesales; a telesales quote opens directly at the review step, where the diagram starts. Payment is possible only when the quote is ready. Its decision points protect the customer: an indicative price must be confirmed by TASCO core before payment, physical damage cover needs a vehicle inspection, and a failed payment never charges the customer.
 
 ```mermaid
 %% caption: Purchase flow with its decision points and failure paths
@@ -272,7 +302,7 @@ What changes by host:
 
 - the footer note ("Phân phối qua ứng dụng VETC" or "Bảo hiểm TASCO");
 - the payment method on step 3, its description and the security line ("Thanh toán được bảo mật bởi VETC" or "… bởi cổng thanh toán TASCO");
-- the wallet balance and the low-balance notice, shown only for the VETC wallet;
+- the wallet balance and the low-balance notice, shown only for the VETC wallet, and the wallet-balance condition for quick renewal, which applies only in VETC hosts;
 - every message that sends the customer back to the host ("Vui lòng mở lại từ ứng dụng VETC", "… từ website Bảo hiểm TASCO");
 - the channel recorded on quotes and orders, which drives sales-by-channel reporting.
 
@@ -293,6 +323,7 @@ The brand, screens, steps, prices and wording of the insurance itself do not cha
 | `/app/?r=<signed token>` | The customer app for one vehicle, on Home | The token names the customer profile and its expiry and is signed by the platform; it is valid for 30 days. It is exchanged for a session at once and removed from the address bar |
 | `/app/?r=<token>&channel=<host>` | As above, in the named host | Only the four channel values are accepted; anything else falls back to `vetc_app`. The channel is kept for the session |
 | `/app/#/buy?quote=<quote>` | Review step of a quote sent by telesales | Used by the Home quote card; an expired or paid quote returns to step 1 with a message |
+| `/app/#/renew-quick` | Quick renewal | If the case is not eligible, the screen says why and offers the full flow |
 | `/app/#/policies`, `#/claims`, `#/claims/new`, `#/account`, `#/confirm` | A tab or flow, once a session exists | Without a session the app shows the entry screen |
 | `/verify/<certificate number>` | Public certificate check | Encoded in the certificate QR code; shows status, product, masked plate and period |
 | `/#/<page>` and `/#/customer/<id>` | A console page or Customer 360 | After sign-in the user lands on the requested page if the role allows it, otherwise on the start page |
@@ -305,6 +336,19 @@ The paths below count deliberate taps or clicks from the natural starting point;
 
 ## Customer renews from a reminder
 
+The renewal has two paths (see "Renewal paths"). NFR-035, as restated, asks for three taps where the case allows it, six in the full flow, and a median renewal of 60 seconds or less. The usability tests in TGP-UX-04 measure both paths.
+
+Quick renewal:
+
+| Tap | Action | Screen reached |
+|---|---|---|
+| 0 | Open the link in the reminder | Home with the vehicle card, "Gia hạn nhanh" and "Tùy chỉnh gói bảo hiểm" |
+| 1 | "Gia hạn nhanh" | Quick renewal: plate, vehicle, period, premium, total, payment method |
+| 2 | Tick the declaration | |
+| 3 | "Xác nhận thanh toán" | Processing, then success with the e-certificate |
+
+Full flow:
+
 | Tap | Action | Screen reached |
 |---|---|---|
 | 0 | Open the link in the reminder | Home with the vehicle card and "Gia hạn ngay" |
@@ -315,9 +359,15 @@ The paths below count deliberate taps or clicks from the natural starting point;
 | 5 | "Thanh toán" with the amount | Confirmation sheet |
 | 6 | "Xác nhận thanh toán" | Processing, then success with the e-certificate |
 
-The flow takes six taps. NFR-035 sets a target of three taps after opening the link; the declaration and the confirmation sheet were added for TASCO's purchase rules and to prevent accidental payment. Options are to merge the declaration into the payment button, or to let the VETC wallet's own confirmation replace the sheet. The choice is listed for sign-off and will be tested in the usability rounds.
+The full flow keeps its confirmation sheet because the customer may have changed the cover, the term or the vehicle details on the way. A quote sent by telesales opens at the review step and also takes six taps: "Xem và thanh toán", "Xác nhận thông tin xe", "Tiếp tục", the declaration, "Thanh toán" and "Xác nhận thanh toán".
 
-A quote sent by telesales opens at the review step and also takes six taps: "Xem và thanh toán", "Xác nhận thông tin xe", "Tiếp tục", the declaration, "Thanh toán" and "Xác nhận thanh toán".
+## Compliance officer handles a data request
+
+| Actor | Path |
+|---|---|
+| Compliance officer | Governance › Data requests › "Log request" › customer, type, channel, date received › "Log request" |
+| Compliance officer | Row "Export data" (access) or "Erase personal data" (erasure) › tick the identity check if not yet recorded › "Review" › "Export and download" or "Erase permanently" |
+| Compliance officer | Bell or the "Due within 24 h" tile › request drawer › next action, or ⋯ › "Refuse" with a reason and an explanation for the customer |
 
 ## Telesales agent works a handoff
 
@@ -353,6 +403,7 @@ The new version is active within seconds and the author cannot approve their own
 | My insurance | `#/policies` | Tab bar | Yes |
 | Claims | `#/claims` | Tab bar | Yes |
 | Account | `#/account` | Tab bar | Yes |
+| Quick renewal | `#/renew-quick` | Action bar | No |
 | Buy or renew | `#/buy` | Action bar | No |
 | Confirm expiry | `#/confirm` | Action bar | Yes |
 | Report an accident | `#/claims/new` | Action bar | Yes |
@@ -371,5 +422,6 @@ The new version is active within seconds and the author cannot approve their own
 | Claims | Bồi thường |
 | Data quality | Chất lượng dữ liệu |
 | Business rules, Approvals, Audit | Quy tắc nghiệp vụ, Phê duyệt, Nhật ký kiểm toán |
+| Data requests | Yêu cầu dữ liệu (page title: Yêu cầu dữ liệu cá nhân) |
 | Users, Operations | Người dùng, Vận hành |
 | Customer 360 | Khách hàng 360 |

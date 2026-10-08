@@ -20,6 +20,7 @@ signoff:
   - ["Hosting of the customer app inside the TASCO app and on the TASCO website, and the TASCO payment gateway, confirmed with TASCO IT", "TASCO IT", Open]
   - ["Support channels shown in the app (hotline 1900 1562, info@baohiemtasco.vn, baohiemtasco.vn, Fanpage, Messenger and the Zalo Official Account) confirmed as current", "TASCO Customer Service", Open]
   - ["Wording of the payment declaration and the claim declaration to be confirmed by TASCO legal", "TASCO Compliance", Open]
+  - ["Conditions for quick renewal (\"Gia hạn nhanh\") confirmed: renewal journey or TASCO TNDS renewal, vehicle use and seats confirmed within 365 days, TNDS only, wallet balance on VETC hosts", "TASCO Product Owner and TASCO Compliance", Open]
   - ["Seat accident and physical damage rates replaced by TASCO filed rates before go-live", "TASCO Product Owner", Open]
 ---
 
@@ -50,14 +51,16 @@ TASCO and VETC customer service and telesales staff, trainers, the TASCO product
 
 # Where the app runs
 
-The same app runs in four places. The content, steps and TASCO Insurance brand are identical; only the payment method follows the host.
+The same app runs in four places. The content, the steps and the TASCO Insurance brand are identical in all of them; only the payment method and a few messages follow the host. The VETC app is the host for the pilot; the other three come with the scale phase.
 
-| Host | How the customer opens it | Brand | Payment method |
+| Host | How the customer opens it | Payment method | Release |
 |---|---|---|---|
-| VETC app | The Insurance section, or a renewal link in a VETC notification, Zalo message or SMS | TASCO Insurance | **Ví VETC** (VETC wallet) |
-| Zalo Mini App | The VETC mini app inside Zalo | TASCO Insurance | **Ví VETC** |
-| TASCO app | The insurance section of TASCO's own app | TASCO Insurance | **Thanh toán qua cổng TASCO** (TASCO payment gateway: domestic ATM card, international card or bank QR) |
-| TASCO website | A link from baohiemtasco.vn | TASCO Insurance | **Thanh toán qua cổng TASCO** |
+| VETC app | The Insurance section, or a renewal link in a VETC notification, Zalo message or SMS | **Ví VETC** (VETC wallet) | Pilot |
+| Zalo Mini App | The VETC mini app inside Zalo | **Ví VETC** | Scale phase (S4) |
+| TASCO app | The insurance section of TASCO's own app | **Thanh toán qua cổng TASCO** (TASCO payment gateway: domestic ATM card, international card or bank QR) | Scale phase (S3) |
+| TASCO website | A link from baohiemtasco.vn | **Thanh toán qua cổng TASCO** | Scale phase (S3) |
+
+The TASCO payment gateway is a sandbox adapter until TASCO's gateway integration is specified.
 
 The host opens the app with a signed link that identifies the customer's vehicle; the customer does not create a password. A renewal link is valid for 30 days. If the link has expired, the app says "Liên kết đã hết hạn hoặc không hợp lệ" (the link has expired or is not valid) and asks the customer to open it again from the host app.
 
@@ -68,7 +71,7 @@ Messages in the app name the host, for example "Mở lại từ ứng dụng VET
 Two messages appear at the foot of the main screens and should be repeated by every staff member who talks to customers.
 
 - **Phí bảo hiểm TNDS bắt buộc theo quy định của Bộ Tài chính.** The TNDS premium is set by the Ministry of Finance and is the same at every insurer. TASCO offers no discount on it; the value is in the service.
-- **VETC và TASCO không bao giờ yêu cầu mã OTP qua điện thoại.** Neither VETC nor TASCO ever asks for an OTP code, wallet PIN or card details by phone or message. Payment is made only inside the app.
+- **VETC và TASCO không bao giờ yêu cầu mã OTP qua điện thoại.** Neither VETC nor TASCO ever asks for an OTP code, wallet PIN or card details by phone or message. Payment is made only inside the app. In the TASCO app and on the TASCO website the message reads **TASCO không bao giờ yêu cầu mã OTP qua điện thoại.**
 
 # Getting around
 
@@ -94,16 +97,18 @@ The status chip on the card and the main button depend on the cover:
 | Chip | Meaning | Main button |
 |---|---|---|
 | **Đang hiệu lực** | In force | **Xem giấy chứng nhận** (view certificate) |
-| **Sắp hết hạn** | Expires within 45 days | **Gia hạn ngay** (renew now) |
-| **Đã hết hạn** | Lapsed; the card warns that the vehicle has no compulsory TNDS cover | **Mua bảo hiểm ngay** (buy now) |
+| **Sắp hết hạn** | Expires within 45 days | **Gia hạn nhanh** (quick renewal) with **Tùy chỉnh gói bảo hiểm** under it when the case allows it; otherwise **Gia hạn ngay** (renew now) |
+| **Đã hết hạn** | Lapsed; the card warns that the vehicle has no compulsory TNDS cover | **Gia hạn nhanh** and **Tùy chỉnh gói bảo hiểm** when the case allows it; otherwise **Mua bảo hiểm ngay** (buy now) |
 | **Chưa rõ hạn bảo hiểm** | The expiry date is unknown | **Cập nhật ngày hết hạn** (update the expiry date) and **Mua bảo hiểm mới** |
 | **Đã gia hạn** | Renewed; the new policy starts on the date shown | None |
+
+When a quote from telesales is waiting, the quote card below is the call to action and the vehicle card shows no button. When quick renewal is not offered for a reason the customer can fix, a short hint sits under **Gia hạn ngay**, for example "Cần xác nhận thông tin xe" (the vehicle details need confirming) or "Số dư ví VETC chưa đủ để thanh toán" (the wallet balance is too low).
 
 Under the vehicle card:
 
 - **Báo giá đang chờ bạn xác nhận** (a quote waiting for your confirmation) appears when a TASCO telesales advisor has sent a quote. It shows each product, the period, **Tổng thanh toán** (total to pay) and when the quote expires. **Xem và thanh toán** opens it at the review step.
 - **Ngày hết hạn đã chính xác chưa?** asks the customer to confirm the expiry date when TASCO's record is uncertain. **Xác nhận ngay** opens the confirmation form.
-- Quick actions: **Cứu hộ 24/7** (calls the hotline for roadside help), **Báo tai nạn** (report an accident), **Giấy chứng nhận** (certificates) and **Mua bảo hiểm** (buy insurance).
+- Quick actions: **Cứu hộ 24/7** (roadside assistance; calls the hotline 1900 1562), **Báo tai nạn** (report an accident), **Giấy chứng nhận** (certificates) and **Mua bảo hiểm** (buy insurance).
 - **Quyền lợi đi kèm**: the service benefits that come with the cover, such as roadside assistance, the e-certificate with QR code and inspection reminders. Swipe sideways to see more.
 
 ::: {custom-style="Figure"}
@@ -126,24 +131,56 @@ TASCO often knows a vehicle's expiry date only by estimate. When the customer co
 The app thanks the customer: "Cảm ơn bạn! Chúng tôi sẽ nhắc gia hạn đúng hạn." The information is used only for reminders.
 
 ::: {custom-style="Figure"}
-::: {custom-style="Figure"}
 ![](../../shots/app-customer-confirm-expiry.png){width=6cm}
 :::
 
 ::: {custom-style="Caption"}
-Figure 2 – 
-:::
-:::
-
-::: {custom-style="Caption"}
-Figure 3 – Confirming the expiry date
+Figure 2 – Confirming the expiry date
 :::
 
 # Buy or renew
 
-The purchase flow has three steps shown in a stepper at the top: **Chọn gói** (choose cover), **Xác nhận** (review) and **Thanh toán** (pay).
+There are two ways to renew. The platform decides, case by case, which one the home screen offers.
 
-## Step 1: choose cover
+| Path | Taps | When the customer sees it |
+|---|---|---|
+| Quick renewal (**Gia hạn nhanh**) | 3: **Gia hạn nhanh**, the declaration tick, **Xác nhận thanh toán** | The renewal of a TNDS policy whose details TASCO already holds, when every condition below is met |
+| Full flow | 6: **Gia hạn ngay**, **Xem phí bảo hiểm**, **Tiếp tục**, the declaration tick, **Thanh toán**, **Xác nhận thanh toán** | Every other case, and always available through **Tùy chỉnh gói bảo hiểm** (customise the cover) |
+
+Quick renewal is offered only when all of these hold:
+
+- the customer is in a renewal journey or is renewing a TASCO TNDS policy;
+- the vehicle has not already been renewed;
+- the vehicle's use and number of seats have been confirmed by TASCO core, by a matching TASCO policy, or by the customer within the last 365 days;
+- the cover is TNDS alone, with no physical damage cover (which needs an inspection);
+- TASCO can give the official price at once (the price would not be indicative);
+- in the VETC app and the Zalo Mini App, the VETC wallet balance covers the premium.
+
+TASCO sets these conditions in the service levels rule set; quick renewal can be switched off there without a release.
+
+## Quick renewal
+
+1. On the home screen, tap **Gia hạn nhanh**. The **Gia hạn nhanh** screen opens with the card **Gia hạn TNDS bắt buộc** ("Giữ nguyên thông tin xe và gói bảo hiểm hiện tại": same vehicle details and same cover as now). It shows **Biển số**, **Xe** (vehicle type, seats and use), **Thời hạn** (the new period, for the same term as the current policy), the TNDS line with "Giá theo quy định của Bộ Tài chính", **Tổng thanh toán** and the **Phương thức thanh toán** for the host.
+2. Tick **Tôi xác nhận thông tin xe chính xác và đồng ý với quy tắc bảo hiểm của TASCO.** The declaration stays an explicit step for compliance; without it the app says "Vui lòng xác nhận trước khi thanh toán."
+3. Tap **Xác nhận thanh toán**. The payment is processed once only, and the same success screen as the full flow shows the policy number and the e-certificate.
+
+To change anything (term, seats, extra cover), the customer taps **Tùy chỉnh gói bảo hiểm** on the home card or on the quick renewal screen, which opens the full flow.
+
+If the case changes between the home screen and the quick renewal screen, the app explains why and offers the full flow instead: "Gia hạn nhanh chưa áp dụng cho xe này" with the reason and **Gia hạn ngay**, or "Đây là giá tạm tính" when TASCO's rating system is busy, with **Tùy chỉnh gói bảo hiểm** to confirm the official price in the full flow.
+
+::: {custom-style="Figure"}
+![](../../shots/app-customer-home-quick.png){width=4.5cm} ![](../../shots/app-customer-quick-renew.png){width=4.5cm} ![](../../shots/app-customer-quick-success.png){width=4.5cm}
+:::
+
+::: {custom-style="Caption"}
+Figure 3 – Quick renewal: the home card with "Gia hạn nhanh", the review and pay screen, and the success screen
+:::
+
+## Full flow
+
+The full purchase flow is used for a new purchase, for a renewal that does not qualify for quick renewal, for a customer who wants to change the cover, and for a quote sent by telesales. It has three steps shown in a stepper at the top: **Chọn gói** (choose cover), **Xác nhận** (review) and **Thanh toán** (pay). From the home screen, a renewal takes six taps.
+
+### Step 1: choose cover
 
 The form is titled **Bảo hiểm TNDS bắt buộc xe ô tô** and shows the plate and vehicle.
 
@@ -165,7 +202,7 @@ The compulsory premium depends on the vehicle's use and number of seats, so chan
 Figure 4 – Step 1: the quote form, the vehicle questions and the optional extra cover
 :::
 
-## Step 2: review
+### Step 2: review
 
 The review screen shows:
 
@@ -176,7 +213,7 @@ The review screen shows:
 
 Tap **Tiếp tục** (continue) to go to payment.
 
-### The vehicle confirmation card
+#### The vehicle confirmation card
 
 The **Thông tin xe** card asks the customer to confirm the details the compulsory premium depends on: **Xác nhận để tính đúng phí bảo hiểm bắt buộc**. It shows the plate and vehicle, the question **Xe có kinh doanh vận tải không?** and **Số chỗ ngồi**, and the button **Xác nhận thông tin xe**.
 
@@ -192,14 +229,14 @@ The customer cannot continue to payment until the vehicle details are confirmed;
 Figure 5 – Step 2: a telesales quote opening at the review step, the confirmed vehicle card and the premium details
 :::
 
-### When the customer cannot pay yet
+#### When the customer cannot pay yet
 
 Two notices can block payment. The bar at the bottom then explains why, and **Tiếp tục** does nothing.
 
 - **Đây là giá tạm tính** (this is an indicative price): TASCO's rating system was busy, so the price is provisional. Tap **Xác nhận giá chính thức** to get the confirmed price. If it differs, the app shows both: "Giá chính thức: … (giá tạm tính …)".
 - **Vật chất xe cần giám định** (physical damage cover needs an inspection): a TASCO assessor will call to arrange it. After the inspection the quote appears on the home screen for payment. To buy the rest now, tap **Bỏ vật chất xe, mua phần còn lại** (drop physical damage and buy the rest).
 
-## Step 3: pay
+### Step 3: pay
 
 1. Check **Phương thức thanh toán** (payment method). Inside the VETC app or the Zalo Mini App it is **Ví VETC**, with the wallet balance. In the TASCO app or on the TASCO website it is **Thanh toán qua cổng TASCO** (domestic ATM card, international card or bank QR). If the VETC wallet balance is too low, the notice **Số dư ví chưa đủ** says the host app will help the customer top up when confirming.
 2. Check **Thông tin thanh toán**: **Đơn vị nhận** (payee) Bảo hiểm TASCO, **Nội dung** (for example "Bảo hiểm xe 30E-949.35"), **Số sản phẩm**, **Phí giao dịch** (fee) **Miễn phí** (free) and **Tổng thanh toán**.
@@ -267,7 +304,7 @@ Safety comes first.
 
 - If anyone is injured, call **115** (ambulance) at once. The **Bồi thường** tab and the accident form both have a **Gọi 115** button.
 - Call **113** for the police if needed, and **114** for fire and rescue.
-- For roadside help, call the TASCO hotline **1900 1562** (the **Cứu hộ 24/7** quick action on the home screen).
+- For roadside help, call the TASCO hotline **1900 1562** (the **Cứu hộ 24/7** roadside assistance quick action on the home screen calls it).
 - Report the accident in the app when it is safe to do so.
 
 ## The claims tab
@@ -275,7 +312,7 @@ Safety comes first.
 The **Bồi thường** tab shows:
 
 - **Báo tai nạn**, to start a report (only when the vehicle has a TASCO policy in force; otherwise the notice **Chưa có hợp đồng đang hiệu lực** offers **Mua bảo hiểm**);
-- the emergency buttons **Cấp cứu 115** (for injuries) and the hotline **1900 1562** (**Tổng đài 24/7**), and the support e-mail for claim questions;
+- the emergency buttons **Cấp cứu 115** (for injuries) and the hotline **1900 1562** (**Tổng đài TASCO**), and the support e-mail for claim questions;
 - **Yêu cầu của tôi** (my claims), each with its reference, status chip, product, incident date and place, a progress track and a line saying what happens next. **Chi tiết yêu cầu** shows the description, the number of photos and the history.
 
 The progress track has five stages: **Đã gửi** (sent), **Tiếp nhận** (acknowledged), **Giám định** (assessment), **Duyệt** (approved) and **Chi trả** (paid). A rejected claim shows **Từ chối** at the decision stage and asks the customer to call the hotline for an explanation.
@@ -312,7 +349,7 @@ Claims for policies bought from another insurer are handled by that insurer.
 
 # Account
 
-The **Tài khoản** tab has four groups.
+The **Tài khoản** tab starts with the customer's name and plate, then has three groups and **Thoát** (sign out).
 
 **Quyền riêng tư và liên lạc** (privacy and contact) holds the consent switches. Each change is saved at once and confirmed with "Đã lưu lựa chọn của bạn".
 
@@ -324,7 +361,9 @@ The **Tài khoản** tab has four groups.
 
 A customer can also tell the voice assistant "đừng gọi nữa" (don't call again); the request takes effect at once.
 
-**Dữ liệu cá nhân** (personal data) has **Tải dữ liệu của tôi**, which downloads a copy of the data TASCO holds about the customer: vehicle, policies, quotes, orders, claims, messages and calls. Requests to erase data go through the hotline; data for a policy still in force is kept as the law requires.
+**Dữ liệu cá nhân** (personal data) has **Tải dữ liệu của tôi**, which downloads a copy of the data TASCO holds about the customer: vehicle, policies, quotes, orders, claims, messages and calls. Each download is recorded for TASCO compliance as a completed access request.
+
+A customer who wants their data erased, or a copy sent by TASCO, asks through the hotline, e-mail, a branch or a letter. Staff pass the request to TASCO compliance, who log it in the staff console, verify the customer's identity and answer within the response time (72 hours, to be confirmed by TASCO legal). Erasure is refused while a policy is in force, because the law requires the data to be kept until the policy ends. TGP-MAN-01 Staff Console User Manual describes the compliance steps.
 
 **Hỗ trợ** (support) lists the same channels as the support sheet (see the next chapter) and **Ngôn ngữ**: the app follows the host's language and is in Vietnamese.
 
@@ -344,7 +383,7 @@ The support sheet (the headset button) and the **Hỗ trợ** group in the Accou
 
 | Row in the app | Channel | Use |
 |---|---|---|
-| **Gọi 1900 1562**, Tổng đài hỗ trợ 24/7 | Hotline 1900 1562 | The primary line for claims, roadside help, general support and insurance questions |
+| **Gọi 1900 1562**, Bồi thường, hỗ trợ và tư vấn bảo hiểm | Hotline 1900 1562 | The primary line for claims, general support and insurance questions |
 | **Zalo: Bảo hiểm Tasco** | Zalo Official Account | Messages through Zalo |
 | **Nhắn tin qua Messenger** | m.me/tasco.baohiem | Messages through Facebook Messenger |
 | **Fanpage Bảo hiểm TASCO** | facebook.com/tasco.baohiem | TASCO's Facebook page |
@@ -353,7 +392,7 @@ The support sheet (the headset button) and the **Hỗ trợ** group in the Accou
 
 TASCO's Zalo Official Account has no direct link. The row explains what to do: "Tìm "Bảo hiểm Tasco" trong Zalo, chọn tài khoản có dấu tích xanh, rồi bấm Quan tâm hoặc Nhắn tin". In English: search for "Bảo hiểm Tasco" in Zalo, choose the account with the blue verified tick, then tap **Quan tâm** (follow) or **Nhắn tin** (message). Tapping the row copies the account name and confirms "Đã sao chép tên tài khoản Zalo", so the customer can paste it into Zalo's search.
 
-The hotline also appears on the home screen (**Cứu hộ 24/7**), in the claims tab and in the footer of the Account tab, with the e-mail address and the website.
+The hotline is also called by the **Cứu hộ 24/7** quick action on the home screen, and appears in the claims tab and in the footer of the Account tab, with the e-mail address and the website.
 
 ::: {custom-style="Figure"}
 ![](../../shots/app-customer-support-sheet.png){width=6cm} ![](../../shots/app-customer-account-support.png){width=6cm}
@@ -373,6 +412,9 @@ Figure 12 – The support sheet and the support group in the Account tab
 | Báo giá này đã được thanh toán hoặc đang xử lý. | The quote is already paid or being paid | Check **Bảo hiểm của tôi** before trying again |
 | Giá tạm tính cần được xác nhận trước khi thanh toán. | Indicative price | Tap **Xác nhận giá chính thức** |
 | Bảo hiểm vật chất xe cần giám định xe trước khi thanh toán. | Inspection not yet done | Wait for the assessor, or buy without physical damage cover |
+| Gia hạn nhanh chưa áp dụng cho xe này | The case no longer qualifies for quick renewal; the reason is shown underneath | Tap **Gia hạn ngay** and renew in the full flow |
+| Cần xác nhận thông tin xe | Quick renewal needs the vehicle's use and seats confirmed | Renew in the full flow and confirm the vehicle card; the next renewal can then be quick |
+| Số dư ví VETC chưa đủ để thanh toán | The wallet balance is below the premium | Top up the VETC wallet, or renew in the full flow, where the host app helps to top up |
 | Ngày xảy ra nằm ngoài thời hạn bảo hiểm của hợp đồng đã chọn. | The accident date is outside the policy period | Check the date or the policy chosen |
 | Hệ thống TASCO đang bận. Vui lòng thử lại sau ít phút. | A TASCO system is temporarily unavailable | Try again in a few minutes; nothing was charged |
 | Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút. | Too many requests in a short time | Wait a moment |
@@ -383,6 +425,10 @@ Figure 12 – The support sheet and the support group in the Account tab
 ## Is the call from the automated assistant genuine?
 
 Yes. The assistant always says it is automated, asks the customer to read the plate (it never reads the plate first) and never asks for an OTP or payment by phone. The customer can ask for a link and check everything in the app.
+
+## Why do I see "Gia hạn nhanh" and my friend does not?
+
+Quick renewal is offered when TASCO already holds everything needed to renew the same cover: a TNDS renewal, confirmed vehicle details, no physical damage cover and, in the VETC app, enough wallet balance. Otherwise the app shows **Gia hạn ngay** and the full flow, which takes a few more taps. Both give the same cover at the same regulated price.
 
 ## Is it cheaper to buy in the app?
 
@@ -411,7 +457,8 @@ Tell the assistant "nhầm số" (wrong number), or call the hotline. TASCO upda
 | Screen | Main labels |
 |---|---|
 | Tab bar | Trang chủ · Bảo hiểm của tôi · Bồi thường · Tài khoản |
-| Home | Gia hạn ngay · Mua bảo hiểm ngay · Cập nhật ngày hết hạn · Xem và thanh toán · Cứu hộ 24/7 · Báo tai nạn |
+| Home | Gia hạn nhanh · Tùy chỉnh gói bảo hiểm · Gia hạn ngay · Mua bảo hiểm ngay · Cập nhật ngày hết hạn · Xem và thanh toán · Cứu hộ 24/7 · Báo tai nạn |
+| Quick renewal | Gia hạn nhanh · Gia hạn TNDS bắt buộc · Phương thức thanh toán · Xác nhận thanh toán · Tùy chỉnh gói bảo hiểm |
 | Purchase stepper | Chọn gói · Xác nhận · Thanh toán |
 | Quote form | Xe có kinh doanh vận tải không? · Loại xe · Số chỗ ngồi · Thời hạn bảo hiểm · Bảo vệ thêm · Xem phí bảo hiểm |
 | Review | Thông tin xe · Xác nhận thông tin xe · Chi tiết phí · Tổng thanh toán · Tiếp tục |

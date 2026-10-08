@@ -131,8 +131,8 @@ A party that is both accountable and responsible appears in both columns. A part
 
 | No. | Activity | A | R | C | I |
 |---|---|---|---|---|---|
-| 5.1 | Data subject requests: access, correction, erasure | CMP | CMP | TIT, DAT | PO |
-| 5.2 | Data-quality correction with evidence | DAT | DAT | PO, VI | BA |
+| 5.1 | Data requests (access and erasure) handled in the data requests register within the response time | CMP | CMP | TIT, DAT | PO |
+| 5.2 | Data-quality correction with evidence, including corrections a customer asks for | DAT | DAT | PO, VI | BA |
 | 5.3 | Rule changes after go-live | CMP | PO | DAT, BA | SP |
 | 5.4 | Access reviews and role changes | SEC | TIT | CMP | PO |
 | 5.5 | Audit evidence for internal and external audit | CMP | CMP | TIT, SEC | SP |

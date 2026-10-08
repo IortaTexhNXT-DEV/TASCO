@@ -113,8 +113,8 @@ Every quote calls TASCO core for rating (`RATING_SOURCE=core`), so quote latency
 
 | Group | Endpoints | Share |
 |---|---|---|
-| Customer reads | Customer home, customer quotes | 25 % |
-| Customer quote | Customer quote (TNDS; TNDS with personal accident cover per seat) | 12 % |
+| Customer reads | Customer home (with the quick-renewal check), customer quotes | 25 % |
+| Customer quote | Customer quote (TNDS; TNDS with personal accident cover per seat; quick renewal) | 12 % |
 | Customer order | Customer order with a unique `Idempotency-Key` | 4 % |
 | Customer session | Session from a signed link | 5 % |
 | Staff reads | Leads, Customer 360, handoffs, touchpoints | 20 % |

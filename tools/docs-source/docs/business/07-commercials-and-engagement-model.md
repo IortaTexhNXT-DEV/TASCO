@@ -10,6 +10,7 @@ approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
   - [A/B, Split testing of two variants]
+  - [AI, Artificial intelligence]
   - [API, Application Programming Interface]
   - [ASR, Automatic speech recognition]
   - [CRM, Customer relationship management]
@@ -23,6 +24,7 @@ acronyms:
   - [PDP, Personal data protection]
   - [PITR, Point-in-time recovery]
   - [QA, Quality assurance]
+  - [RACI, "Responsible, Accountable, Consulted, Informed"]
   - [SME, Subject-matter expert]
   - [SMS, Short message service]
   - [TCO, Total cost of ownership]
@@ -72,7 +74,7 @@ TASCO procurement and finance, the programme sponsor and the steering committee.
 | Item | Proposal |
 |---|---|
 | Objective | Take the existing TASCO Growth Platform to a live pilot integrated with TASCO core and VETC's channels, within TASCO's MVP budget of USD 100,000; then, if the pilot succeeds, scale to the full VETC base and run it as a managed service |
-| Starting point | A working platform in UAT: 97 API endpoints, a staff console for 13 roles in Vietnamese and English, a customer app in Vietnamese that runs inside the VETC app, TASCO's app and website or Zalo, and more than 250 automated tests |
+| Starting point | A working platform in UAT: 103 API routes, a staff console for 13 roles in Vietnamese and English, a customer app in Vietnamese built to run inside the VETC app, TASCO's app and website, and a Zalo Mini App, and 271 automated tests |
 | MVP stages | Discovery (2 weeks), build and integrate (8 weeks), test and go-live (3 weeks), hypercare (4 weeks): pilot live 13 weeks after contract signature |
 | After the MVP | Scale phase (about six months, optional) and managed service (optional) |
 | MVP price | USD 94,800 fixed, about VND 2.46 billion. A change reserve of USD 5,200 is held by TASCO, so the total is USD 100,000 |
@@ -125,7 +127,7 @@ The plan assumes contract signature by 30 October 2026 and a start on 2 November
 | M3 Acceptance | 13 | 26/01/2027 | UAT signed off; no open critical or high security findings |
 | M4 Pilot live and hypercare complete | 17 | 26/02/2027 | Pilot live; four weeks within service levels |
 
-The pilot read-out, with conversion measured against the control group, is planned about 12 weeks after go-live, in early May 2027.
+The pilot read-out, with conversion measured against the control group, is planned for early May 2027.
 
 ## After the pilot
 

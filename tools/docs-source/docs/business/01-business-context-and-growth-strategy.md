@@ -10,6 +10,7 @@ approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
   - [A/B, Split testing of two variants]
+  - [AI, Artificial intelligence]
   - [API, Application Programming Interface]
   - [B2B, Business to business]
   - [ETC, Electronic toll collection]
@@ -23,7 +24,7 @@ acronyms:
   - [SEG, Growth segment]
   - [SIT, System integration testing]
   - [SMS, Short message service]
-  - [SSO, Single sign-on]
+  - [TBM, To be measured]
   - [TNDS, Compulsory motor third-party liability insurance (Bảo hiểm TNDS bắt buộc)]
   - [UAT, User acceptance testing]
   - [VAT, Value-added tax]
@@ -84,7 +85,7 @@ The TASCO Growth Platform addresses all four together. It competes on data, trus
 | Data-repair loop | Merges records from all sources into one profile per plate, estimates the expiry date with a stated confidence and improves the record with every contact |
 | Explainable prioritisation | Scores every vehicle from 0 to 100 with plain-language reasons and chooses a next best action and journey |
 | Trust-first contact | The voice assistant says it is automated, asks the driver to state the plate before anything else and never takes payment |
-| Purchase in the VETC app | A signed link opens a quote priced by TASCO core; the customer pays from the VETC wallet and receives the e-certificate within seconds |
+| Purchase in the VETC app | A signed link opens a quote priced by TASCO core; the customer pays from the VETC wallet and receives the e-certificate within seconds. A returning TASCO customer whose details are confirmed renews in three steps |
 | Value beyond discount | Roadside assistance, a QR-verifiable e-certificate, inspection reminders, accident reporting in the app and multi-year cover |
 | Partners as a channel | A partner API to quote and bind by plate, with commission capped by rule; partners collect the premium and remit it to TASCO |
 
@@ -295,7 +296,7 @@ Three guardrails apply. First, a copy guard blocks discount language in every cu
 | No payment on calls | The assistant and telesales send a link or a quote; payment happens only in the VETC app from the wallet. Staff have no way to take payment |
 | Handle the scam objection | A customer who asks "is this a scam?" hears how to verify the call and is offered a notice in the app |
 | Independent proof of cover | The QR on the e-certificate opens a public page showing the masked plate, validity and insurer, with no personal data |
-| Branded channels only | Messages come from the VETC app and VETC's official Zalo account. Links are signed, contain no guessable identifiers and expire after 30 days by default |
+| Branded channels only | Messages come from the VETC app and TASCO's official Zalo account. Links are signed, contain no guessable identifiers and expire after 30 days by default |
 | Respect "no" | An opt-out on a call sets do-not-contact and withdraws call consent, and is audited. Customers manage consent in the app |
 | Honest price talk | "TNDS premiums are set by regulation and are the same at every insurer" |
 
@@ -387,7 +388,7 @@ gantt
 | Scale (optional) | About 6 months | Ten modules (TGP-BUS-07): full 6 million base; VETC sign-on and live events; TASCO app and website; Zalo Mini App; claims integration; inspection and fleet; further partners; data warehouse; calibration and A/B testing; full-scale assurance | Base-case KPIs on track; cost per policy at or below target (K-10) |
 | Run | Ongoing | Managed service; rule tuning by the business through maker-checker; new products by configuration | Service levels met (TGP-BUS-03) |
 
-Thirteen weeks to go-live is credible because the business logic already exists and is driven by rules: scoring, journeys, next best actions, benefits, contact policy and wording are configuration. Every external system sits behind an interface with a sandbox connector. The staff console, customer app, more than 250 automated tests, delivery pipeline, container image and deployment manifests already exist, and a UAT environment is live. MVP effort therefore goes to integration, data onboarding, testing and the pilot.
+Thirteen weeks to go-live is credible because the business logic already exists and is driven by rules: scoring, journeys, next best actions, benefits, contact policy and wording are configuration. Every external system sits behind an interface with a sandbox connector. The staff console, customer app, 271 automated tests, delivery pipeline, container image and deployment manifests already exist, and a UAT environment is live. MVP effort therefore goes to integration, data onboarding, testing and the pilot.
 
 # KPIs
 
@@ -563,7 +564,7 @@ The full risk register, with owners and dates, is in TGP-DEL-04 Risk Register.
 |---|---|---|---|---|
 | T1 AI voice assistant | Call interested and expiring leads, confirm the plate first, hand hot leads to telesales | Disclosure, plate-first verification, expiry confirmation, 12 intents, honest price answer, 9 outcomes, structured handoff, campaigns, governance KPIs | Outcomes write back to the record; scripts are versioned and copy-guarded | FR-031 to FR-039 |
 | T2 Lead scoring and enrichment | Build profiles from incomplete records; rank who to call first | One record per vehicle, expiry estimation, category inference, explainable five-factor score, next best action | Lineage, data-quality queue, steward corrections, simulation before rule changes | FR-001 to FR-019, FR-085 |
-| T3 Renewal engine | Automatic reminders; simple purchase in the VETC app and Zalo | Journeys, contact policy, copy guard, signed links, wallet purchase, e-certificate, rating by TASCO core | New-business journeys, ecosystem triggers, partner API | FR-020 to FR-030, FR-045 to FR-052, FR-074 to FR-077, FR-111 to FR-115 |
+| T3 Renewal engine | Automatic reminders; simple purchase in the VETC app and Zalo | Journeys, contact policy, copy guard, signed links, wallet purchase, quick renewal in three steps, e-certificate, rating by TASCO core | New-business journeys, ecosystem triggers, partner API, the same journeys in TASCO's app and website | FR-020 to FR-030, FR-045 to FR-052, FR-074 to FR-077, FR-111 to FR-117, FR-119 |
 | T4 Value beyond discount | Roadside, loyalty and bundles instead of price cuts | Benefits with legal gating, relevance and reasons, bundles, multi-year cover, cover upgrades, accident reporting | Copy guard enforcement, QR verification, fleet proposition | FR-053 to FR-062, FR-071 to FR-073 |
 
 ## Fit with TASCO's evaluation criteria
@@ -572,7 +573,7 @@ The full risk register, with owners and dates, is in TGP-DEL-04 Risk Register.
 |---|---|
 | Impact | Addresses all four causes (data, trust, price, friction) across seven segments; base case about 140,000 policies and VND 86.3 billion of premium |
 | Fit | Built on Tasco group assets (VETC app, wallet, tag events, inspection, TASCO core); respects regulated pricing, partner economics and VETC's multi-insurer model |
-| Speed | Working platform with 97 API endpoints, a staff console, a customer app, rules-driven logic and more than 250 automated tests; pilot live 13 weeks after signature; rule changes in hours through maker-checker without a release |
+| Speed | Working platform with 103 API routes, a staff console, a customer app, rules-driven logic and 271 automated tests; pilot live 13 weeks after signature; rule changes in hours through maker-checker without a release |
 | Cost | Free push first; assistant calls at 8.9% of the telesales cost; open-source runtime with one dependency; no licensed rules engine |
 
 ## Additions beyond the brief
@@ -590,7 +591,8 @@ The full risk register, with owners and dates, is in TGP-DEL-04 Risk Register.
 | Contact policy engine (consent, do-not-contact, hours, caps) | Compliance with the spam rules by design |
 | Data lineage, data-quality queue and steward corrections | Data repair becomes an operational process |
 | Tamper-evident audit trail | Accountability that stands up to a regulator |
-| Data-subject rights: export, erasure, consent centre | Readiness for the Personal Data Protection Law |
+| Data-subject rights: a register of access and erasure requests with due times, export, erasure, consent centre | Readiness for the Personal Data Protection Law |
+| Quick renewal in three steps when nothing has changed | Renewal without repeating the whole purchase |
 | Economics on the dashboard | Cost per order and the assistant's saving visible every day |
 | Multi-year cover aligned with the inspection cycle | Fewer renewals to win; convenience for the driver |
 | TASCO core as master for products and rating | No duplicated tariffs; the premium quoted is the premium issued |

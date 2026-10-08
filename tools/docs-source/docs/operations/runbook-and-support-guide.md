@@ -19,6 +19,7 @@ acronyms:
   - [CLI, Command-Line Interface]
   - [CPU, Central Processing Unit]
   - [CSP, Content Security Policy]
+  - [CSV, Comma-Separated Values]
   - [DBA, Database Administrator]
   - [DNC, Do Not Contact]
   - [DNS, Domain Name System]

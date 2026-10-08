@@ -55,11 +55,11 @@ Technology alone will not move own-channel sales. The groups below change how th
 | Campaign managers | Mass SMS with no frequency control | Journeys with contact rules, voice campaigns and dashboards; discount wording is blocked | High |
 | Data stewards | No defined role | Data-quality queue and corrections with evidence | High (new role) |
 | Product rule authors | Change requests to IT | Draft, check and simulate rule changes in the rules studio | Medium |
-| Compliance approvers | Review after the event | Approve changes before they take effect; audit trail; data subject requests | Medium |
+| Compliance officers | Review after the event; data requests handled by email and letter with no register | Approve changes before they take effect; audit trail; every data request logged in Governance › "Data requests" with a due date, identity check, export or erasure, and a timeline | Medium |
 | Claims handlers | Phone and paper first notice | Digital first-notice queue with a 4-hour acknowledgement target | Medium |
 | Partner managers | Email and spreadsheet commission | Partner onboarding, API keys and commission statements | Medium |
 | TASCO IT and support | Not involved | Operate the platform, its jobs and integrations | Medium |
-| Customers in the pilot | Renew with whoever calls; paper certificate | Reminders in the app and Zalo, purchase in the app, e-certificate with QR code | Medium |
+| Customers in the pilot | Renew with whoever calls; paper certificate | Reminders in the app and Zalo; quick renewal in 3 steps where eligible, or the full flow; e-certificate with QR code | Medium |
 
 For telesales the change is the largest: their role shifts from cold calling to closing warm, verified leads. The bot does the verification and the reminders; agents do the conversation.
 
@@ -86,7 +86,7 @@ Key messages, to be approved by TASCO compliance:
 3. The voice assistant handles verification and reminders. People handle conversations and advice.
 4. Every change to customer-facing rules is approved by a second person and recorded.
 
-For customers we recommend a simple launch promise: "Renew in the VETC app in one minute, with roadside help included."
+For customers we recommend a simple launch message, subject to TASCO compliance approval: "Renew your TNDS in the VETC app in about a minute."
 
 # Super users
 
@@ -106,9 +106,10 @@ Training is role-based: each person learns only the screens their role can see. 
 
 | Audience | Format | Content | When |
 |---|---|---|---|
-| Telesales agents and supervisors | Classroom and practice in UAT, half a day | Handoff inbox, customer 360 view, sending quotes to the app, scripts that respect the no-discount rule | Week 12 |
+| Telesales agents and supervisors | Classroom and practice in UAT, half a day | Handoff inbox, customer 360 view, sending quotes to the app, the two renewal paths customers see (quick renewal and the full flow), scripts that respect the no-discount rule | Week 12 |
 | Campaign managers | Workshop, one day | Leads, journeys, voice campaigns, dashboards | Week 11 |
-| Product rule authors and compliance approvers | Workshop, one day | Rules studio: drafting, simulation, approval, rollback | Weeks 9 to 11 |
+| Product rule authors and compliance approvers | Workshop, one day | Rules studio: drafting, simulation, approval, rollback; switching quick renewal on or off in the service levels | Weeks 9 to 11 |
+| Compliance officers | Session and practice in UAT, two hours | Data requests process in Governance › "Data requests": "Log request" from the hotline, email, app, branch or letter; verify identity; "Export data"; "Erase personal data", or refuse with a reason; watch "Due within 24 h" and "Overdue"; data downloaded in the app appears as a completed request | Week 11 |
 | Data stewards | Workshop, half a day | Data-quality queue, corrections with evidence, lineage | Week 11 |
 | Claims handlers and partner managers | Session, two hours each | Claims queue; partner onboarding, keys and statements | Week 12 |
 | TASCO IT and support | Technical handover, two days | Architecture, deployment, monitoring, runbooks, incident handling | Weeks 12 to 13 |
@@ -141,6 +142,7 @@ The pilot success criteria in TGP-DEL-01 Project Plan measure the business resul
 | Weekly active telesales agents | Agents who worked at least one handoff in the week | At least 90% |
 | Handoff first contact | Time from handoff to the agent's first contact, in business hours | Within 2 business hours |
 | Rule change lead time | Time from draft to approval | Within 1 business day |
+| Data requests answered on time | Requests completed or refused within the response time (72 hours, to be confirmed by TASCO legal) | 100% |
 | Policies bought in the app | Share of own-channel sales completed in the VETC app | At least 60% |
 | How-to support tickets | Tickets asking how to do something, per 100 users per week | Falling week on week |
 

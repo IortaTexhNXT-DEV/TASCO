@@ -14,9 +14,16 @@ The responsibilities of each party stay where they belong. TASCO's core system p
 | Issue | Receives the e-certificate | Shows it in the app | Binds the quote and issues the policy | Stores the certificate, updates the record | |
 | Serve | Uses benefits, reports claims | | Handles claims | Takes the first notice, sends reminders | |
 
-### 7.2 Renewal with one-tap purchase
+### 7.2 Renewal in the app: quick renewal or the full flow
 
-This is the flow that turns a reminder into a policy without a phone call.
+This is the flow that turns a reminder into a policy without a phone call. The customer app offers two paths, and the platform chooses between them for each customer each time the app opens.
+
+| Path | Steps for the customer | When it is offered |
+|---|---|---|
+| Quick renewal ("Gia hạn nhanh") | 3: open the renewal, tick the declaration, then "Xác nhận thanh toán" (confirm payment) | The customer is renewing TNDS with TASCO; vehicle use and seats were confirmed by TASCO core, a matching TASCO policy or the customer within the last 365 days; no physical damage cover or add-ons; the price is not indicative; in the VETC app, the wallet balance covers the premium |
+| Full flow | 6: "Gia hạn ngay", "Xem phí bảo hiểm", "Tiếp tục", declaration, "Thanh toán", "Xác nhận thanh toán" | Every other case, and always on request through "Tùy chỉnh gói bảo hiểm" (customise the cover) |
+
+The conditions are a rule set that TASCO controls, changed through the rules studio with a second person's approval like any other rule. The declaration stays an explicit tick in both paths, so the customer confirms the vehicle details every time. Our target is a median renewal time of 60 seconds or less.
 
 ```mermaid
 %% caption: Renewal, part 1: the reminder and a quote priced by TASCO core
@@ -163,7 +170,7 @@ We designed around five customer personas drawn from the VETC base.
 
 | Persona | Situation | What they need | What the platform gives them |
 |---|---|---|---|
-| Anh Minh, 38, Hà Nội | Commutes daily; uses the VETC app; ignores sales calls | Renew without effort, at the right time | A reminder in the app 45 days ahead and purchase in one tap |
+| Anh Minh, 38, Hà Nội | Commutes daily; uses the VETC app; ignores sales calls | Renew without effort, at the right time | A reminder in the app 45 days ahead and quick renewal in three steps |
 | Chú Hùng, 51, long-haul driver | Drives between Thanh Hóa, Hà Nội and Hải Phòng | Help when something goes wrong on the road | Roadside assistance as part of the offer; calls only inside the contact window |
 | Chị Thảo, 32, TP. Hồ Chí Minh | Has just bought a car and activated a VETC tag | To be covered legally from the first day | A welcome offer at tag activation, with optional add-ons |
 | Anh Tuấn, 45, Bình Dương | His policy lapsed months ago | To fix it without being lectured or pressured | A recovery journey that starts in the app and moves to a call only with consent |
@@ -173,7 +180,7 @@ We designed around five customer personas drawn from the VETC base.
 
 Today, TASCO does not know when Anh Minh's cover ends. He receives no reminder from TASCO, waits in case a discount appears, and eventually buys from whoever is in front of him at his next inspection.
 
-With the platform, the story is different. Forty-five days before his cover ends, a notification appears in the VETC app he opens every week. It tells him the date his cover ends, the regulated price, and what TASCO includes: roadside assistance, an e-certificate he can show at any checkpoint, and a reminder before his next inspection. He taps "Confirm and pay", pays from his VETC wallet, and receives his e-certificate before he has finished his coffee. Next year, his expiry date is already verified and he is offered three-year cover.
+With the platform, the story is different. Forty-five days before his cover ends, a notification appears in the VETC app he opens every week. It tells him the date his cover ends, the regulated price, and what TASCO includes: roadside assistance, an e-certificate he can show at any checkpoint, and a reminder before his next inspection. His vehicle details were confirmed last year and his wallet covers the premium, so the app offers quick renewal: he ticks the declaration, taps "Xác nhận thanh toán", pays from his VETC wallet, and receives his e-certificate before he has finished his coffee. Next year, his expiry date is already verified and he is offered three-year cover.
 
 ### 8.3 Anh Tuấn's return from lapsed
 
@@ -187,7 +194,7 @@ The platform finds no valid cover for Anh Tuấn's car. His record is good enoug
 | Telesales supervisor | Productivity and compliance across the team | Inbox assignment, voice assistant console |
 | Campaign manager | Growth at a controlled cost | Dashboard, leads, journeys, voice campaigns |
 | Product rule author | Change scoring, journeys and copy without an IT project | Rules studio |
-| Compliance approver | Nothing unlawful reaches a customer | Approvals, audit trail, governance dashboard |
+| Compliance officer | Nothing unlawful reaches a customer; every data request answered on time | Approvals, audit trail, data-request register, governance dashboard |
 | Data steward | Data the business can trust | Data-quality queue, lineage |
 | Claims handler | Complete first notices, received early | Claims queue |
 | Partner manager | More partner sales and clean commission | Partners, API keys, statements |
@@ -196,13 +203,14 @@ The platform finds no valid cover for Anh Tuấn's car. His record is good enoug
 
 ## 9. User stories
 
-The full backlog contains 15 epics and 124 user-story scenarios, each written with acceptance criteria in Given/When/Then form and each backed by an automated functional test. The table below gives one representative story per epic and shows what is in the MVP.
+The full backlog contains 15 epics and more than 120 acceptance scenarios, each written in Given/When/Then form. All but three are automated functional tests; the three others are checked by hand in UAT. The table below gives one representative story per epic and shows what is in the MVP.
 
 | Epic | Representative user story | In the MVP |
 |---|---|---|
 | Data foundation and repair | As a data steward, I want records from VETC, TASCO and partners merged into one profile per plate, so that each vehicle is contacted once and with the best data. | Yes |
 | Lead prioritisation | As a campaign manager, I want every vehicle scored with reasons, so that effort goes to the drivers most likely to buy. | Yes |
 | Renewal journeys | As a TASCO customer, I want a reminder before my cover ends, so that I am never uninsured by accident. | Yes |
+| Quick renewal | As a TASCO customer renewing the same cover, I want to renew in three steps when my details are already confirmed, and still be able to change my cover, so that renewal takes about a minute. | Yes |
 | New-business journeys | As a new VETC tag holder, I want to buy TNDS in the app when I activate my tag, so that I am covered from day one. | Yes |
 | Voice assistant | As a customer, I want the assistant to confirm my plate before discussing my policy, so that I know the call is genuine. | Yes |
 | Telesales closing | As a telesales agent, I want warm handoffs with a summary, so that I can close without cold calling. | Yes |
@@ -211,7 +219,7 @@ The full backlog contains 15 epics and 124 user-story scenarios, each written wi
 | Partner channel | As a showroom salesperson, I want to quote by plate and issue in under a minute, so that insurance closes with the car sale. | Yes, one partner |
 | Fleet and B2B | As a fleet manager, I want one renewal date and one invoice for all my vehicles. | Routing only; portal later |
 | Claims first notice | As a customer, I want to report an accident in the app with photos. | Yes |
-| Privacy and consent | As a customer, I want to see and change my consents and request my data. | Yes |
+| Privacy and consent | As a customer, I want to see and change my consents and download or erase my data; as a compliance officer, I want every request logged with its deadline so that none is answered late. | Yes |
 | Rule governance | As a product rule author, I want to change scoring or wording with simulation and approval, without a software release. | Yes |
 | Identity, access and audit | As an auditor, I want a tamper-evident record of every decision. | Yes |
 | Operations and insight | As an executive, I want a growth dashboard by channel and segment. | Yes |
@@ -224,9 +232,9 @@ The screens below are taken from the platform as it runs today in the UAT enviro
 
 The customer app opens inside the VETC app from a signed link in a notification or a Zalo message, so the driver never has to sign in again or type a card number. The same app can run inside TASCO's own app and website and as a Zalo Mini App. It is written in Vietnamese and carries TASCO's look, the same as baohiemtasco.vn.
 
-![](shots/app-customer-home-quote.png){.phone height=10.5cm} ![](shots/app-customer-quote-card.png){.phone height=10.5cm} ![](shots/app-customer-buy-6-success.png){.phone height=10.5cm}
+![](shots/app-customer-home-quick.png){.phone height=10.5cm} ![](shots/app-customer-quick-renew.png){.phone height=10.5cm} ![](shots/app-customer-buy-6-success.png){.phone height=10.5cm}
 
-*Left to right: the home screen with a quote waiting and the renewal countdown; the quote card, which asks the same questions as e.baohiemtasco.vn (commercial use, vehicle type, seats) before showing the regulated premium; and the e-certificates issued the moment payment succeeds.*
+*Left to right: the home screen offering quick renewal with the renewal countdown; the quick renewal screen, with the confirmed vehicle, the regulated premium, the VETC wallet, the declaration to tick and "Tùy chỉnh gói bảo hiểm" for the full flow; and the e-certificates issued the moment payment succeeds.*
 
 ![](shots/app-customer-buy-3-payment-tasco-web.png){.phone height=10.5cm} ![](shots/app-customer-support-sheet.png){.phone height=10.5cm} ![](shots/verify-public-valid.png){.phone height=10.5cm}
 
@@ -276,7 +284,11 @@ The customer app opens inside the VETC app from a signed link in a notification 
 
 ![](shots/20-audit-trail.jpg){width=16.5cm}
 
-*The audit trail. Every material action is recorded in a hash chain that is verified continuously, together with the voice assistant's compliance indicators.*
+*The audit trail. Every material action is recorded in a hash chain that is verified by an hourly automated check, together with the voice assistant's compliance indicators.*
+
+![](shots/console-compliance-dsar.png){width=16.5cm}
+
+*The data-request register for the compliance officer. Each access or erasure request is logged with its channel and a 72-hour response deadline (to be confirmed by TASCO legal), shows whether it is on track, due soon or overdue, and keeps a timeline. Identity must be verified before data is exported or erased, and erasure is refused while a policy is in force.*
 
 ### 10.5 Data, claims, partners and operations
 

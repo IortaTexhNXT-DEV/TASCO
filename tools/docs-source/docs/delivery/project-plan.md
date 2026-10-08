@@ -33,7 +33,7 @@ signoff:
 
 # Introduction
 
-This plan sets out how iorta TechNXT will deliver the minimum viable product (MVP) of the TASCO Growth Platform (the platform) for TASCO Insurance and VETC. It covers the 17-week MVP from discovery to the end of hypercare, the pilot read-out that follows, and the optional scale phase.
+This plan sets out how iorta TechNXT will deliver the minimum viable product (MVP) of the TASCO Growth Platform (the platform) for TASCO Insurance, with the VETC app as the first distribution host. It covers the 17-week MVP from discovery to the end of hypercare, the pilot read-out that follows, and the optional scale phase.
 
 The plan is the delivery view of the proposal. Dates, milestones, team effort and client commitments are the same as in the proposal, sections 16 to 23 and 28 to 29. All dates are indicative until the contract is signed and are re-baselined at milestone M1.
 
@@ -63,7 +63,8 @@ The platform already exists and runs in UAT. Sprint effort therefore goes into a
 | VETC: data load and daily changes, tag-activation events, app web view, push, wallet debit and refund, reconciliation | VETC single sign-on, Zalo mini app, live feed of all VETC events |
 | Zalo ZNS and SMS brandname for approved templates | Further messaging channels |
 | One voice AI vendor with a Vietnamese script and telesales handoff | More voice vendors, outbound voice at full scale |
-| Renewal, conquest, new vehicle, lapsed recovery and cross-sell journeys | A/B testing framework, score calibration |
+| Renewal, conquest, new vehicle, lapsed recovery and cross-sell journeys; quick renewal in 3 steps where the case allows it, with the full flow always available | A/B testing framework, score calibration |
+| Data requests register for TASCO compliance (access and erasure, with response-time tracking) | Further data-subject rights as TASCO legal requires |
 | TNDS (one to three years), personal accident cover per seat, physical damage cover with inspection | Further products |
 | One partner live on the partner API | Partner onboarding at scale, fleet portal |
 | Pilot cohort of up to 100,000 vehicles | Full base of about 6 million vehicles |
@@ -156,14 +157,15 @@ The platform goes live as a soft launch to the first part of the pilot cohort af
 
 ## Pilot ramp-up and read-out (weeks 18 to about 27)
 
-After Tết the pilot is extended to the full cohort over two weeks. The pilot read-out, with conversion measured against the control group, is planned about 12 weeks after go-live, in early May 2027. That covers a full 45-day renewal cycle and gives the conquest and new-vehicle journeys time to show results.
+After Tết the pilot is extended to the full cohort over two weeks. The pilot read-out, with conversion measured against the control group, is planned for early May 2027. That covers a full 45-day renewal cycle and gives the conquest and new-vehicle journeys time to show results.
 
 | Pilot measure | Target (to be confirmed in discovery) |
 |---|---|
 | Vehicles with a usable expiry date | From about 10% to at least 35% of the cohort |
 | Own-channel TNDS conversion | Significantly above the control group (statistically tested) |
 | Policies bought in the app | At least 60% of own-channel sales |
-| Time from "Confirm and pay" to e-certificate | Under 60 seconds for 95% of purchases |
+| Median renewal time in the app (quick renewal where eligible, full flow otherwise) | 60 seconds or less |
+| Time from "Xác nhận thanh toán" to e-certificate | Under 60 seconds for 95% of purchases |
 | Complaints about contact | Fewer than 1 per 1,000 customers contacted |
 | Compliance breaches (copy, consent, contact window) | Zero |
 | Availability of the purchase path | 99.9% |

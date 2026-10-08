@@ -3,7 +3,7 @@ id: TGP-OPS-06
 title: Release and Change Management
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Service Operations
 reviewed_by: TASCO Insurance, Change Advisory Board
 approved_by: TASCO Insurance, Head of IT
@@ -160,7 +160,7 @@ A change of `RATING_SOURCE` is always a normal change with TASCO Business Owner 
 
 # Database migrations
 
-1. Never edit a migration applied to any shared environment, even for whitespace. The file name is its identity in `schema_migrations`, so an edit is skipped where already applied and diverges elsewhere. Add a new numbered file instead (`002_integrity_hardening.sql` is the latest). DBA review enforces this, and the header of `001_init.sql` states it.
+1. Never edit a migration applied to any shared environment, even for whitespace. The file name is its identity in `schema_migrations`, so an edit is skipped where already applied and diverges elsewhere. Add a new numbered file instead (`003_dsar_requests.sql`, which adds the data-request register, is the latest). DBA review enforces this, and the header of `001_init.sql` states it.
 2. Migrations take a PostgreSQL advisory lock, so two migrators started together run one after the other (KI-30 fixed). Rule activation is transactional.
 3. Migrations are forward-only and follow expand and contract, so an application rollback never needs a schema rollback. Expand: add tables, nullable columns and indexes. Large concurrent index builds are a manual DBA step referenced by the change, because each migration file runs in a transaction. Move data in batches by a job, not in the DDL migration. Contract (drop or rename) only in a later release, when no running version uses the old structure.
 4. `schema.js` must match the SQL; a unit test checks parity ("schema drift guard").
@@ -181,6 +181,8 @@ There is no separate feature-flag service. Exposure is controlled by rule sets, 
 | Journey targeting and regional roll-out | Journeys: audience, steps, tiers | Pilot audience restricted to the pilot provinces |
 | Event triggers | Triggers | Enable the long-trip trigger in the scale phase |
 | Contact intensity | Contact policy caps | Emergency marketing stop: daily cap 0 |
+| Quick renewal | Service levels: `quickRenewal` (enabled, journeys, confirmed vehicle and its maximum age, add-ons, wallet balance) | Turn quick renewal off, or widen it to other journeys; the full flow stays available |
+| Data-request response time | Service levels: `dsarResponseHours` | Set to the period TASCO legal confirms |
 | Voice script | Voice script content | Prompt wording and intents |
 | Access attributes | Access policy | Regional restriction (CAB-reviewed) |
 

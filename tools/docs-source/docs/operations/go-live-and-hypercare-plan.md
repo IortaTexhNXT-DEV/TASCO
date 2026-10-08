@@ -3,7 +3,7 @@ id: TGP-OPS-05
 title: Go-Live and Hypercare Plan
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Service Operations
 reviewed_by: TASCO Insurance, Product Owner and Head of IT
 approved_by: TASCO Insurance, Programme Sponsor
@@ -110,7 +110,7 @@ flowchart TB
 | G-1 | Every P1 item of TGP-OPS-04 is Done or Waived by the Steering Committee | Checklist | Delivery Lead |
 | G-2 | UAT accepted overall and by every persona; compliance scenarios passed without waiver | UAT sign-off sheet | TASCO Business Owner |
 | G-3 | Security sign-off: no open critical or high penetration test findings | CISO memo | TASCO CISO |
-| G-4 | Compliance and legal sign-offs: content inventory, contact policy, tariffs, Zalo templates, privacy notice and DPIA | Memos | Compliance, Legal, DPO |
+| G-4 | Compliance and legal sign-offs: content inventory, contact policy, tariffs, Zalo templates, privacy notice and DPIA, data-request response time (PRC-COMP-14), quick renewal eligibility rule (PRC-FUNC-09) | Memos | Compliance, Legal, DPO |
 | G-5 | Sev 1 and compliance known issues fixed with regression tests passing on the release tag: KI-01, KI-02, KI-09, KI-28, KI-33 (TC-080, TC-134, TC-135, TC-159, TC-162); open Sev 2 issues KI-04, KI-13 and KI-18 fixed or waived with a date | Results workbook; known issues | Dev lead |
 | G-6 | Partners ready in production: VETC wallet, sign-on, app deep link and push; TASCO core rating, catalogue and issuance on the confirmed specification with production credentials (PRC-CORE-01 to 04); Zalo; SMS; voice vendor; DR egress allow-listed | Partner confirmations | Integration lead |
 | G-7 | Operations ready: on-call live, procedures walked through, dashboards and alerts live, synthetics green for 48 hours in production | Operations sign-off | L2 lead |
@@ -152,7 +152,8 @@ T0 is Wednesday 27 January 2027 at 08:15, the first scheduled journey run (job `
 7. Integration status: rating source as decided, mode `http`, rating and catalogue circuits closed, last catalogue sync succeeded.
 8. Audit verification returns `ok:true`.
 9. Certificate check for the synthetic test certificate (SYN-02).
-10. Go-live day only: one real purchase for an internal staff vehicle, paid by its owner in the VETC app, with a core quote reference on the policy and a QR check. TASCO decides whether to keep or cancel it.
+10. A compliance officer opens the data-request register; it loads with the 72-hour response time shown.
+11. Go-live day only: one real purchase for an internal staff vehicle, paid by its owner in the VETC app, with a core quote reference on the policy and a QR check. TASCO decides whether to keep or cancel it.
 
 # Pilot ramp-up
 
@@ -240,11 +241,13 @@ Prepared by 07:45 and reviewed at the 08:00 stand-up.
 | Rating | Quotes priced by TASCO core; unavailable ratio; core p95; indicative quotes open | `rating_requests_total`, `integration_latency_seconds`, `quotes_indicative_total` | Unavailable above 1 % or any indicative quote: RB-16, RB-18 |
 | Voice | Calls by outcome; plate verification failures; opt-outs | `voice_calls_total` | Verification failure above 15 %; opt-out above 10 % |
 | Telesales | Handoffs created, claimed, won and lost; open over 2 business hours | Handoff list; database series | More than 20 aged handoffs |
-| Sales funnel | Quotes and orders by channel and journey; conversion; premium; time from "Confirm and pay" to e-certificate | Metrics; dashboard; VETC analytics | Conversion down 50 % week on week |
+| Sales funnel | Quotes and orders by channel and journey; conversion; premium; time from payment confirmation to e-certificate | Metrics; dashboard; VETC analytics | Conversion down 50 % week on week |
+| Renewal | Renewals by path (quick renewal or full flow); top reasons customers were not offered quick renewal; median renewal time | Orders; customer app analytics | Median above 60 seconds: review with the Product Owner |
 | Integrity | Compensated, `compensation_failed` and `payment_failed` orders; reconciliation mismatches | Metrics; job history | Any: RB-11 (`compensation_failed` is Sev 1) |
 | Data | New data quality issues by type; customer-confirmed expiries | Data quality queue; audit | — |
 | Reliability | Service level objectives; incidents by severity; alerts; dead letters | Dashboards D1 to D3 | More than 50 % of the weekly error budget used |
 | Compliance | Contacts outside hours (must be 0); DNC contacts (0); complaints | RB-07 query; customer service | Any: Sev 1 |
+| Privacy | Data requests open, due within 24 hours and overdue | Data-request register | Any overdue: SOP-05 escalation |
 | Support | Tickets by tier and category; share resolved at L1 and L2 | ITSM | L3 share above 30 % from week 3 |
 
 ## Exit criteria

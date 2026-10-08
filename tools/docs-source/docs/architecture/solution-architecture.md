@@ -3,23 +3,27 @@ id: TGP-ARC-01
 title: Solution Architecture
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Solution Architecture
 reviewed_by: TASCO Insurance, IT Architecture
 approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
+  - [ADR, Architecture decision record]
+  - [AES, Advanced Encryption Standard]
   - [AI, Artificial intelligence]
   - [API, Application programming interface]
   - [CDC, Change data capture]
   - [CI/CD, Continuous integration and continuous delivery]
   - [CTI, Computer telephony integration]
   - [DPO, Data protection officer]
+  - [GCM, Galois/Counter Mode]
   - [HTML5, HyperText Markup Language, version 5]
   - [HTTP, Hypertext Transfer Protocol]
   - [IT, Information technology]
   - [JSON, JavaScript Object Notation]
   - [MFA, Multi-factor authentication]
+  - [MVP, Minimum viable product]
   - [OIDC, OpenID Connect]
   - [PII, Personally identifiable information]
   - [REST, Representational state transfer]
@@ -104,7 +108,7 @@ The platform sits between the vehicle owner, TASCO and VETC staff, partners and 
 flowchart LR
   subgraph PEOPLE["People and partners"]
     direction TB
-    CUST["Vehicle owner, via VETC app or Zalo"]
+    CUST["Vehicle owner, via customer app"]
     STAFF["TASCO and VETC staff, via staff console"]
     PART["Partners, via Partner API"]
   end
@@ -113,6 +117,7 @@ flowchart LR
     direction TB
     CORE["TASCO core: catalogue, rating, issue"]
     VETC["VETC platform: data, events, wallet, push"]
+    PAY["TASCO payment gateway"]
     MSG["Zalo ZNS and SMS: approved templates"]
     VOICE["Voice AI vendor: calls and outcomes"]
     DWH["TASCO data warehouse: daily extract"]
@@ -122,6 +127,7 @@ flowchart LR
   PART --> GP
   GP <--> CORE
   GP <--> VETC
+  GP <--> PAY
   GP --> MSG
   GP <--> VOICE
   GP --> DWH
@@ -129,11 +135,12 @@ flowchart LR
 
 | Actor or system | Interaction with the platform |
 |---|---|
-| Vehicle owner | Uses the customer app inside the VETC app (web view) or from a Zalo message: checks cover, declares an expiry date, reviews and pays quotes from the VETC wallet, manages consent, reports a claim. |
+| Vehicle owner | Uses the customer app in one of four hosts: the VETC app (MVP), TASCO's app and website (scale module S3) or a Zalo Mini App (S4). Checks cover, confirms the vehicle and expiry date, renews by the quick or the full path, pays, manages consent, downloads their data and reports a claim. Every sale records the host channel. |
 | TASCO and VETC staff | Use the staff console across 13 roles: telesales, campaign, rules, compliance, data stewardship, claims, partner management, audit, operations and administration. Staff quote and send quotes; they never take payment. |
 | Partners | Call the Partner API to quote and bind for their own customers. The partner collects the premium. |
 | TASCO core | Master for the product catalogue and rating; binds and issues policies; supplies the policy book; receives claim notifications. |
-| VETC platform | Supplies account and vehicle data and tag events, hosts the customer app as a web view, delivers push notifications and debits the VETC wallet with the customer's confirmation. |
+| VETC platform | Supplies account and vehicle data and tag events, hosts the customer app as a web view, delivers push notifications and debits the VETC wallet with the customer's confirmation (VETC app and Zalo Mini App). |
+| TASCO payment gateway | TASCO's existing online payment gateway (the one behind e.baohiemtasco.vn), used when the customer app runs in TASCO's app or website. A sandbox adapter today. |
 | Zalo ZNS and SMS | Deliver pre-approved service and marketing templates. |
 | Voice AI vendor | Places automated calls, provides Vietnamese speech recognition and text to speech, and speaks only approved script lines. |
 | TASCO data warehouse | Receives a daily pseudonymised extract for reporting (scale phase). |
@@ -150,7 +157,7 @@ The platform is organised in six layers, from the channels customers and staff u
 flowchart TB
   subgraph CH["Channels"]
     direction LR
-    C1["VETC app and Zalo"] ~~~ C2["Staff browsers"] ~~~ C3["Partner systems"] ~~~ C4["Phone calls"]
+    C1["Customer app hosts"] ~~~ C2["Staff browsers"] ~~~ C3["Partner systems"] ~~~ C4["Phone calls"]
   end
   subgraph EXP["Experience"]
     direction LR
@@ -166,7 +173,7 @@ flowchart TB
   end
   subgraph INT["Integration adapters"]
     direction LR
-    I1["TASCO core adapters"] ~~~ I2["VETC adapters"] ~~~ I3["Messaging and voice"]
+    I1["TASCO core and payment"] ~~~ I2["VETC adapters"] ~~~ I3["Messaging and voice"]
   end
   subgraph SOR["Systems of record"]
     direction LR
@@ -183,10 +190,11 @@ flowchart TB
 | Lead intelligence | Scores each vehicle (explainable factors), assigns a journey and a next-best action, and selects relevant benefits | Lead service, leads domain |
 | Journeys and contact policy | Plans and runs touchpoints on app push, Zalo ZNS, SMS, voice and telesales, within consent, contact window and frequency caps, with a copy guard on every message | Journey service, contact policy domain |
 | Voice assistant | Runs governed automated calls with plate-first verification and hands interested customers to telesales | Voice service, dialogue domain |
-| Sales | Quotes through TASCO core, sends quotes to the customer, takes payment only from the customer in the VETC app, issues policies and e-certificates | Sales, rating and catalogue services |
+| Sales | Quotes through TASCO core, sends quotes to the customer, takes payment only from the customer in the customer app (VETC wallet in VETC hosts, TASCO payment gateway in TASCO hosts), issues policies and e-certificates | Sales, rating and catalogue services |
+| Quick renewal | Decides on the server, case by case, whether a returning customer can renew in 3 steps instead of the full 6-step flow, from the quick-renewal settings in the service levels rule set | Quick-renewal domain module, customer service |
 | Partners and commission | Onboards partners, issues API keys with scopes, records partner sales and computes commission within statutory caps | Partner service |
 | Claims intake | Captures first notice of loss from the customer app and acknowledges it within the service level | Claims service |
-| Identity, consent and privacy | Staff sign-in with MFA, role and attribute-based access, consent centre, data subject export and erasure | Identity service, access policy, customer service |
+| Identity, consent and privacy | Staff sign-in with MFA, role and attribute-based access, consent centre, and a register of data-subject requests (access and erasure) with response deadlines, identity verification and audit | Identity service, access policy, customer service, data-subject request service |
 | Rules governance | Versioned rule sets with validation, simulation, maker-checker approval and rollback | Rules service, rules engine |
 | Insights and operations | Business and governance dashboards, reconciliation, retention, job history and integration status | Insights and operations services |
 
@@ -232,15 +240,15 @@ The dependency rule is strict. Domain modules (`src/domain`) and the rules engin
 |---|---|---|
 | Presentation | Staff console, customer app, public certificate check | HTML5 and JavaScript modules, no third-party runtime, strict content security policy, design tokens. Console in Vietnamese and English, customer app in Vietnamese. |
 | API | REST operations described in OpenAPI 3.1, generated from the route table; rate limiting, idempotency keys, input validation | Node.js 22 standard HTTP server |
-| Application | Ingestion, leads, journeys, voice, sales, rating, catalogue, partners, claims, customers, identity, rules, insights, operations, audit | Node.js 22 |
-| Domain | Plate and phone normalisation, golden record, scoring, rating fallback, contact policy, dialogue | Pure JavaScript, no dependencies |
+| Application | Ingestion, leads, journeys, voice, sales, rating, catalogue, partners, claims, customers, data-subject requests, identity, rules, insights, operations, audit | Node.js 22 |
+| Domain | Plate and phone normalisation, golden record, scoring, rating fallback, contact policy, dialogue, quick-renewal eligibility | Pure JavaScript, no dependencies |
 | Rules | JSON Logic subset and decision tables; 21 rule kinds, validated, simulated and approved before use | Built in, no code evaluation |
 | Persistence | One table per collection: document column plus typed indexed columns; optimistic locking; AES-256-GCM field encryption; blind index for phone search | PostgreSQL 16 |
 | Messaging | Transactional outbox with a relay that claims events using `FOR UPDATE SKIP LOCKED` | PostgreSQL |
 | Integration | Adapters with timeouts, retries, circuit breakers and idempotency keys | REST over TLS, OAuth 2.0 client credentials, mutual TLS where required |
 | Operations | Health checks, Prometheus metrics, JSON logs, scheduled jobs | Kubernetes CronJobs |
 
-The API exposes 81 operations at the time of writing: 6 public, 61 staff, 10 customer and 4 partner. Every non-public operation declares its audience and permission in the route table, and the OpenAPI document is generated from the same table (ADR-010).
+The API has 103 routes: 6 public, 82 staff, 11 customer and 4 partner, published as 92 paths in the OpenAPI document. Every non-public route declares its audience and permission in the route table, and the OpenAPI document is generated from the same table (ADR-010).
 
 ## Ports and current adapters
 
@@ -251,7 +259,8 @@ The table lists each port, the adapter used in development and UAT today, and th
 | CoreRating | Price a quote | Simulated TASCO core | TASCO core REST client | Client built; paths assumed |
 | ProductCatalogue | Fetch products | Simulated TASCO core | TASCO core REST client | Client built; paths assumed |
 | PolicyAdministration | Bind, issue, cancel | Sandbox core gateway | TASCO core API | Sandbox |
-| PaymentGateway | Wallet debit and refund | Sandbox VETC wallet | VETC wallet API | Sandbox |
+| PaymentGateway (VETC) | Wallet debit and refund in the VETC app and Zalo Mini App | Sandbox VETC wallet | VETC wallet API | Sandbox |
+| PaymentGateway (TASCO) | Debit and refund in TASCO's app and website | Sandbox TASCO payment gateway | TASCO online payment gateway | Sandbox |
 | NotificationChannel | Push, Zalo ZNS, SMS | Sandbox gateways | VETC push, Zalo, SMS provider | Sandbox |
 | Telephony | Automated calls | Simulated caller | Voice AI vendor | Sandbox |
 | SourceFeed | VETC data | Synthetic source and ingest API | VETC files and CDC | API built |
@@ -318,7 +327,7 @@ Business behaviour lives in 21 rule kinds, seeded from `config/rules` as version
 | Contact policy | Contact window, frequency caps, consent per channel | Compliance and DPO | Compliance officer only |
 | Access attributes | Region and ownership policies | Information security | Compliance officer only |
 | Retention | Retention period and action per entity | DPO and Legal | Compliance officer only |
-| Service levels | Quote validity (24 h), claim acknowledgement (4 h), evidence confidences | Operations and Data office | Rule approver |
+| Service levels | Quote validity (24 h), claim acknowledgement (4 h), data-subject response time (72 h), quick-renewal eligibility, evidence confidences | Operations and Data office | Rule approver |
 | Referral | Referral programme, disabled pending legal review | Product and Legal | Rule approver |
 | Costs | Unit costs for the business case dashboard | Finance | Rule approver |
 
@@ -410,6 +419,27 @@ sequenceDiagram
 
 Each journey step is checked against consent, the do-not-contact flag, the 08:00 to 20:00 contact window and the daily and weekly caps. A step blocked only by the window stays scheduled for the next run. The voice assistant can stand in for the telesales call when the customer has call consent; its handoff path is in TGP-ARC-02 Integration Architecture.
 
+The sequence shows the VETC app. In TASCO's app and website the same services run and the payment goes through the TASCO payment gateway port instead of the VETC wallet; the sales service picks the port from the host channel recorded in the customer's session.
+
+## Quick renewal
+
+A returning customer whose case is simple can renew in 3 steps: open the app, tick the declaration, then confirm payment. Everyone else, and anyone who wants to change the cover, uses the full 6-step flow, which is always offered as "Tùy chỉnh gói bảo hiểm". The declaration stays an explicit step on both paths for compliance (ADR-014).
+
+The server decides. `GET /api/customer/home` returns the quick-renewal eligibility with its reasons, and a quick quote request is checked again on the server before it is priced. The quick-renewal domain module (`src/domain/quickRenewal.js`) is a pure function; the customer service gathers the facts and applies the `quickRenewal` settings of the service levels rule set. A customer qualifies only when all of these hold:
+
+- the lead's journey is renewal, or the customer is renewing a TASCO TNDS policy;
+- the vehicle has not already been renewed;
+- vehicle use and seats are confirmed by TASCO core, by a matching TASCO policy, or by the customer within 365 days;
+- the cover is TNDS with no physical damage cover, which needs an inspection;
+- the price will not be indicative, so TASCO core must be able to rate it;
+- in VETC hosts, the last known wallet balance covers the premium.
+
+Each failed condition gives a short reason in Vietnamese that the app can show. The quick quote is priced by TASCO core and paid through the same purchase path, idempotency checks and saga refund as any other quote.
+
+## Data-subject requests
+
+Access and erasure requests reach TASCO by hotline, email, the app, a branch or letter. A compliance officer logs each one in the data requests register in the staff console, and the data-subject request service tracks it from received to completed or refused, with a due date from the service levels rule set. Fulfilment reuses the customer service's export and erasure. When a customer downloads their own data in the app, the download is recorded as a completed access request on the app channel. TGP-ARC-04 Security Architecture describes the process and its controls, and TGP-ARC-03 Data Architecture the register's data.
+
 ## Rule change with maker-checker
 
 Every rule change is validated, submitted by its author and approved by a different person before it takes effect.
@@ -469,7 +499,7 @@ The application tier is stateless, so capacity grows by adding pods. The databas
 | Daily journey evaluations | Not measured | 100,000 | 6 million |
 | Ingestion | 5,000 records per batch | Initial load within one day | Full base within one weekend |
 
-The load smoke test was run on 08/10/2026 with one process and 25 concurrent clients: 3,063 requests, p95 195 ms against a 300 ms budget, with no errors. Full-scale capacity will be proven in pre-production during the scale phase (TGP-QA-03 Performance and Capacity Test Plan).
+The load smoke test was run on 7 October 2026 with one process, the in-memory store and 25 concurrent clients: 337 requests per second, p95 103 ms against a 300 ms budget, with no errors. Full-scale capacity will be proven in pre-production during the scale phase (TGP-QA-03 Performance and Capacity Test Plan).
 
 The following changes are planned before the base grows beyond the pilot. None of them changes the public interfaces.
 
@@ -487,7 +517,7 @@ The following changes are planned before the base grows beyond the pilot. None o
 | ID | Constraint or assumption | Impact | Owner |
 |---|---|---|---|
 | CA-01 | TASCO core rating and catalogue paths in the production client are assumptions until TASCO's interface specification arrives | Only the adapter mapping changes | TASCO IT Architecture |
-| CA-02 | Policy issuance, VETC wallet, push, Zalo ZNS, SMS and voice use sandbox adapters until provider test systems are available | Real adapters are built and tested in SIT | iorta TechNXT with each provider |
+| CA-02 | Policy issuance, the VETC wallet, the TASCO payment gateway, push, Zalo ZNS, SMS and voice use sandbox adapters until provider test systems are available | Real adapters are built and tested in SIT | iorta TechNXT with each provider |
 | CA-03 | If TASCO core cannot expose a rating API in time, the platform rates from tariff tables synchronised from core and core re-rates at issue, rejecting any mismatch | Interim path, confirmed in the first two weeks | TASCO IT Architecture |
 | CA-04 | Production personal data is hosted and processed in Vietnam | Hosting choice; UAT on Railway holds synthetic data only | TASCO IT, to be confirmed by TASCO legal |
 | CA-05 | VETC confirms wallet debits with the wallet holder according to its payment rules | May make payment confirmation asynchronous | VETC |
@@ -502,7 +532,7 @@ The platform is designed to grow in stages without changing its core structure.
 |---|---|---|
 | Pilot and UAT (now) | Sandbox adapters behind ports; local sign-in with TOTP; outbox in PostgreSQL; keyword intent matching for the voice assistant; Railway UAT | Ports, rule kinds, data model |
 | Production go-live | Real adapters for TASCO core, VETC wallet and push, Zalo ZNS, SMS and the voice vendor; Kubernetes in Vietnam; shared logout list and partner quotas at the gateway; automatic refund retry | Application and domain code |
-| Scale phase | VETC CDC feed; monthly partitions and read replica; OIDC to the TASCO identity provider and VETC SSO; data warehouse feed; message broker behind the event bus port; tracing | Event publishers and subscribers |
+| Scale phase | TASCO app and website with the real TASCO payment gateway adapter (S3); Zalo Mini App (S4); VETC CDC feed; monthly partitions and read replica; OIDC to the TASCO identity provider and VETC SSO; data warehouse feed; message broker behind the event bus port; tracing | Event publishers and subscribers |
 | Intelligence | Optional language-model intent classifier behind the classifier port; propensity model alongside the rules-based score, with fairness and drift monitoring (TGP-ARC-06 AI Governance) | Governed script and dialogue state machine |
 
 # Appendix
@@ -513,14 +543,14 @@ The platform is designed to grow in stages without changing its core structure.
 |---|---|---|
 | Shared kernel | `src/shared/` | Configuration, logger with PII redaction, cryptography, validation, resilience, metrics, errors, clock |
 | Rules engine | `src/rules/` | JSON Logic subset, decision tables, per-kind validators |
-| Domain | `src/domain/` | Identity, enrichment, leads, rating, contact policy, voice dialogue |
+| Domain | `src/domain/` | Identity, enrichment, leads, rating, contact policy, voice dialogue, quick renewal |
 | Application | `src/application/` | One service per use-case area, access policy, rules service |
 | Composition root | `src/bootstrap/container.js` | Adapter selection, wiring, event subscribers |
 | Persistence | `src/adapters/persistence/` | Collection registry, codec, PostgreSQL and in-memory stores, audit chain |
 | Messaging | `src/adapters/messaging/` | Outbox event bus |
-| Integrations | `src/adapters/integrations/` | TASCO core REST client, simulated core, sandbox gateways, simulated caller, synthetic VETC source |
+| Integrations | `src/adapters/integrations/` | TASCO core REST client, simulated core, sandbox gateways (VETC wallet, TASCO payment, policy issuance, notifications), simulated caller, synthetic VETC source |
 | HTTP | `src/adapters/http/` | Request pipeline, route table, router, OpenAPI generator, security headers |
 | Processes | `src/server.js`, `src/jobs/cli.js` | API server and batch jobs |
 | Configuration | `config/rules/`, `config/security/rbac.json` | Rule kinds; roles, separation of duties, restricted rule kinds |
-| Schema | `db/migrations/` | Collection tables, audit log, integrity hardening |
+| Schema | `db/migrations/` | `001` collection tables and audit log; `002` integrity hardening; `003` data-subject request register |
 | Deployment | `Dockerfile`, `deploy/k8s/`, `railway.json`, `.github/workflows/ci.yml` | Image, manifests, UAT hosting, pipeline |

@@ -9,6 +9,7 @@ reviewed_by: TASCO Insurance, Product Owner
 approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
+  - [AI, Artificial intelligence]
   - [API, Application Programming Interface]
   - [B2B, Business to business]
   - [DNC, Do not contact]
@@ -48,7 +49,7 @@ This document holds the product backlog of the TASCO Growth Platform as user sto
 
 ## Scope
 
-There are 77 stories in 15 epics, with 124 acceptance scenarios. Each story names the functional requirements it delivers (TGP-BUS-02) and the persona it serves (TGP-BUS-06). Stories for the TASCO core integration (FR-111 to FR-115) are verified by integration tests listed in TGP-BUS-05 and are not repeated here.
+There are 79 stories in 15 epics, with 135 acceptance scenarios. Each story names the functional requirements it delivers (TGP-BUS-02) and the persona it serves (TGP-BUS-06). The TASCO core integration (FR-111 to FR-115) and the host apps (FR-117) are verified by the integration and API tests listed in TGP-BUS-05 and have no stories here.
 
 ## Audience
 
@@ -70,7 +71,7 @@ Stories are numbered US-nnn and grouped in epics EP-nn. Personas are PC-n (custo
 
 Each story is written "As a … I want … so that …", followed by acceptance criteria in Given, When, Then form. Thresholds quoted in the criteria are the current rule values. If the business changes a rule through maker-checker approval, the criteria follow the active rule, not the number written here. "Today" is the platform date, times are Vietnam time (UTC+7), and the delivered rule sets are active at version 1.
 
-Every scenario is also an automated test with the same title, prefixed with the story number. Of the 124 scenarios, 121 are automated and pass; three are verified manually in UAT (US-055 fleet view, US-076 language switch, US-077 physical QR scan). Results are recorded in the test cases and results workbook described in TGP-QA-02. Scenario titles marked "(target behaviour)" keep their original names for traceability; the behaviour is implemented.
+The scenarios of US-001 to US-077 are also automated tests with the same title, prefixed with the story number. The scenarios of US-078 and US-079 are covered by the data-request and quick-renewal API and unit tests named in TGP-BUS-05. Of the 135 scenarios, 132 are automated and pass; three are verified manually in UAT (US-055 fleet view, US-076 language switch, US-077 physical QR scan). Results are recorded in the test cases and results workbook described in TGP-QA-02. Scenario titles marked "(target behaviour)" keep their original names for traceability; the behaviour is implemented.
 
 ## Epics
 
@@ -82,12 +83,12 @@ Every scenario is also an automated test with the same title, prefixed with the 
 | EP-04 | New-business journeys and moments of truth | NB | US-017 to US-022 |
 | EP-05 | AI voice assistant | T1 | US-023 to US-031 |
 | EP-06 | Telesales closing | T1 | US-032 to US-035 |
-| EP-07 | Customer app: renew and self-service | T3 | US-036 to US-042 |
+| EP-07 | Customer app: renew and self-service | T3 | US-036 to US-042, US-079 |
 | EP-08 | Value beyond discount and cross-sell | T4 | US-043 to US-048 |
 | EP-09 | Partner channel | NB | US-049 to US-053 |
 | EP-10 | Fleet and B2B | NB | US-054 to US-055 |
 | EP-11 | Claims first notice | T4 | US-056 to US-058 |
-| EP-12 | Privacy and consent | PL | US-059 to US-062 |
+| EP-12 | Privacy and consent | PL | US-059 to US-062, US-078 |
 | EP-13 | Rule governance | PL | US-063 to US-068 |
 | EP-14 | Identity, access and audit | PL | US-069 to US-072 |
 | EP-15 | Operations, insights and usability | PL | US-073 to US-077 |
@@ -747,6 +748,40 @@ Scenario: Issuance failure after payment
   Then any issued lines are cancelled, the payment is refunded in full, the order shows "issuance failed, refunded" and the failure is audited
 ```
 
+## US-079 Renew in three steps when nothing has changed
+
+As a customer renewing my TASCO cover (PC-1), I want to renew without going through the whole purchase again, so that renewal takes less than a minute. Requirements FR-119, FR-116, FR-077, FR-047. Priority S.
+
+```gherkin
+Scenario: Quick renewal is offered
+  Given my TASCO TNDS policy is due for renewal and has no physical damage cover
+  And I confirmed my vehicle use and seats within the last 365 days
+  And my VETC wallet balance covers the premium
+  When I open Home
+  Then I see "Gia hạn nhanh", and "Tùy chỉnh gói bảo hiểm" for the full flow
+
+Scenario: Renew in three steps
+  When I tap "Gia hạn nhanh", tick the declaration and tap "Xác nhận thanh toán"
+  Then my wallet is debited once and a TNDS policy is issued for the same term as my current one
+  And Home no longer offers quick renewal because the vehicle is renewed
+
+Scenario: Vehicle details not confirmed
+  Given I have not confirmed my vehicle use and seats
+  When I open Home
+  Then quick renewal is not offered and the reason "Cần xác nhận thông tin xe" is shown
+  And the full renewal flow is still available
+
+Scenario: The server decides the cover
+  Given I qualify for quick renewal
+  When the app asks for a quick quote with physical damage cover added
+  Then the quote contains TNDS only
+
+Scenario: Switched off by the business
+  Given an approved rule change switches quick renewal off
+  When I open Home
+  Then quick renewal is not offered and the full flow is shown
+```
+
 # EP-08 Value beyond discount and cross-sell
 
 ## US-043 See relevant benefits, not discounts
@@ -1031,6 +1066,49 @@ Scenario: Masking
   When I open a customer in Customer 360
   Then name and phone are masked
   And the view is audited as "personal data not visible"
+```
+
+## US-078 Answer a data request on time
+
+As a compliance officer (PS-05), I want every request to see or erase personal data logged with a due time, so that TASCO can show that each request was answered lawfully and on time. Requirements FR-118, FR-079, FR-080, FR-097. Priority M.
+
+```gherkin
+Scenario: Log a request with its due time
+  Given a customer phones the hotline at 09:00 on 08/10/2026 and asks for a copy of their data
+  When I log an access request for plate "30A-123.45" on channel "Hotline"
+  Then the request is "Received" and due at 09:00 on 11/10/2026, 72 hours later
+  And the register shows the masked name and the plate only
+  And the request is audited
+
+Scenario: Identity is verified before data leaves TASCO
+  Given an open access request whose requester's identity is not yet verified
+  When I try to export the data
+  Then the export is refused until I record that identity was verified
+  When I record the verification and export
+  Then a file named "TASCO-data-30A-123.45-2026-10-08.json" is downloaded and the request is "Completed"
+  And its timeline shows received, in progress, identity verified and completed
+
+Scenario: Erasure while a policy is in force
+  Given an erasure request with identity verified from a customer whose policy is in force until 31/12/2026
+  When I give a reason, type the plate and erase
+  Then nothing is erased and the request is "Refused" with a reason that starts "Hợp đồng bảo hiểm còn hiệu lực đến 31/12/2026"
+
+Scenario: Erasure needs a reason and the plate
+  Given an erasure request with identity verified and no policy in force
+  When I erase without a reason, or type a different plate
+  Then the erasure is refused and nothing changes
+  When I give a reason and type the plate
+  Then the customer's personal data is anonymised and the request is "Completed" with the outcome "Erased"
+  And no request for that customer shows a name any more
+
+Scenario: The customer's own download is recorded
+  Given a customer downloads their data in the app
+  Then the register shows a completed access request on channel "App", logged by the customer
+
+Scenario: Only compliance handles data requests
+  Given I am signed in with a role other than compliance officer
+  When I open the data-request register
+  Then access is refused
 ```
 
 # EP-13 Rule governance

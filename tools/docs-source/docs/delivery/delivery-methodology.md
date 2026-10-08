@@ -130,7 +130,7 @@ A story is done when every applicable item is met.
 
 A rule change is done when it passes the platform's checks, simulation results on representative customers are attached to the change request for scoring, journeys, next best action and benefits, a different user has approved it, and the expected effect is monitored for seven days after activation. Rollback creates a new draft that also needs approval.
 
-Today the platform has 255 automated tests (252 pass, 3 to-do for manual or roadmap scenarios), with 99.41% line, 88.25% branch and 97.12% function coverage. A separate suite of 8 tests runs against PostgreSQL.
+Today the platform has 271 automated tests (268 pass, 0 fail, 3 to-do for manual or roadmap scenarios), with 99.4% line, 88.1% branch and 97.2% function coverage. A separate suite of 8 tests runs against PostgreSQL.
 
 # Quality gates
 

@@ -12,6 +12,7 @@ acronyms:
   - [API, Application Programming Interface]
   - [ASVS, Application Security Verification Standard]
   - [CI, Continuous Integration]
+  - [CISO, Chief Information Security Officer]
   - [DBA, Database Administrator]
   - [DNC, Do Not Contact]
   - [DR, Disaster Recovery]
@@ -33,6 +34,7 @@ acronyms:
   - [NVDA, NonVisual Desktop Access (screen reader)]
   - [OAuth, Open Authorization]
   - [OWASP, Open Worldwide Application Security Project]
+  - [PDP, Personal Data Protection]
   - [PERF, Performance test environment]
   - [PITR, Point-In-Time Recovery]
   - [PREPROD, Pre-production environment]
@@ -58,6 +60,7 @@ signoff:
   - ["VETC wallet, VETC identity and Zalo test accounts available for SIT by 11/01/2027", VETC IT and TASCO Marketing, Open]
   - [Independent penetration test vendor appointed for the test phase, TASCO CISO, Open]
   - ["Decision on open Sev 2 known issues KI-04, KI-13 and KI-18 (fix or dated waiver) before G3", TASCO Programme Sponsor, Open]
+  - ["Data request response time of 72 hours to be confirmed by TASCO legal under Decree 13/2023 and PDP Law 91/2025", TASCO Legal, Open]
   - ["Retention of profiles, messages, orders and certificates without an archival job (KI-13) to be confirmed by TASCO legal", TASCO Legal, Open]
 ---
 
@@ -65,13 +68,13 @@ signoff:
 
 This strategy sets out how the TASCO Growth Platform is tested from the first sprint to go-live: what is tested, at which level, in which environment, with which data, and what evidence each gate needs. It also records the latest execution results and the known issues found while the tests were derived.
 
-The system under test is `tasco-growth-platform` release 1.0.0 (Node.js 22, PostgreSQL 16). The client is TASCO Insurance, with VETC as ecosystem and channel partner. iorta TechNXT owns this strategy; TASCO IT, the TASCO Business Owner, TASCO Compliance and VETC IT approve it.
+The system under test is `tasco-growth-platform` release 1.0.0 (Node.js 22, PostgreSQL 16). The client is TASCO Insurance. VETC is the distribution host (the VETC app), provides the VETC wallet as a payment method and supplies vehicle data and events. iorta TechNXT owns this strategy; TASCO IT, the TASCO Business Owner, TASCO Compliance and VETC IT approve it.
 
 The audience is the test team, developers, TASCO IT and the Steering Committee.
 
 Related documents:
 
-- TGP-QA-02 Test Case Catalogue (TC-001 to TC-180).
+- TGP-QA-02 Test Case Catalogue (TC-001 to TC-205 and TC-080a).
 - TGP-QA-03 Performance and Capacity Test Plan.
 - TGP-QA-04 User Acceptance Test Plan.
 - TGP-OPS-04 Production Readiness Checklist and TGP-OPS-06 Release and Change Management.
@@ -98,12 +101,12 @@ Unit, integration, API, security and performance results in this document were p
 | Lead scoring and next best action | `leadService.js`, `leads.js`, scoring, NBA and benefits rules | Mis-prioritised leads, unexplainable scores, unapproved benefits reaching customers |
 | Journey engine | `journeyService.js`, `contactPolicy.js`, journey, trigger, contact policy and copy guard rules | Spam, contact outside 08:00 to 20:00, contact with DNC customers, banned discount wording |
 | Voice bot and telesales | `voiceService.js`, `voicebot.js`, handoff routes | Plate disclosure, opt-out ignored, agents seeing others' work |
-| Sales | `salesService.js`, `rating.js`, products and commission rules | Wrong premium, double charge, payment without policy, commission above the cap |
+| Sales and quick renewal | `salesService.js`, `rating.js`, `quickRenewal.js`, products, commission and service-level rules | Wrong premium, double charge, payment without policy, commission above the cap, quick renewal offered when the case needs the full flow |
 | TASCO core rating and catalogue | `ratingService.js`, `catalogueService.js`, `tascoCoreRatingClient.js` | Local price overriding core, indicative quote paid, catalogue change activated without approval, personal data sent at rating |
 | Partner channel | `partnerService.js`, partner API | Key leakage, cross-partner IDOR |
 | Claims first notice of loss | `claimsService.js` | Illegal status changes, claims on other customers' policies |
 | Rules governance | `rulesService.js`, `validators.js`, `jsonLogic.js` | Self-approval, invalid rule activated, stale cache across replicas |
-| Privacy and audit | DSAR in `customerService.js`, `auditService.js`, `auditChain.js` | Erasure with an active policy, personal data in clear at rest, undetected audit tampering |
+| Privacy and audit | Data requests register in `dsarService.js`, `auditService.js`, `auditChain.js` | Export or erasure before identity is verified, erasure with a policy in force, missed response time, personal data in clear at rest, undetected audit tampering |
 | Operations and persistence | `opsService.js`, outbox, jobs, `postgresStore.js`, migrations | Lost events, unreconciled orders, unsafe shutdown, memory and PostgreSQL drift |
 | Front ends | Staff console, customer app, certificate verification page | Accessibility, localisation, usability (being redesigned) |
 | Deployment assets | `Dockerfile`, `deploy/k8s`, `railway.json`, CI workflow | Image vulnerabilities, probe errors, missing scheduled jobs |
@@ -145,13 +148,13 @@ Integration tests wire the application services through `createContainer(config)
 
 ## API and contract tests
 
-API tests call every route in the route table over real HTTP: 97 routes in release 1.0.0 (6 public, 76 staff, 11 customer, 4 partner). The OpenAPI document is generated from the same table, so contract tests check that it lists every route, declares security per audience, requires `Idempotency-Key` on both order routes and rejects unknown body properties. CI regenerates the document and fails if it differs from the committed copy.
+API tests call every route in the route table over real HTTP: 103 routes in release 1.0.0 (6 public, 82 staff, 11 customer, 4 partner). The OpenAPI document is generated from the same table (92 paths), so contract tests check that it lists every route, declares security per audience, requires `Idempotency-Key` on both order routes and rejects unknown body properties. CI regenerates the document and fails if it differs from the committed copy.
 
 The authorisation matrix calls every route with each of 15 principals (13 staff roles, a customer and a partner) and checks for 2xx, 401 or 403. Negative tests cover 400, 404, 405, 409, 413, 415, 422, 423 and 429.
 
 ## Functional acceptance tests
 
-There is one automated test for every Given/When/Then scenario in TGP-BUS-04 User Stories and Acceptance Criteria, named `US-xxx · scenario`, running against the real API with the in-memory store. The suite has 124 scenarios: 121 automated and 3 recorded as to-do because they are manual or roadmap items (US-055 fleet dashboard, US-076 language toggle and US-077 physical QR scan, the last two verified in UAT). Each scenario is a row of the workbook sheet *Functional Test Cases*.
+There is one automated test for every Given/When/Then scenario in TGP-BUS-04 User Stories and Acceptance Criteria, named `US-xxx · scenario`, running against the real API with the in-memory store. TGP-BUS-04 has 79 user stories and 135 scenarios: 132 automated and 3 manual. The functional suite holds 124 of them: 121 automated and 3 recorded as to-do because they are manual or roadmap items (US-055 fleet dashboard, US-076 language toggle and US-077 physical QR scan, the last two verified in UAT). The scenarios of US-078 (data request) and US-079 (quick renewal) are automated in suites API-DQ (`test/api/dsarQuickRenewal.test.js`) and U-QR (`test/unit/quickRenewal.test.js`). Each scenario is a row of the workbook sheet *Functional Test Cases*.
 
 ## System integration testing
 
@@ -209,6 +212,7 @@ Business users run scenarios by persona: campaign manager, telesales agent and s
 | Maker-checker | TC-090, TC-091 |
 | Field encryption at rest and log redaction | TC-108, TC-109 |
 | No personal data in core rating requests | TC-170, TC-177 |
+| Data requests limited to the compliance role | TC-192 |
 
 ## Resilience testing
 
@@ -244,7 +248,8 @@ Customer-facing text is Vietnamese first, with English for staff review. Tests c
 | Commission caps | Drafts above the statutory cap refused; runtime capping | TC-084, TC-085 |
 | Personal data minimisation | Masking by permission; certificate check without name; no identity in rating requests | TC-031, TC-074, TC-170 |
 | Benefits pending legal review | Loyalty points never shown to customers | TC-041 |
-| Data subject rights | Export complete; erasure refused while a policy is active | TC-105 to TC-107 |
+| Data subject rights | Requests logged with a due date; identity verified before export or erasure; erasure refused while a policy is in force; only compliance handles requests; the app download recorded | TC-105 to TC-107, TC-184 to TC-196 |
+| Explicit declaration on quick renewal | One declaration tick before payment; the server decides eligibility and cover | TC-203, TC-204 |
 | Voice bot disclosure and plate-first | Bot never reads the full plate; discloses automation; opt-out honoured | TC-064 to TC-069 |
 | Staff never take payment | No staff route debits a wallet; assisted sales send the quote to the customer | TC-156, TC-157 |
 | No time override in production | Contact window always on the real clock outside demo mode | TC-162 |
@@ -258,21 +263,21 @@ The golden record follows survivorship by source trust, expiry inference by evid
 
 Reconciliation flags completed orders without a payment reference or policy, orders pending for more than an hour, and `compensation_failed` and `payment_failed` orders. In SIT it is also compared with VETC settlement files and TASCO issuance reports; that comparison is manual until a settlement adapter exists (KI-18).
 
-Migrations are applied in a transaction per file under an advisory lock. Tests cover a fresh database, a re-run (no-op), schema parity with `schema.js`, upgrade at production-like volume, and the objects created by `002_integrity_hardening.sql`. Applied migration files are never edited; DBA review enforces this and a CI check is recommended. The initial load of the pilot cohort is reconciled against the source extracts (TC-112).
+Migrations are applied in a transaction per file under an advisory lock. There are three migrations: `001_init.sql`, `002_integrity_hardening.sql` and `003_dsar_requests.sql` (the data requests register). Tests cover a fresh database, a re-run (no-op), schema parity with `schema.js`, upgrade at production-like volume, and the objects created by `002_integrity_hardening.sql`. A unit test fails when a collection has no matching numbered migration, so applied files are never edited; DBA review also enforces this. The initial load of the pilot cohort is reconciled against the source extracts (TC-112).
 
 # Automation and regression
 
 ## Automated test layers
 
-The automated suites are layered from fast domain checks up to user-story scenarios against the running API. The numbers below are the test counts in the 8 October 2026 run (255 tests).
+The automated suites are layered from fast domain checks up to user-story scenarios against the running API. The numbers below are the test counts in the 8 October 2026 run (271 tests).
 
 ```mermaid
 %% caption: Automated test layers and their test counts in the 8 October 2026 run
 flowchart TB
   F["Functional scenarios: 124"]
-  S["API and security: 35"]
+  S["API 33 and security 12"]
   I["Integration: 44"]
-  U["Unit: 52"]
+  U["Unit: 58"]
   P["PostgreSQL: 8, run separately"]
   F --- S --- I --- U
   U -.-> P
@@ -280,12 +285,12 @@ flowchart TB
 
 | Folder | Content |
 |---|---|
-| `test/unit` | identity, jsonLogic, platform, rulesDomain, stores, tascoCoreRatingClient, voicebot |
-| `test/integration` | coreRating, governance, governanceStudio, journeys, reviewFixes, sales |
-| `test/api` | HTTP, contract and authorisation matrix; console and sales workflows; customer hosts and vehicle confirmation |
-| `test/security` | Abuse cases and hardening regressions |
-| `test/functional` | One test per user-story scenario, in three epic files |
-| `test/pg` | PostgreSQL adapter (needs `TEST_DATABASE_URL`) |
+| `test/unit` (58) | identity, jsonLogic, platform, quickRenewal (suite U-QR), rulesDomain, stores, tascoCoreRatingClient, voicebot |
+| `test/integration` (44) | coreRating, governance, governanceStudio, journeys, reviewFixes, sales |
+| `test/api` (33) | api (HTTP, contract and authorisation matrix, customer hosts and vehicle confirmation), consoleWorkflows, dsarQuickRenewal (suite API-DQ: data requests and quick renewal), salesConsole |
+| `test/security` (12) | Abuse cases and hardening regressions |
+| `test/functional` (124) | One test per user-story scenario, in three epic files |
+| `test/pg` (8) | PostgreSQL adapter (needs `TEST_DATABASE_URL`) |
 | `test/perf` | `load.js`, a dependency-free load generator |
 
 ## CI gates
@@ -410,19 +415,19 @@ Sev 3 and 4 deferrals are approved by the Product Owner; Sev 1 and 2 deferrals b
 
 # Current results
 
-The latest full run was on 7 October 2026 on release 1.0.0 (Node.js 22; PostgreSQL 16 for `test/pg`; in-memory store for the other suites).
+The latest full run was on 8 October 2026 on release 1.0.0 (Node.js 22; PostgreSQL 16 for `test/pg`; in-memory store for the other suites).
 
 | Measure | Result | Gate |
 |---|---|---|
-| Automated tests (`npm test`) | 255 tests: 252 passed, 0 failed, 3 to-do (the manual and roadmap scenarios) | 0 failed |
+| Automated tests (`npm test`) | 271 tests: 268 passed, 0 failed, 3 to-do (the manual and roadmap scenarios) | 0 failed |
 | PostgreSQL suite | 8 tests, all passed: migrations, encryption at rest, injection resistance, audit immutability, one active rule version per kind, row-locked outbox claims and an end-to-end sale | All pass |
-| Functional scenarios | 124: 121 automated and passing, 3 manual or roadmap | All automated pass |
-| Coverage (lines, branches, functions) | 99.41 %, 88.25 %, 97.12 % | 80 %, 70 %, 80 % |
+| User-story scenarios (TGP-BUS-04) | 135: 132 automated and passing (121 in the functional suite, the rest of US-078 and US-079 in API-DQ and U-QR), 3 manual or roadmap | All automated pass |
+| Coverage (lines, branches, functions) | 99.4 %, 88.1 %, 97.2 % | 80 %, 70 %, 80 % |
 | Lint | 0 errors | 0 errors |
 | Load smoke (one process, 25 concurrent, 15 s) | 337 requests per second, p95 103 ms, 0 errors | p95 ≤ 300 ms, errors ≤ 1 % |
-| Catalogue cases in the workbook | 184: 157 Pass, 23 Not Run, 4 Blocked | — |
+| Catalogue cases in the workbook | 206; for the Pass, Not Run and Blocked counts, see the workbook regenerated on 8 October 2026 | — |
 
-The Not Run cases are the SIT, UAT, DR, accessibility and at-scale performance cases, which belong to later phases. The four Blocked cases depend on open known issues: TC-017 (KI-07), TC-029 (KI-10), TC-114 (KI-13) and TC-155 (KI-18). The core rating cases TC-165 to TC-179 run in the suites above and passed; they are added to the workbook at its next regeneration.
+The Not Run cases are the SIT, UAT, DR, accessibility and at-scale performance cases, which belong to later phases. The Blocked cases depend on open known issues: TC-017 (KI-07), TC-029 (KI-10), TC-114 (KI-13) and TC-155 (KI-18). The automated cases for the data requests register and quick renewal (TC-184 to TC-205, except the manual TC-196 and TC-205) run in `test/api/dsarQuickRenewal.test.js` and `test/unit/quickRenewal.test.js`.
 
 # Known issues
 

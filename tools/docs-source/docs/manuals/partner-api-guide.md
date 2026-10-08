@@ -494,6 +494,7 @@ Run these tests in the sandbox. Your partner manager signs off the results befor
 - Send personal data (name, phone) only when the policy needs it and you have a lawful basis under Vietnam's personal data protection rules (Decree 13/2023/ND-CP), to be confirmed by TASCO legal for your agreement.
 - The API does not collect marketing consent for TASCO or VETC. Do not tell customers they will receive TASCO or VETC marketing.
 - Keep certificate data no longer than your agreement allows. Do not scrape the public verification page.
+- Pass any request from a customer to see or erase the data TASCO holds to your partner manager, with the date you received it. TASCO compliance logs it and answers within the response time set by TASCO.
 - Never present TNDS with discount, rebate or cashback wording.
 
 # Appendix

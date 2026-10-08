@@ -11,6 +11,7 @@ change_history: Initial issue for submission
 acronyms:
   - [API, Application programming interface]
   - [CSV, Comma-separated values (spreadsheet export)]
+  - [JSON, JavaScript Object Notation (data file format)]
   - [IP, Internet Protocol (network address)]
   - [MFA, Multi-factor authentication (two-step verification)]
   - [OTP, One-time password]
@@ -26,7 +27,7 @@ signoff:
   - ["Session length (30 minutes) and lockout policy (5 failed attempts, 15 minutes) confirmed", "TASCO IT Security", Open]
   - ["Service levels confirmed: first call on a telesales handoff within 2 hours; claim acknowledgement within 4 hours, decision within 5 days, payment within 3 days", "TASCO Sales and TASCO Claims", Open]
   - ["Lost-handoff reasons, claim rejection reasons and data-issue dismissal reasons approved", "TASCO Product Owner", Open]
-  - ["Procedure for data subject access and erasure requests (no console screen in this release) to be confirmed by TASCO legal", "TASCO Compliance", Open]
+  - ["Response time for data requests (72 hours from receipt), the identity checks and the erasure procedure to be confirmed by TASCO legal under Decree 13/2023/ND-CP and the Law on Personal Data Protection 91/2025/QH15", "TASCO Compliance", Open]
 ---
 
 # Introduction
@@ -132,7 +133,7 @@ Every page has the same frame.
 | Serve | Claims |
 | Partners | Partners |
 | Data | Data quality |
-| Governance | Business rules, Approvals, Audit |
+| Governance | Business rules, Approvals, Audit, Data requests |
 | Administration | Users, Operations |
 
 **Collapse sidebar** at the foot of the sidebar reduces it to icons; hover over an icon to see the page name. The console remembers this choice on your computer. On a narrow screen the sidebar is hidden behind the menu button at the left of the top bar.
@@ -157,6 +158,7 @@ The bell in the top bar appears for roles that have work to act on. Its badge co
 | Awaiting approval | Rule approvers and compliance officers (changes they may decide) | Approvals |
 | SLA due soon / SLA breached | Claims handlers (claims to acknowledge within 2 hours, or overdue) | Claims |
 | Open data issues | Data stewards | Data quality |
+| Data request due soon / Data request overdue | Compliance officers (requests due within 24 hours, or past their response time) | Data requests, with the request open |
 
 When nothing is waiting, the panel shows "You're all caught up".
 
@@ -520,7 +522,7 @@ The header shows the plate, the owner, vehicle category and province, and a **Do
 | Contact history | Messages and assistant calls; select a call to open its transcript |
 | Activity | Who viewed or changed the record, customer actions in the app and policies issued |
 
-**More actions** in the header offers **Start assistant call** (opens a rehearsal with the voice assistant for this customer), **Open in telesales inbox** and, for roles allowed to, **Correct expiry date** and **Simulate wallet top-up**.
+**More actions** in the header offers **Start assistant call** (opens a rehearsal with the voice assistant for this customer), **Open in telesales inbox** and, for roles allowed to, **Correct expiry date**, **Simulate wallet top-up**, and **Data requests** and **Log data request** (compliance officers, see the Compliance officer chapter).
 
 ![Customer 360 overview](../../shots/console-supervisor-customer-overview.png){width=16cm}
 
@@ -549,7 +551,7 @@ To hear what the voice assistant says before calling a customer, select **Voice 
 
 ## What the role is for
 
-Business rules decide how the platform behaves: lead scoring, next best actions, journeys and cadences, message and voice script wording, the contact policy, benefits, commission, data trust and service levels. Rules are versioned and every change follows maker-checker: a rule author drafts it and a different person approves it. Nobody can approve their own change, and one person cannot hold both roles.
+Business rules decide how the platform behaves: lead scoring, next best actions, journeys and cadences, message and voice script wording, the contact policy, benefits, commission, data trust and service levels (which include the response time for data requests and the conditions for quick renewal in the customer app). Rules are versioned and every change follows maker-checker: a rule author drafts it and a different person approves it. Nobody can approve their own change, and one person cannot hold both roles.
 
 Five rule sets are restricted and can only be approved by a compliance officer: **Contact policy**, **Copy guard**, **Access policies**, **Partner commission** and **Data retention**.
 
@@ -632,13 +634,14 @@ The **Decisions** tab lists past decisions with the decision, who decided, who r
 
 ## What the role is for
 
-The compliance officer approves the restricted rule sets, watches the voice assistant's compliance figures and reviews the audit trail. The role can open Customer 360 with personal data masked. Two-step verification is required.
+The compliance officer approves the restricted rule sets, watches the voice assistant's compliance figures, reviews the audit trail and handles customers' requests to access or erase their personal data. The role can open Customer 360 with personal data masked. Two-step verification is required.
 
 ## Daily routine
 
 1. Open **Approvals** when the bell or badge shows changes waiting. Restricted changes show the **Compliance** chip.
-2. Once a week, review the **Audit** page: voice compliance figures and changes to rules and users.
-3. Once a month, complete the checklist under "What to check" below.
+2. Open **Data requests** when its badge or the bell shows a request due within 24 hours or overdue. Log any request received by hotline, e-mail, branch or letter the same day.
+3. Once a week, review the **Audit** page: voice compliance figures and changes to rules and users.
+4. Once a month, complete the checklist under "What to check" below.
 
 ## Approve a restricted change
 
@@ -680,9 +683,80 @@ Each row is a plain sentence, for example "Rule Author submitted Lead scoring v3
 
 The integrity banner reads "Integrity verified" with the number of records and the time of the last check. **Check again** re-checks the whole chain. If it ever reads "Integrity check failed", escalate at once to Security and Internal Audit.
 
-## Data subject requests
+## Handle data requests
 
-There is no console screen for data subject access or erasure requests in this release. Customers can download their own data from the Account tab of the customer app (see TGP-MAN-02 Customer App Guide). For any other request, the compliance officer raises it with TASCO IT, who run the export or erasure; each one is recorded in the audit trail as "exported the personal data of…" or "erased the personal data of…". The procedure is to be confirmed by TASCO legal.
+Customers may ask to see the personal data TASCO holds about them (an access request) or to have it erased (an erasure request). Every request is logged in **Data requests** (Governance group), whatever the channel, and must be answered within the response time: 72 hours from receipt, set in the **Service levels** rule set and to be confirmed by TASCO legal. A customer who downloads their own data in the customer app (**Tải dữ liệu của tôi**) appears in the register as a completed access request received through the app; nothing more is needed.
+
+The page shows four tiles: **Open** (with the response time), **Due within 24 h**, **Overdue** and **Completed in 30 days**. Selecting a tile filters the register. The register lists each request with its **Reference** (for example DSR-261008-4F2A), the customer's plate and masked name, **Type · channel**, **Received**, **Response due** (an SLA chip while the request is open), **Status** and the **Next step**.
+
+![Data requests register](../../shots/console-compliance-dsar.png){width=16cm}
+
+### Log a request
+
+1. Select **Data requests** in the sidebar, then **Log request**. From Customer 360 you can also use **More actions** › **Log data request**, which fills in the customer.
+2. Under **Customer**, type at least three characters of the plate or a phone number and pick the customer from the list.
+3. Choose the **Request type**: **Access** (a copy of the data TASCO holds) or **Erasure** (erase, that is anonymise, the personal data).
+4. Choose how it was **Received through**: Hotline, Email, Branch, Letter or App.
+5. Check **Received on**. It defaults to today; for a letter or e-mail received earlier, enter that date. The response time runs from this date.
+6. Tick **Requester's identity verified** only if you have already checked the requester against the identity card, the registered phone number or the vehicle papers.
+7. Add a **Note** if useful (visible to compliance only) and select **Log request**.
+
+The toast shows the response deadline, and the request appears in the register as **Received**.
+
+![Logging a data request](../../shots/console-compliance-dsar-log.png){width=16cm}
+
+### Verify the requester's identity
+
+No data leaves TASCO and nothing is erased until the requester's identity is verified. Check it against the identity card, the registered phone number or the vehicle papers, then record it in one of two ways:
+
+- in the register, **More actions** › **Record identity verified**; or
+- in the export or erasure dialog, which asks for the identity check when it has not been recorded.
+
+**More actions** › **Start handling** marks the request **In progress** without recording the identity check, for example while you wait for documents.
+
+### Export the data (access request)
+
+1. Select **Export data** on the row, or open the request and select **Export data** at the foot of the drawer.
+2. Read the dialog: the file is downloaded and the request is marked completed.
+3. Select **Export and download**. If the identity check has not been recorded yet, the dialog first asks for it: tick it, select **Review**, check the summary, then select **Export and download**.
+
+The file TASCO-data-<plate>-<date>.json is saved on your computer and the request moves to **Completed**. Send the file only to the requester, through a secure channel, and delete your local copy once it has been sent.
+
+### Erase personal data (erasure request)
+
+1. Select **Erase personal data** on the row, or at the foot of the request drawer.
+2. Read the red notice **This cannot be undone**: name, phone number, message and call content are anonymised; policies and financial records are kept as the law requires, without the identity; erasure is refused while the customer has a policy in force.
+3. Enter the **Reason for erasure** (at least 10 characters; it is recorded in the audit trail).
+4. Tick the identity check if asked.
+5. Under **Type the plate to confirm**, type the vehicle's plate.
+6. Select **Review**, check the summary and select **Erase permanently**.
+
+If the customer has no policy in force, the data is anonymised and the request moves to **Completed**; the register then shows the customer as **Anonymised**. If a policy is in force, nothing is erased: the toast reads "Not erased: a policy is in force. The request is recorded as refused." Tell the customer that the data must be kept until the policy ends, and that they can ask again then.
+
+![Erasing personal data](../../shots/console-compliance-dsar-erase.png){width=16cm}
+
+### Refuse a request
+
+Refuse a request only for a reason the law allows, and always tell the customer why.
+
+1. Open **More actions** › **Refuse** on the row, or select **Refuse** in the request drawer.
+2. Choose the **Reason**: Identity could not be verified, Unfounded or repeated request, Data must be kept by law, Duplicate of an open request, or Other reason.
+3. Write the **Explanation for the customer** (at least 10 characters).
+4. Select **Review**, check the summary and select **Confirm refusal**.
+
+### Track due times
+
+- The bell and the badge on **Data requests** count requests due within 24 hours or overdue. Select a notification to open the request.
+- Select the **Due within 24 h** or **Overdue** tile, or the **Due soon** and **Overdue** chips, to see the requests to act on first. The **Response due** column shows **On track**, **Due soon** or **Breached** with the time left or overdue.
+- Select a row to open the request drawer. **Progress** shows each step (Received, Identity verified, In progress, Completed or Refused) with who did it and when. **Request** lists the details, and **Data TASCO holds** gives counts of policies, quotes, orders, claims, messages, source records and assistant calls, without showing the data itself.
+- To see every request from one customer, open Customer 360 and select **More actions** › **Data requests**.
+- **Export CSV** keeps the register as evidence. Every step (logging, viewing, identity check, export, erasure and refusal) is also recorded in the audit trail under **Customer data**.
+
+![Request details with progress and the data held](../../shots/console-compliance-dsar-detail.png){width=16cm}
+
+![Data requests on Customer 360](../../shots/console-compliance-customer-menu.png){width=16cm}
+
+![Data requests in Vietnamese](../../shots/vi-compliance-dsar.png){width=16cm}
 
 ## What to check
 
@@ -693,6 +767,7 @@ Monthly checklist:
 - No rule set approved by the same person who authored it (the console prevents this; the audit trail confirms it).
 - Sign-in activity: repeated lockouts or sign-ins at unusual hours.
 - Integrity banner shows "Integrity verified".
+- No data request overdue, and every refusal carries an explanation for the customer.
 
 # Data steward
 
@@ -1023,6 +1098,7 @@ Open **Business rules** and any rule set. **Version history** lists every versio
 | A customer outside your region cannot be opened | Region limits | Expected; ask your supervisor to reassign |
 | "… was modified by someone else" | Another user changed the same record | Reload the page and repeat your change |
 | "Quote expired — please re-quote" | Quotes are valid for 24 hours | Calculate the price again |
+| "Verify the requester’s identity before fulfilling the request" | A data request without a recorded identity check | Check the requester's identity, then tick the identity box in the dialog |
 | "Upstream service unavailable" | TASCO core, the VETC wallet or a messaging provider is temporarily down | Try again later; nothing was completed. Report it if it lasts. |
 | The page looks wrong or blank | Browser cache or an unsupported browser | Reload with Ctrl+F5; use a supported browser |
 
@@ -1054,7 +1130,7 @@ The hotline 1900 1562, info@baohiemtasco.vn and baohiemtasco.vn shown in the con
 | Telesales agent | My work today, Leads, Customer 360, Telesales inbox (own and unassigned in region), Voice assistant | Yes | No |
 | Rule author | Dashboard, Business rules (draft and submit) | No | No |
 | Rule approver | Dashboard, Business rules, Approvals, Audit | No | Yes |
-| Compliance officer | Dashboard, Business rules, Approvals (including restricted), Audit, Customer 360 | Masked | Yes |
+| Compliance officer | Dashboard, Business rules, Approvals (including restricted), Audit, Data requests (log, export, erase, refuse), Customer 360 | Masked | Yes |
 | Data steward | Dashboard, Data quality, Leads, Customer 360 (correct expiry) | Yes | Yes |
 | Claims handler | Claims, Customer 360 | Masked | No |
 | Partner manager | Dashboard, Partners | No | No |
@@ -1080,6 +1156,7 @@ Pairs of roles one person may not hold: administrator with any business role (ru
 | Business rules | Quy tắc nghiệp vụ |
 | Approvals | Phê duyệt |
 | Audit | Nhật ký kiểm toán |
+| Data requests | Yêu cầu dữ liệu (page title: Yêu cầu dữ liệu cá nhân) |
 | Users | Người dùng |
 | Operations | Vận hành |
 | Customer 360 | Khách hàng 360 |
@@ -1125,6 +1202,15 @@ Pairs of roles one person may not hold: administrator with any business role (ru
 | Active | In force for all customers |
 | Replaced | Was active; replaced by a newer version |
 | Rejected | Returned to the author with a reason |
+
+### Data requests
+
+| Status | Tiếng Việt | Meaning |
+|---|---|---|
+| Received | Đã tiếp nhận | Logged; the response time is running |
+| In progress | Đang xử lý | Being handled, or the identity has been verified |
+| Completed | Hoàn tất | Data exported, or personal data erased (anonymised) |
+| Refused | Từ chối | Refused with a reason, including erasure while a policy is in force |
 
 ### Leads, journeys and calls
 

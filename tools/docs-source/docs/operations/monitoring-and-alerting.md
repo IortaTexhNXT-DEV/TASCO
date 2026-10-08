@@ -3,7 +3,7 @@ id: TGP-OPS-02
 title: Monitoring and Alerting
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Service Operations
 reviewed_by: TASCO Insurance, IT Operations
 approved_by: TASCO Insurance, Head of IT
@@ -49,7 +49,7 @@ The audience is SRE and on-call engineers, and the business owners who receive b
 
 Related documents:
 
-- TGP-OPS-01 Runbook and Support Guide (procedures RB-01 to RB-18 named in each alert).
+- TGP-OPS-01 Runbook and Support Guide (procedures RB-01 to RB-18 and SOP-01 to SOP-09 named in each alert).
 - TGP-QA-03 Performance and Capacity Test Plan (latency targets).
 - TGP-OPS-03 Disaster Recovery and Business Continuity Plan.
 - TGP-QA-01 Test Strategy (known issues KI-14, fixed, and KI-17, open).
@@ -70,7 +70,7 @@ Points to know about the metrics implementation:
 - Counters live in memory per pod and reset on restart. Always use `rate()` or `increase()` and sum across pods.
 - There are no `# TYPE` lines, so Prometheus treats series as untyped; `rate()` and `histogram_quantile()` still work on `_bucket` series (KI-17).
 - Histogram buckets in seconds: 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10 and +Inf.
-- `route` is the route template (for example `POST /api/customer/orders`). Probes are labelled `health`, the scrape `metrics`, static paths `static` and the specification `openapi`, so cardinality is bounded (80 routes plus 4 labels).
+- `route` is the route template (for example `POST /api/customer/orders`). Probes are labelled `health`, the scrape `metrics`, static paths `static` and the specification `openapi`, so cardinality is bounded (103 API routes plus 4 labels).
 
 # Metric catalogue
 
@@ -83,6 +83,8 @@ Points to know about the metrics implementation:
 | `integration_latency_seconds` | Histogram | `integration` (`tasco-core`), `op` (`token`, `quote`, `catalogue`) | TASCO core production client only (not the simulated core) |
 | `rating_requests_total` | Counter | `source` (`core`), `result` (`ok`, `unavailable`) | Rating service; core business answers (decline, refer) are not counted as unavailable |
 | `quotes_indicative_total` | Counter | — | Indicative quotes issued in fallback mode |
+| `tasco_core_token_fetch_total` | Counter | — | Access tokens fetched from TASCO core (production client only) |
+| `tasco_core_quotes_total` | Counter | — | Quotes priced by the TASCO core production client |
 | `catalogue_sync_proposals_total` | Counter | — | Catalogue sync proposals created |
 | `events_published_total` | Counter | `type` | Outbox publish |
 | `events_processed_total` | Counter | `type`, `status` (`done`, `pending`, `dead_letter`) | Outbox relay |
@@ -107,6 +109,7 @@ Some signals are not exported by the application yet (KI-17). A read-only SQL ex
 | `tasco_db_orders{status}` | Orders of the last 24 hours by status | ALR-84 |
 | `tasco_db_job_last_success_timestamp{kind}` | Latest succeeded job run per kind | ALR-35, ALR-37 |
 | `tasco_db_quotes_indicative_open` and `tasco_db_quotes_indicative_oldest_seconds` | Open quotes with `indicative` true, count and oldest age | ALR-38 |
+| `tasco_db_dsar_requests_overdue` and `tasco_db_dsar_requests_due_soon` | Data requests in `dsar_requests` with status received or in progress, past `due_at`, or due within 24 hours | ALR-39 |
 | PostgreSQL exporter defaults | Connections, replication lag, locks, size | ALR-90 to ALR-93 |
 
 Reconciliation, retention and catalogue sync record job runs in the database. Journeys, recompute and relay run from the command line without a job record, so their freshness comes from the logs (ALR-33) and the scheduled job status (`kube_cronjob_status_last_successful_time`).
@@ -169,7 +172,7 @@ groups:
 | D2 Integrations | Per integration: call rate, error ratio, short-circuits, retries; TASCO core panel with rating latency (p95), unavailable ratio, indicative quotes, last catalogue sync and a link to the integration status | On-call, vendor managers |
 | D3 Events and jobs | Published and processed events by type and status; pending and oldest pending; dead letters; scheduled job last success; journey run summary | On-call, L3 |
 | D4 Business funnel | Quotes and orders by channel and journey; conversion; messages by channel and status; voice outcomes; handoffs open over 2 hours; daily premium | Business Owner, campaign managers |
-| D5 Compliance | Blocked messages; marketing outside contact hours (should be 0); opt-outs; DNC contacts (should be 0); audit chain status; rule activations | Compliance, DPO |
+| D5 Compliance | Blocked messages; marketing outside contact hours (should be 0); opt-outs; DNC contacts (should be 0); audit chain status; rule activations; data requests open, due within 24 hours and overdue | Compliance, DPO |
 | D6 Security | Sign-in 401, 423 and 429; MFA failures; 403 by route; partner 401; WAF blocks | Security |
 | D7 Database | Connections, CPU, IOPS, replication lag, slow statements, table sizes, lock waits | DBA |
 
@@ -225,6 +228,7 @@ groups:
 | ALR-36 | ReconciliationMismatch | Last reconciliation result with mismatches above 0 | — | ticket; page above 10 | RB-11 |
 | ALR-37 | CatalogueSyncFailed | `time() - kube_cronjob_status_last_successful_time{cronjob="tasco-growth-sync-catalogue"} > 26*3600`, or the last `catalogue_sync` run failed | — | ticket | RB-17 |
 | ALR-38 | IndicativeQuoteBacklog | `tasco_db_quotes_indicative_open > 50 or tasco_db_quotes_indicative_oldest_seconds > 3600` | 15m | ticket | RB-18 |
+| ALR-39 | DataRequestOverdue | `tasco_db_dsar_requests_overdue > 0`; also a daily ticket at 09:00 when `tasco_db_dsar_requests_due_soon > 0` | — | ticket to Compliance and the DPO | SOP-05 |
 
 ## Security and audit
 

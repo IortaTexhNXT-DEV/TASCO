@@ -28,7 +28,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRATCH = os.path.dirname(HERE)
 DEFAULT_TEMPLATE = os.path.join(SCRATCH, 'tpl', 'template.docx')
-MERMAID_JS = os.path.join(SCRATCH, 'conv', 'mermaid', 'package', 'dist', 'mermaid.min.js')
+MERMAID_JS = os.environ.get('MERMAID_JS') or os.path.join(SCRATCH, 'vendor', 'mermaid.min.js')
 RENDER_JS = os.path.join(HERE, 'render_mermaid.js')
 LUA_FILTER = os.path.join(HERE, 'filter.lua')
 LO_TOOLS = os.path.join(HERE, 'lo_tools.py')

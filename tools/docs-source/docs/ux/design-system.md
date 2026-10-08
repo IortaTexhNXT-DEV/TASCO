@@ -256,7 +256,7 @@ Icons come from Lucide, an open-source outline set under the ISC licence, vendor
 - Decorative by default (hidden from screen readers). An icon that carries meaning on its own, such as an icon-only button, gets a text label.
 - No emoji and no text glyphs (☎, ★, ◐, ?) as icons anywhere.
 
-The same icon always means the same thing: shield-check for TNDS and claims, users for leads and seat accident cover, inbox for the telesales inbox, scale for business rules and the regulated price, history for audit, headset for customer support.
+The same icon always means the same thing: shield-check for TNDS and claims, users for leads and seat accident cover, inbox for the telesales inbox, scale for business rules and the regulated price, history for audit, file-check for data requests, headset for customer support, zap for quick renewal and sliders for customising the cover.
 
 # Console components
 
@@ -363,9 +363,16 @@ The drawer slides in from the right over a dimmed page, in three widths (400, 48
 
 Modals are native dialogs, centred, in three widths. They are used for short tasks: change password, issue an API key, confirm a job run.
 
-The decision dialog is a two-step modal for workflow decisions such as approving or rejecting a claim, rejecting a rule change or dismissing data issues. Step one asks for the data the decision needs (amount, reason, assessor, note) with inline validation and a "Review" button. Step two shows a summary under the banner "Check the details before you confirm" and the confirm button, labelled with the decision ("Confirm approval"). "Back" returns to the form. Destructive decisions use the danger solid button. The result is confirmed by a toast and the row updates in place.
+The decision dialog is a two-step modal for workflow decisions such as approving or rejecting a claim, rejecting a rule change, dismissing data issues, or exporting, erasing or refusing a data request. Step one asks for the data the decision needs (amount, reason, assessor, note) with inline validation and a "Review" button. Step two shows a summary under the banner "Check the details before you confirm" (or a summary title chosen for the decision, such as "Last check before erasing") and the confirm button, labelled with the decision ("Confirm approval", "Erase permanently"). "Back" returns to the form. Destructive decisions use the danger solid button. The result is confirmed by a toast and the row updates in place.
+
+Two variants cover irreversible and simple decisions:
+
+- With a notice. A banner sits above the fields and again above the summary, so the consequence is in view at both steps. Erasing personal data uses a danger notice, "This cannot be undone", that says what is anonymised, what is kept by law and when erasure is refused. An irreversible decision also asks the user to type the record's key value (the plate) to confirm it.
+- Without fields. When the decision needs no input, for example exporting a data request whose identity check is already recorded, the dialog shows the intro and the confirm button in one step.
 
 ![Decision dialog, step one: approving a claim asks for the amount](../../shots/console-claims-claim-approve.png){width=16cm}
+
+![Decision dialog with a danger notice and type-to-confirm: erasing personal data](../../shots/console-compliance-dsar-erase.png){width=16cm}
 
 ## Toast and banner
 
@@ -381,7 +388,7 @@ Skeletons are grey blocks in the shape of the content being loaded, with a gentl
 
 ## Stepper and workflow steps
 
-The horizontal stepper shows a fixed sequence with the current step highlighted, for example "Draft → Submitted → Approved → Active" on a rule version. The vertical workflow steps component is used in detail drawers: each step shows a marker (done, current, upcoming or failed), its label, who did it and when, and an optional note. Claims use it for Submitted → Acknowledged → Assessor assigned → Under assessment → Decision → Paid or Closed.
+The horizontal stepper shows a fixed sequence with the current step highlighted, for example "Draft → Submitted → Approved → Active" on a rule version. The vertical workflow steps component is used in detail drawers: each step shows a marker (done, current, upcoming or failed), its label, who did it and when, and an optional note. Claims use it for Submitted → Acknowledged → Assessor assigned → Under assessment → Decision → Paid or Closed; data requests for Received → Identity verified → In progress → Completed or Refused.
 
 ![Workflow steps in the claim drawer, with who did each step and when](../../shots/console-claims-claim-assessment.png){width=16cm}
 
@@ -411,6 +418,22 @@ Charts are drawn as SVG by three components: bar, line and donut, plus a sparkli
 
 ![Executive dashboard: KPI tiles, line and donut charts, meters](../../shots/console-exec-dashboard.png){width=16cm}
 
+## Data-request register
+
+The Data requests page shows how the components combine on a compliance work queue; new registers with a legal deadline should follow it.
+
+| Part | Components and rule |
+|---|---|
+| Page header | Title, a one-line subtitle naming the legal basis, and one primary action, "Log request" |
+| KPI strip | Four tiles that filter the register: Open (with the response time as hint), Due within 24 h, Overdue, Completed in 30 days |
+| Toolbar | Search by reference or plate; status filter chips with counts; a request-type select; Export CSV |
+| Rows | Readable reference; plate tag with the masked name ("Anonymised" after erasure); type badge with the channel and its icon underneath, so the table fits 1,280 px; received date with relative time; SLA chip with a 24-hour "Due soon" window, or "Closed" and the date; status chip |
+| Next step | "Export data" for an access request, "Erase personal data" for an erasure request, muted "View" when closed; the ⋯ menu holds View, Open customer, Start handling, Record identity verified and, after a separator, Refuse in red |
+| Detail drawer | Status chip in the header; workflow steps with who and when; key-value list of the request; an outcome banner once closed; counts of the data TASCO holds, never the data itself; the primary action and Refuse in the footer |
+| Log drawer | Customer search by plate or phone with a picked-customer chip; type as a radio group with descriptions; channel select; received date; identity checkbox; optional note |
+
+![Data-request register](../../shots/console-compliance-dsar.png){width=16cm}
+
 ## Tabs, menus and tooltips
 
 Tabs follow the ARIA tabs pattern with arrow-key movement and optional counts ("Contact history 1"). Menus open from a button, move with the arrow keys and close with Esc; items can carry an icon, a short description, a radio tick or a red danger style. Tooltips appear on hover and on keyboard focus, hold one short line and never hold information that exists nowhere else.
@@ -432,7 +455,7 @@ The customer app is built for phones from 360 to 430 px wide. Its components use
 | 5 | Cover status | Status chip, insurer, expiry line and one hint |
 | 6 | Quote card | Teal header "Báo giá mới" with the expiry time of the quote |
 | 7 | Primary button | Full width, action teal, one per screen section |
-| 8 | Support button | Round navy button that opens the support sheet |
+| 8 | Support button | On Home, the headset in the app bar; on the other tabs, the round navy floating button. Both open the support sheet |
 | 9 | Bottom tab bar | Four tabs; the active tab is link teal with a light-teal pill behind the icon |
 
 ## Quote form and vehicle confirmation card
@@ -448,6 +471,22 @@ On the review step the same vehicle questions appear in the vehicle confirmation
 ::: {custom-style="Caption"}
 *Quote form, vehicle confirmation card open, and the same card after confirmation*
 :::
+
+## Quick renewal card and screen
+
+When the server offers quick renewal, the vehicle card on Home carries two buttons instead of one: the primary "Gia hạn nhanh" with the zap icon, and under it a link-teal ghost button "Tùy chỉnh gói bảo hiểm" with the sliders icon, which opens the full flow. When quick renewal is not offered for a reason the customer can fix, a one-line hint with an info icon sits under "Gia hạn ngay" in muted text.
+
+The quick renewal screen is a single flow page titled "Gia hạn nhanh". One white card, "Gia hạn TNDS bắt buộc", holds a key-value list (plate tag, vehicle, period), the product line with the regulated-price note and the total. Below it come the payment method, the declaration checkbox, the security line and the "Tùy chỉnh gói bảo hiểm" link; the action bar holds the total and "Xác nhận thanh toán". There is no confirmation sheet: the screen itself is the review, and the declaration tick is the deliberate step before payment.
+
+::: {custom-style="Figure"}
+![](../../shots/app-customer-home-quick.png){width=4.5cm} ![](../../shots/app-customer-quick-renew.png){width=4.5cm} ![](../../shots/app-customer-quick-success.png){width=4.5cm}
+:::
+
+::: {custom-style="Caption"}
+*Home card with "Gia hạn nhanh", the quick renewal screen and the shared success screen*
+:::
+
+## Pending quote card
 
 The pending quote card on Home shows a quote sent by telesales: the teal header with its expiry time, each product with its amount, the period, "Tổng thanh toán" in large navy figures and the button "Xem và thanh toán".
 
@@ -465,13 +504,13 @@ The purchase stepper shows three numbered steps, "Chọn gói", "Xác nhận" an
 
 ## Bottom sheet
 
-Sheets rise from the bottom with a grab handle, a title, an optional subtitle and a close button. They trap focus and close with the close button, Esc or a tap outside, except where a decision is required. Sheets are used for the payment confirmation, the support options, the certificate QR code and the demo customer picker in demo environments.
+Sheets rise from the bottom with a grab handle, a title, an optional subtitle and a close button. They trap focus and close with the close button, Esc or a tap outside, except where a decision is required. Sheets are used for the payment confirmation in the full purchase flow, the support options, the certificate QR code and the demo customer picker in demo environments.
 
 ## Support sheet and floating support button
 
 The floating support button is a 56 px round navy button with a headset icon at the bottom right, above the tab bar, on every tab except Home. Home carries the main call to action, so there the same headset sits in the app bar instead. Both open the support sheet "Hỗ trợ khách hàng", which lists only the channels that are configured: call 1900 1562, the Zalo Official Account "Bảo hiểm Tasco" (a copy-the-name row until TASCO publishes a direct link), Messenger, the Fanpage, e-mail to info@baohiemtasco.vn and the TASCO website.
 
-The button is shown on tab pages and on the expiry confirmation and claim flows. It is hidden throughout the purchase flow, so it can never cover the payment button.
+The button is shown on tab pages and on the expiry confirmation and claim flows. It is hidden throughout the purchase flow and the quick renewal screen, so it can never cover the payment button.
 
 ::: {custom-style="Figure"}
 ![](../../shots/app-customer-home-insured.png){width=4.5cm} ![](../../shots/app-customer-support-sheet.png){width=4.5cm} ![](img/account-footer.png){width=4.5cm}
@@ -483,7 +522,7 @@ The button is shown on tab pages and on the expiry confirmation and claim flows.
 
 ## Brand footer
 
-The Account tab ends with a brand-teal band carrying the white wordmark, the hotline, the e-mail address and the website in navy, with a lighter diagonal band on the right. The note under it reads "Bảo hiểm TASCO · Phân phối qua ứng dụng VETC" in VETC hosts and "Bảo hiểm TASCO" elsewhere.
+The Account tab ends with a brand-teal band carrying the white wordmark, the hotline, the e-mail address and the website in navy, with a lighter diagonal band on the right. The note under it reads "Bảo hiểm TASCO · Phân phối qua ứng dụng VETC" in the VETC app ("… qua Zalo Mini App VETC" in Zalo) and "Bảo hiểm TASCO" in TASCO's own hosts.
 
 ## Other customer components
 

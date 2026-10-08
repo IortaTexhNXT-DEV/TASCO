@@ -3,7 +3,7 @@ id: TGP-OPS-04
 title: Production Readiness Checklist
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Service Operations
 reviewed_by: TASCO Insurance, Head of IT
 approved_by: TASCO Insurance, Programme Sponsor
@@ -20,7 +20,6 @@ acronyms:
   - [DPIA, Data Protection Impact Assessment]
   - [DPO, Data Protection Officer]
   - [DR, Disaster Recovery]
-  - [DSAR, Data Subject Access Request]
   - [HSTS, HTTP Strict Transport Security]
   - [ID, Identifier]
   - [IT, Information Technology]
@@ -57,6 +56,8 @@ signoff:
   - ["Contact policy, benefits wording, loyalty points and commission caps to be confirmed by TASCO legal", TASCO Legal, Open]
   - [Tariffs for physical damage cover and personal accident cover per seat confirmed as filed rates, TASCO Underwriting, Open]
   - [Zalo ZNS templates approved by Zalo for every template used, TASCO Marketing, Open]
+  - ["Data-request response time of 72 hours confirmed by TASCO legal (Decree 13/2023/ND-CP, PDP Law 91/2025/QH15)", TASCO Legal, Open]
+  - [Quick renewal eligibility rule confirmed by TASCO Product and Compliance, TASCO Product Owner, Open]
 ---
 
 # Introduction
@@ -73,6 +74,7 @@ Related documents:
 - TGP-QA-04 User Acceptance Test Plan.
 - TGP-OPS-01 Runbook and Support Guide, TGP-OPS-02 Monitoring and Alerting and TGP-OPS-03 Disaster Recovery and Business Continuity Plan.
 - TGP-OPS-05 Go-Live and Hypercare Plan.
+- TGP-UX-02 UX Standards and Accessibility (accessibility gaps G-1 to G-5).
 
 ## How to use it
 
@@ -81,7 +83,7 @@ Related documents:
 | Status values | Not started; In progress; Done (evidence linked); Waived (approver and expiry); Not applicable |
 | Gate rule | Every P1 item is Done or Waived by the Steering Committee before go-live |
 | Waivers | Name the approver, the reason, the compensating controls and an expiry date |
-| Current state | Status as at 7 October 2026 (release 1.0.0). Items blocked by an open known issue name it. Test evidence is in TASCO-Test-Cases-and-Results.xlsx. Update the table in place at each review |
+| Current state | Status as at 8 October 2026 (release 1.0.0). Items blocked by an open known issue name it. Test evidence is in TASCO-Test-Cases-and-Results.xlsx. Update the table in place at each review |
 
 # Security
 
@@ -110,12 +112,13 @@ Related documents:
 |---|---|---|---|---|---|
 | PRC-FUNC-01 | UAT signed off by every persona; compliance scenarios without waiver | P1 | TASCO Business Owner | TGP-QA-04 sign-off sheet | Not started |
 | PRC-FUNC-02 | SIT passed with VETC wallet, sign-on, app and events, TASCO core rating, catalogue and issuance, Zalo ZNS, SMS and the voice vendor (TC-150 to TC-155, TC-161, TC-180) | P1 | QA Lead | SIT report | Not started: production adapters pending |
-| PRC-FUNC-03 | Coverage gate and all automated suites green on the release tag | P1 | QA Lead | 255 tests: 252 passed, 3 to-do; coverage 99.41 % lines, 88.25 % branches, 97.12 % functions | Done for 1.0.0; re-run on the release tag |
+| PRC-FUNC-03 | Coverage gate and all automated suites green on the release tag | P1 | QA Lead | 271 tests: 268 passed, 0 failed, 3 to-do (manual or roadmap scenarios); PostgreSQL suite 8 of 8; line coverage above 99 % (exact figures from the QA lead's coverage report) | Done for 1.0.0; re-run on the release tag |
 | PRC-FUNC-04 | Redesigned staff console, customer app and certificate verification page in the release image; SYN-09 green | P1 | UX lead | Smoke test | In progress: redesign under way (KI-15 fixed) |
 | PRC-FUNC-05 | Sev 1 known issues fixed: KI-01, KI-02, KI-09, KI-28 | P1 | Dev lead | TC-080, TC-134, TC-135, TC-159 | Done |
 | PRC-FUNC-06 | Open Sev 2 issues KI-04, KI-13 and KI-18 fixed or waived with a date (KI-05, KI-25 and KI-33 are fixed); KI-03 replay tool or the RB-06 procedure approved | P1 | Dev lead and PO | TGP-QA-01 known issues | In progress |
 | PRC-FUNC-07 | API documentation published to partners and matching the release (TC-133) | P2 | Tech lead | Published OpenAPI document | Not started |
-| PRC-FUNC-08 | Accessibility: no serious or critical violations; manual screen reader pass on the renewal flow (TC-144, TC-145) | P1 | UX lead | Report | Not started |
+| PRC-FUNC-08 | Accessibility: no serious or critical violations; manual screen reader pass on the quick renewal and full renewal flows (TC-144, TC-145) | P1 | UX lead | Report | In progress: accessibility gaps G-1 to G-4 in TGP-UX-02 fixed; automated scan in CI (G-5) planned for sprint 4 |
+| PRC-FUNC-09 | Quick renewal: the `quickRenewal` settings in the service levels rule set reviewed and approved through maker-checker; eligible and ineligible cases tested in UAT; the full renewal flow always reachable ("Tùy chỉnh gói bảo hiểm") | P1 | TASCO Product Owner and Compliance | Approved rule version; UAT results | In progress: built and tested; rule approval pending |
 
 # Performance and capacity
 
@@ -136,8 +139,9 @@ Related documents:
 | PRC-OPS-02 | Readiness and liveness probes in use; readiness shows store `postgres`; grace period at least 30 s | P1 | SRE | Manifest; SYN-01 | In progress: manifest sets 30 s |
 | PRC-OPS-03 | Logs shipped and searchable by request ID, route and status; kept 90 days; no personal data (LOG-07 clean) | P1 | SRE | Log query | Not started |
 | PRC-OPS-04 | Scheduled jobs deployed (UTC): journeys 01:15, recompute 17:30, sync-catalogue 18:00, reconcile 19:00, retention 20:00, relay every 5 minutes; no overlap; no seed job | P1 | SRE | Manifests | In progress: manifests done |
-| PRC-OPS-05 | Migration job runs before rollout; migrate-on-start off in Kubernetes (KI-30 fixed) | P1 | SRE | Manifests | In progress |
-| PRC-OPS-06 | Database exporter series for the outbox, journey backlog, open handoffs, orders and indicative quotes | P2 | SRE | Dashboard D3 | Not started |
+| PRC-OPS-05 | Migration job runs before rollout; migrate-on-start off in Kubernetes (KI-30 fixed); migrations 001 to 003 applied, including `003_dsar_requests.sql` (data-request register) | P1 | SRE and DBA | Manifests; `schema_migrations` export | In progress |
+| PRC-OPS-06 | Database exporter series for the outbox, journey backlog, open handoffs, orders, indicative quotes and overdue data requests (ALR-39) | P2 | SRE | Dashboards D3 and D5 | Not started |
+| PRC-OPS-12 | Customer contact settings checked in production: `SUPPORT_HOTLINE` 1900 1562, `SUPPORT_EMAIL` info@baohiemtasco.vn, `SUPPORT_WEBSITE`, `SUPPORT_ZALO_NAME`, `SUPPORT_FACEBOOK_URL` and `SUPPORT_MESSENGER_URL`; `SUPPORT_ZALO_URL` set once TASCO provides a direct Zalo link | P2 | SRE and TASCO Marketing | Support sheet in the app | Not started |
 | PRC-OPS-07 | Procedures RB-01 to RB-18 and SOP-01 to SOP-09 walked through by L2 | P1 | L2 lead | Attendance and feedback | Not started |
 | PRC-OPS-08 | On-call rota live (L2, and L3 for hypercare); paging tested end to end | P1 | L2 lead | Test page | Not started |
 | PRC-OPS-09 | ITSM categories, severity matrix and service levels configured; known-error database seeded | P1 | Service desk | ITSM configuration | Not started |
@@ -181,10 +185,12 @@ Related documents:
 | PRC-COMP-07 | Tariffs confirmed by TASCO underwriting: TNDS car and motorbike (Decree 67/2023/ND-CP); physical damage and personal accident rates replaced with filed rates. With core rating, the platform tariffs are used only for indicative prices | P1 | TASCO Underwriting | Approved rule versions | Not started |
 | PRC-COMP-08 | Commission caps confirmed by TASCO Finance and Legal | P1 before the first partner goes live | TASCO Finance | Memo | Not started |
 | PRC-COMP-09 | Privacy notice and consent wording in the app; DPIA completed; data processing agreements between VETC, TASCO and iorta TechNXT; no cross-border transfer | P1 | DPO | DPIA | Not started |
-| PRC-COMP-10 | DSAR procedure (SOP-05) working; export and erasure scope complete (KI-29 fixed; TC-105, TC-107) | P1 | DPO | SOP sign-off | In progress |
+| PRC-COMP-10 | Data-request procedure (SOP-05) working: register in the console, identity check before export or erasure, escalation of overdue requests; export and erasure scope complete (KI-29 fixed; TC-105, TC-107) | P1 | DPO | SOP sign-off | In progress: register built; procedure sign-off pending |
 | PRC-COMP-11 | Archival for profiles, messages, orders and certificates built, or waived by TASCO legal (KI-13); retention job live | P2 | DPO and dev lead | Job runs or waiver | Not started (KI-13) |
 | PRC-COMP-12 | Maker-checker staffed: at least 2 approvers with MFA and 2 authors, never the same person, and a compliance officer for restricted rule kinds; emergency rollback pair on call | P1 | PO | Named list | Not started |
 | PRC-COMP-13 | Audit chain verifies at go-live; chain head exported to WORM storage | P1 | Compliance | Screenshot and export | Not started |
+| PRC-COMP-14 | TASCO legal confirms the data-request response time (72 hours, `dsarResponseHours` in the service levels rule set) under Decree 13/2023/ND-CP and PDP Law 91/2025/QH15; any change approved through maker-checker before go-live | P1 | TASCO Legal and DPO | Legal memo; approved rule version | Not started |
+| PRC-COMP-15 | Named data-request handlers: at least 2 compliance officers with MFA, and the DPO as escalation contact | P1 | DPO | Named list | Not started |
 
 # Data migration and initial load
 

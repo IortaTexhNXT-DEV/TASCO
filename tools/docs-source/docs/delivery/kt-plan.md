@@ -96,8 +96,8 @@ flowchart TB
 | Topic | Where in the code |
 |---|---|
 | Layers: domain, application services, adapters, composition root | `src/domain`, `src/application`, `src/adapters`, `src/bootstrap/container.js` |
-| HTTP layer: 97 routes (6 public, 76 staff, 11 customer, 4 partner), permissions, validation, rate limits, idempotency, OpenAPI | `src/adapters/http/routes.js`, `app.js`, `openapi.js` |
-| Persistence: PostgreSQL store, field encryption and blind indexes, migrations with an advisory lock | `src/adapters/persistence`, `db/migrations` |
+| HTTP layer: 103 routes (6 public, 82 staff, 11 customer, 4 partner), permissions, validation, rate limits, idempotency, OpenAPI (92 paths) | `src/adapters/http/routes.js`, `app.js`, `openapi.js` |
+| Persistence: PostgreSQL store, field encryption and blind indexes; three numbered migrations (`001_init.sql`, `002_integrity_hardening.sql`, `003_dsar_requests.sql` for the data requests register) applied under an advisory lock and never edited once applied | `src/adapters/persistence`, `db/migrations` |
 | Events: transactional outbox and relay | `src/adapters/messaging/outboxEventBus.js` |
 | Security: roles and separation of duties, attribute-based access, MFA self-enrolment, lockout, token revocation, scoped partner keys | `config/security/rbac.json`, `src/application/identityService.js`, `accessPolicy.js` |
 | Audit trail: hash chain and verification | `src/application/auditService.js` |
@@ -131,7 +131,9 @@ TASCO core is the master for products and rating. This module covers how the pla
 | Quote, inspection for physical damage cover, customer payment, issuance, e-certificate | `src/domain/rating.js`, `src/application/salesService.js` |
 | Partners and commission | `src/application/partnerService.js` |
 | Claims first notice | `src/application/claimsService.js` |
-| Customer self-service and data subject rights | `src/application/customerService.js` |
+| Customer self-service: home, consent, claims, data download | `src/application/customerService.js` |
+| Quick-renewal eligibility from the service-level rule set (`quickRenewal`): journey, vehicle confirmation, cover, price source, wallet balance | `src/domain/quickRenewal.js`, `config/rules/service_levels.json` |
+| Data requests register: log, verify identity, export, erase or refuse, response time (`dsarResponseHours`), timeline and audit | `src/application/dsarService.js` |
 | Operations jobs: reconciliation, retention, relay | `src/application/opsService.js`, `src/jobs/cli.js` |
 
 ## Rules engine (engineers, configurators and approvers, one day)
@@ -165,19 +167,20 @@ The runbooks and procedures are in TGP-OPS-01 Runbook and Support Guide, TGP-OPS
 | Rule activated by mistake | Roll back through the rules studio |
 | Account lockout and MFA reset | Unlock an account and reset MFA in the sandbox |
 | Key rotation and partner key revocation | Drill: rotate the data key; revoke a partner key |
-| Data subject request and data correction | Walk-through with compliance and the data stewards |
+| Data request and data correction | Walk-through with compliance and the data stewards: log a request, verify identity, export, erase or refuse in the data requests register; correct data with evidence |
+| Quick renewal switched off | Approve a service-level rule version with quick renewal off and confirm the customer app offers only the full flow |
 
 # Automated tests
 
-The test suites are the safety net for every change the receiving team makes. `npm test` runs 255 tests: 252 pass and 3 are to-do items for manual or roadmap scenarios. Coverage is 99.41% of lines, 88.25% of branches and 97.12% of functions.
+The test suites are the safety net for every change the receiving team makes. `npm test` runs 271 tests: 268 pass, 0 fail and 3 are to-do items for manual or roadmap scenarios. Coverage is 99.4% of lines, 88.1% of branches and 97.2% of functions.
 
 | Folder | What it covers |
 |---|---|
-| `test/unit` | Domain and shared code: identity, rule logic, platform, rules domain, stores, voice assistant, and the TASCO core REST client (`tascoCoreRatingClient.test.js`) |
-| `test/integration` | Services working together: TASCO core rating and catalogue sync (`coreRating.test.js`), governance, journeys, sales, and regression checks for fixed defects |
-| `test/api` | HTTP routes, permissions and error formats |
-| `test/security` | OWASP Top 10 checks: access control, encryption, injection, configuration, authentication, audit integrity, rate limits, double-charge protection |
-| `test/functional` | One test per Given/When/Then scenario in TGP-BUS-04 User Stories and Acceptance Criteria (124 scenarios, three of them manual or roadmap) |
+| `test/unit` | 58 tests. Domain and shared code: identity, rule logic, platform, quick-renewal eligibility (`quickRenewal.test.js`, suite U-QR), rules domain, stores, voice assistant, and the TASCO core REST client (`tascoCoreRatingClient.test.js`) |
+| `test/integration` | 44 tests. Services working together: TASCO core rating and catalogue sync (`coreRating.test.js`), governance, journeys, sales, and regression checks for fixed defects |
+| `test/api` | 33 tests. HTTP routes, permissions and error formats; console workflows; data requests register and quick renewal (`dsarQuickRenewal.test.js`, suite API-DQ) |
+| `test/security` | 12 tests. OWASP Top 10 checks: access control, encryption, injection, configuration, authentication, audit integrity, rate limits, double-charge protection |
+| `test/functional` | 124 tests, one per Given/When/Then scenario in TGP-BUS-04 User Stories and Acceptance Criteria (three of them manual or roadmap); the scenarios of US-078 and US-079 run in suites API-DQ and U-QR |
 | `test/pg` | PostgreSQL store, 8 tests, run separately with `npm run test:pg` |
 | `test/perf` | Load smoke test (`load.js`): 337 requests per second, p95 103 ms, no errors on a single instance |
 
@@ -213,7 +216,7 @@ Each walkthrough lasts 90 minutes and is recorded for the handover pack.
 | CW-6 | TASCO core rating and catalogue | Rating service, REST client, re-rate, catalogue sync and approval |
 | CW-7 | Rules governance | Rules service lifecycle, validators, simulation |
 | CW-8 | Access control | Roles, attribute-based policies, masking of personal data |
-| CW-9 | Customer app and partner API | Signed links, customer routes, scoped partner keys, partner-collected orders |
+| CW-9 | Customer app and partner API | Signed links, customer routes, quick renewal and the full flow, scoped partner keys, partner-collected orders |
 | CW-10 | Operations and jobs | Job runner, reconciliation, retention, integration status |
 
 # Handover pack

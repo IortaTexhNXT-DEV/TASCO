@@ -9,7 +9,6 @@ reviewed_by: TASCO Insurance, Product Owner and Compliance
 approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
-  - [PDP, Personal data protection]
   - [QR, Quick response (code)]
   - [SEQ, Single Ease Question (difficulty rating after a task, 1 to 7)]
   - [SUS, System Usability Scale (ten-question questionnaire, score 0 to 100)]
@@ -54,14 +53,15 @@ For the go or no-go decision, the study shows whether the people who will use th
 
 | No. | Objective | Measured by |
 |---|---|---|
-| O-1 | Drivers renew TNDS from a reminder without help and trust what they see | Task success, taps, time on task, trust rating |
+| O-1 | Drivers renew TNDS from a reminder without help, on the quick path in three taps where the case allows it and in the full flow otherwise, and trust what they see | Task success, taps, time on task, trust rating |
 | O-2 | Drivers pay a quote sent by a telesales advisor inside the app | Task success, time on task |
 | O-3 | Telesales agents go from a hot handoff to a quote sent to the customer's app without taking payment | Task success, time on task, critical errors |
 | O-4 | Product staff change a business rule and submit it, and compliance staff review and approve it, without IT help | Task success, time on task, SEQ |
 | O-5 | Nobody believes the TNDS premium is discounted | Comprehension answer |
 | O-6 | The UAT exit criterion X4 is met: task success of 90 % or more on UAT-TS-01, UAT-TS-02 and UAT-CU-01, and SUS of 70 or more | Task success, SUS |
+| O-7 | Compliance staff log a customer's data request, verify identity and answer it within the response time, without IT help | Task success, time on task, critical errors |
 
-The study also settles one open design question. The renewal path takes six taps today against a target of three (NFR-035; see TGP-UX-03). The sessions record where customers hesitate in the declaration and confirmation steps, so that the product owner and compliance can decide whether to shorten the flow.
+Renewal has two paths (TGP-UX-03, "Renewal paths"): quick renewal ("Gia hạn nhanh") in three taps where the case allows it, and the full flow in six taps. The study measures both against NFR-035 as restated: three taps on the quick path, six in the full flow, and a median renewal of 60 seconds or less. It also checks that customers on the quick path still read and understand the declaration they tick.
 
 # Participants
 
@@ -76,7 +76,7 @@ All participants live and work in Vietnam. Customers are recruited in Hà Nội 
 | Telesales agents | PS-01 | 8 | | Mix of tenure under 6 months and over 2 years; Hà Nội and TP. Hồ Chí Minh teams |
 | Telesales supervisors | PS-02 | 2 | | One per city |
 | Product staff (rule authors) | PS-04 | 4 | | TASCO product team members who will own scoring, journeys and wording |
-| Compliance staff (approvers) | PS-05 | 3 | | TASCO compliance officers who will approve changes |
+| Compliance staff | PS-05 | 3 | | TASCO compliance officers who will approve changes and handle customers' data requests |
 | Accessibility participants | PC-1 | 3 | | One screen-reader user, one person with low vision, one driver aged 65 or over |
 
 Fleet managers (PC-5) are out of scope because the fleet portal is in the scale phase. Claims handlers, data stewards, campaign managers and partner managers are observed during their UAT scenarios rather than in separate sessions.
@@ -100,17 +100,19 @@ Each task is read aloud in Vietnamese as a short scenario. Target times are for 
 
 | No. | Scenario | Success criteria | Target |
 |---|---|---|---|
-| C-1 | "Bạn vừa nhận thông báo từ VETC rằng bảo hiểm TNDS xe của bạn sắp hết hạn. Hãy gia hạn." | E-certificate shown after payment | 90 % success; 90 s or less; taps recorded (6 today) |
-| C-2 | "Tư vấn viên TASCO vừa gửi báo giá cho bạn. Hãy xem và thanh toán." | Finds the quote on Home and pays it | 90 % success; 60 s or less |
-| C-3 | "Ứng dụng hỏi ngày hết hạn bảo hiểm hiện tại. Ngày đúng là 20/11/2026. Hãy cập nhật." | Correct date and insurer saved | 90 % success; 45 s or less |
-| C-4 | "Bạn muốn bảo vệ thêm cho người ngồi trên xe. Hãy xem phí và thêm vào." | Seat accident cover in the paid order | 80 % success; 90 s or less |
-| C-5 | "Cảnh sát giao thông muốn kiểm tra bảo hiểm của bạn. Hãy cho họ xem." | QR shown full screen; the check page says the certificate is valid | 90 % success; 20 s or less |
-| C-6 | "Bạn vừa bị va chạm nhẹ. Hãy báo tai nạn." | Claim sent; participant can say when TASCO will respond | 85 % success; 4 min or less |
-| C-7 | "Bạn không muốn nhận cuộc gọi tư vấn nữa." | Call consent switched off and confirmed | 90 % success; 30 s or less |
-| C-8 | "Bạn cần gọi cho TASCO. Số nào?" | Finds 1900 1562 through the support button or Account | 90 % success; 20 s or less |
-| C-9 | "Mua qua ứng dụng VETC có rẻ hơn không? Bạn được gì?" | Says the price is the same everywhere and names one benefit | 80 % |
+| C-1 | Quick renewal. Test vehicle eligible for quick renewal. "Bạn vừa nhận thông báo từ VETC rằng bảo hiểm TNDS xe của bạn sắp hết hạn. Hãy gia hạn." | Uses "Gia hạn nhanh"; e-certificate shown after payment; can say what the declaration means | 90 % success; 3 taps; 60 s or less |
+| C-2 | Full flow. Test vehicle not eligible (vehicle details not yet confirmed). Same scenario as C-1 | Answers the vehicle questions and pays in the full flow; e-certificate shown | 90 % success; 6 taps; 90 s or less |
+| C-3 | Customise from the quick path. Test vehicle eligible. "Bạn muốn gia hạn 2 năm thay vì 1 năm." | Finds "Tùy chỉnh gói bảo hiểm" and pays for a 2-year term | 85 % success; 2 min or less |
+| C-4 | "Tư vấn viên TASCO vừa gửi báo giá cho bạn. Hãy xem và thanh toán." | Finds the quote on Home and pays it | 90 % success; 60 s or less |
+| C-5 | "Ứng dụng hỏi ngày hết hạn bảo hiểm hiện tại. Ngày đúng là 20/11/2026. Hãy cập nhật." | Correct date and insurer saved | 90 % success; 45 s or less |
+| C-6 | "Bạn muốn bảo vệ thêm cho người ngồi trên xe. Hãy xem phí và thêm vào." | Seat accident cover in the paid order | 80 % success; 90 s or less |
+| C-7 | "Cảnh sát giao thông muốn kiểm tra bảo hiểm của bạn. Hãy cho họ xem." | QR shown full screen; the check page says the certificate is valid | 90 % success; 20 s or less |
+| C-8 | "Bạn vừa bị va chạm nhẹ. Hãy báo tai nạn." | Claim sent; participant can say when TASCO will respond | 85 % success; 4 min or less |
+| C-9 | "Bạn không muốn nhận cuộc gọi tư vấn nữa." | Call consent switched off and confirmed | 90 % success; 30 s or less |
+| C-10 | "Bạn cần gọi cho TASCO. Số nào?" | Finds 1900 1562 through the support button or Account | 90 % success; 20 s or less |
+| C-11 | "Mua qua ứng dụng VETC có rẻ hơn không? Bạn được gì?" | Says the price is the same everywhere and names one benefit | 80 % |
 
-Remote unmoderated participants do C-1, C-2, C-5, C-7 and C-9 on their own phones, followed by the SUS.
+Remote unmoderated participants do C-1, C-2, C-4, C-7, C-9 and C-11 on their own phones, followed by the SUS. Half receive a vehicle that is eligible for quick renewal first, half a vehicle that is not, so that the order does not bias the comparison.
 
 ## TASCO website users
 
@@ -148,6 +150,9 @@ A-1 to A-3 together cover UAT-TS-01 and UAT-TS-02.
 | R-1 | Review the waiting contact-policy change and approve it if it is acceptable | Reads what changes and approves with a comment | 85 % success; 5 min or less |
 | R-2 | Reject a change and tell the author what must change | Rejection reason given | 90 % success; 3 min or less |
 | R-3 | Find who approved the last lead-scoring change and when | Correct name and date from the audit trail | 85 % success; 2 min or less |
+| R-4 | A customer called the hotline today asking for a copy of the data TASCO holds. The identity was checked on the call. Log the request and answer it | Request logged with type Access, channel Hotline and identity verified; data exported; request completed | 90 % success; 4 min or less; no export without identity verified |
+| R-5 | A letter received three days ago asks TASCO to erase the customer's data. The customer still has a policy in force. Handle it | Request logged with the received date; erasure attempted with reason and plate; participant explains why it was refused and what to tell the customer | 85 % success; 5 min or less |
+| R-6 | Which data requests must be answered first today? | Uses the "Due within 24 h" or "Overdue" tile, or the bell, and opens the most urgent request | 90 % success; 30 s or less |
 
 # Method
 
@@ -171,20 +176,20 @@ The remote study reaches more drivers than the sessions can. Participants receiv
 
 ## Accessibility sessions
 
-The three accessibility participants do C-1, C-5 and C-7 with their own assistive technology (VoiceOver or TalkBack in Vietnamese, screen magnification, larger text). Their results are reported separately and their findings feed the accessibility gaps in TGP-UX-02.
+The three accessibility participants do C-1, C-2, C-7 and C-9 with their own assistive technology (VoiceOver or TalkBack in Vietnamese, screen magnification, larger text). Their results are reported separately and their findings feed the accessibility gaps in TGP-UX-02.
 
 # Measures
 
 | Measure | How it is taken | Target |
 |---|---|---|
-| Task success | Completed unaided, completed with help, or failed, against the success criteria | As set per task; 90 % on C-1, C-2 and A-3 |
-| Time on task | From the end of the scenario to the success state | As set per task; median reported |
-| Taps or clicks | Counted from the recording | Reported against the baseline in TGP-UX-03 |
-| Errors | Critical (wrong purchase, wrong customer, payment details asked for) and non-critical | No critical errors |
+| Task success | Completed unaided, completed with help, or failed, against the success criteria | As set per task; 90 % on C-1, C-2, C-4 and A-3 |
+| Time on task | From the end of the scenario to the success state | As set per task; median reported; median of C-1 and C-2 together 60 s or less (NFR-035) |
+| Taps or clicks | Counted from the recording | 3 on the quick path (C-1) and 6 in the full flow (C-2), as in TGP-UX-03 |
+| Errors | Critical (wrong purchase, wrong customer, payment details asked for, data exported or erased without identity verified) and non-critical | No critical errors |
 | SEQ | 1 to 7 after each task | Average 5.5 or more |
 | SUS | Ten questions, Vietnamese version, scored 0 to 100 | 70 or more for each group; 75 or more for drivers |
-| Trust rating | "Tôi tin đây đúng là dịch vụ của VETC và TASCO", 1 to 5 | Average 4.2 or more |
-| Comprehension | C-9 and A-4 answers | 80 % (drivers), 95 % (agents) |
+| Trust rating | "Tôi tin đây đúng là dịch vụ của Bảo hiểm TASCO", 1 to 5 | Average 4.2 or more |
+| Comprehension | C-11 and A-4 answers | 80 % (drivers), 95 % (agents) |
 
 Results are given per group with the number of participants, because small groups give wide ranges. The SUS for the UAT exit criterion is the mean of all moderated and remote participants.
 
@@ -215,7 +220,7 @@ gantt
 
 | Dates | Activity |
 |---|---|
-| 28/12/2026 to 08/01/2027 (weeks 9 and 10) | Recruit and confirm participants; consent forms approved; test vehicles and signed links prepared; remote study set up |
+| 28/12/2026 to 08/01/2027 (weeks 9 and 10) | Recruit and confirm participants; consent forms approved; test vehicles for both renewal paths and signed links prepared; data requests seeded for the compliance tasks; remote study set up |
 | 11 and 12/01/2027 | Two pilot sessions (one customer, one agent); scripts adjusted |
 | 13 to 17/01/2027 | Remote unmoderated study open |
 | 18 to 22/01/2027 | Staff sessions on the UAT days for their persona; customer sessions in Hà Nội (19 and 20/01) and TP. Hồ Chí Minh (21 and 22/01) |
@@ -241,7 +246,7 @@ A finding seen with one participant is kept but marked as such; frequency and se
 
 - Daily during week 12: a one-page summary of tasks run, success so far and any S1 or S2 finding, sent to the product owner before the 16:30 UAT triage.
 - Findings log: every finding with the task, participants affected, evidence (quote, time, screenshot), severity, recommendation and owner. S1 and S2 findings are raised as defects in UAT triage with the scenario number.
-- Final report on 25/01/2027: results against each objective and target, SUS per group, the renewal tap analysis with a recommendation, the top findings with fixes, and accessibility results. It is summarised in the UAT report for the go or no-go decision.
+- Final report on 25/01/2027: results against each objective and target, SUS per group, taps and time for both renewal paths against NFR-035, the top findings with fixes, and accessibility results. It is summarised in the UAT report for the go or no-go decision.
 - Customer wording changes that are business-rule content (message templates, assistant scripts) go through the rules studio with compliance approval, not as code changes.
 
 Recordings are not distributed. Reports quote participants by group and number only ("Driver 4, Hà Nội").
@@ -281,6 +286,6 @@ The study follows the Law on Personal Data Protection 91/2025/QH15, in force sin
 | Before | During | After |
 |---|---|---|
 | Consent form signed or accepted | Recording started after consent | Recording saved to the restricted folder |
-| Test phone charged, app link for the participant's synthetic vehicle opened | Scenario read exactly as written | Synthetic data reset for the next participant |
+| Test phone charged, app link for the participant's synthetic vehicle opened (eligible or not eligible for quick renewal, as the task needs) | Scenario read exactly as written | Synthetic data reset for the next participant, including renewals and data requests |
 | Staff test account signed in, region set | Times and taps noted per task | Findings entered in the log the same day |
 | Observers briefed not to interrupt | SEQ asked after each task | Incentive handed over |

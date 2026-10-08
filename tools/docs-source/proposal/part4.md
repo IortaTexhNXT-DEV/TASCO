@@ -85,7 +85,9 @@ Technology alone will not move own-channel sales. The pilot is designed to answe
 | Vehicles with a usable expiry date | From about 10% to at least 35% of the cohort |
 | Own-channel TNDS conversion | Significantly above the control group (statistically tested) |
 | Policies bought in the app | At least 60% of own-channel sales |
-| Time from tapping "Confirm and pay" to e-certificate | Under 60 seconds for 95% of purchases |
+| Time from confirming payment to e-certificate | Under 60 seconds for 95% of purchases |
+| Renewal time in the app (quick renewal in three steps where the case allows it, the full flow in six) | Median of 60 seconds or less |
+| Data requests answered within the response time | 100% |
 | Complaints about contact | Fewer than 1 per 1,000 customers contacted |
 | Compliance breaches (copy, consent, contact window) | Zero |
 | Availability of the purchase path | 99.9% |
@@ -113,7 +115,7 @@ Training is supported by the Staff Console User Manual, which has a chapter for 
 
 ## 20. Testing and quality assurance
 
-Quality is built into the platform. Today it has more than 250 automated tests, covering unit, integration, API, security and functional tests, with over 99% line coverage. There is also a functional test for every user-story scenario. For the MVP we add the following.
+Quality is built into the platform. Today it has more than 265 automated tests, covering unit, integration, API, security and functional tests, with coverage above 99% of lines, and a separate PostgreSQL test suite. Every user-story scenario that can be automated has its own functional test. For the MVP we add the following.
 
 | Test stage | What it covers | Owner | Exit criterion |
 |---|---|---|---|

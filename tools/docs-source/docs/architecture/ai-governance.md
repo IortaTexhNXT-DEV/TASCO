@@ -3,12 +3,13 @@ id: TGP-ARC-06
 title: AI Governance
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Solution Architecture
 reviewed_by: TASCO Insurance, Compliance and Model Risk
 approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
+  - [ADR, Architecture decision record]
   - [AI, Artificial intelligence]
   - [B2B, Business to business]
   - [CX, Customer experience]
@@ -19,7 +20,7 @@ acronyms:
   - [VAT, Value added tax]
   - [VETC, Vietnam Electronic Toll Collection]
 signoff:
-  - [Automated-call disclosure and recording notice wording, to be confirmed by TASCO legal, Open]
+  - [Automated-call disclosure, caller identity (the approved script names VETC) and recording notice wording, to be confirmed by TASCO legal, Open]
   - [Marketing call rules and national do-not-call register check (Decree 91/2020/ND-CP), to be confirmed by TASCO legal, Open]
   - [Model-risk sign-off procedure for scoring, next-best action and journey changes, TASCO Model Risk, Open]
   - [Conditions for any future use of an external language model, TASCO legal and DPO, Open]
@@ -33,7 +34,7 @@ This document sets out how automated decisions and AI components on the TASCO Gr
 
 ## Scope
 
-Every automated component that affects customers: the voice assistant (dialogue, intent recognition and the vendor's speech services), the lead score, next-best action and journey assignment, the inference of policy expiry and vehicle category, benefit selection, and any future language model or machine-learning model. Regulatory points are to be confirmed by TASCO legal.
+Every automated component that affects customers: the voice assistant (dialogue, intent recognition and the vendor's speech services), the lead score, next-best action and journey assignment, the inference of policy expiry and vehicle category, benefit selection, quick-renewal eligibility, and any future language model or machine-learning model. Regulatory points are to be confirmed by TASCO legal.
 
 ## Audience
 
@@ -63,6 +64,7 @@ No component on the platform today uses a generative or trained machine-learning
 | Expiry inference | Evidence-weighted inference | Timing of reminders and quote start date | Medium | Data office |
 | Vehicle category inference | Decision table | Category drives the regulated premium if not confirmed | High for pricing | Data office and underwriting |
 | Benefit selection | Relevance rules | Which value-added services are shown; only approved and available items | Low | Product |
+| Quick-renewal eligibility | Fixed conditions with settings in the service levels rule set | Whether the 3-step quick renewal is offered; the full flow is always available and the declaration stays explicit | Low | Product and Compliance |
 | Future language model or propensity model | Machine learning | Assessed before introduction | To be assessed | Model risk |
 
 # Voice assistant
@@ -74,7 +76,7 @@ Each principle is enforced in code or in governed content, not left to the vendo
 | Principle | How it is enforced |
 |---|---|
 | Disclose automation and recording at the start | The opening line says the caller is VETC's automated assistant and that the call is recorded. Wording to be confirmed by TASCO legal. |
-| Never ask for a one-time password, card or payment | Stated in the opening and trust lines; no dialogue state collects such data; payment happens only in the VETC app |
+| Never ask for a one-time password, card or payment | Stated in the opening and trust lines; no dialogue state collects such data; payment happens only in the customer app |
 | Customer proves the plate; the bot never reads it out | The customer must say the plate, which must match the record. A mismatch ends the call; three failed attempts end it as unverified. Afterwards the bot refers only to a masked plate. |
 | Truthful about price | The price line states the regulated premium including VAT and moves on to service value. The copy guard rejects discount and rebate language in any form, including spacing and punctuation tricks. |
 | Respect opt-out at once | Opt-out is checked before anything else in every state. It ends the call, sets call consent off and do-not-contact, survives data rebuilds, is audited and drops the lead score to zero. |
@@ -187,7 +189,7 @@ Testing uses the simulated caller personas (eager, self-serve, price shopper, sc
 | Inference | Risk | Control |
 |---|---|---|
 | Policy expiry | A wrong date means early or late reminders, and a quote start date that overlaps or leaves a gap in cover | Measure accuracy against later verified certificates and TASCO issuance (share within 21 days, per method); tune evidence confidences through maker-checker; reminders ask the customer to confirm the date |
-| Vehicle category | A wrong category means a wrong regulated premium if not corrected | Measure accuracy against TASCO-issued categories. Recommendation: when category confidence is below 0.8, require the customer or agent to confirm seats and usage before payment (not enforced today). |
+| Vehicle category | A wrong category means a wrong regulated premium if not corrected | Measure accuracy against TASCO-issued categories. The customer app asks the customer to confirm use and seats before quoting in the full flow, and quick renewal requires a confirmation by TASCO core, a matching TASCO policy or the customer within 365 days. The same check is recommended on the server for telesales and partner quotes when category confidence is below 0.8. |
 
 The confidences for customer, steward and voice-assistant facts are governed in the service levels rule set. Three thresholds are still fixed in code (TASCO issuance 1.0, voice "expiry known" at 0.5, app confirmation prompt below 0.75) and will move into a rule set.
 
@@ -283,7 +285,7 @@ R is responsible, A accountable, C consulted and I informed.
 
 All of the following are to be confirmed by TASCO legal before production:
 
-- the lawful basis for processing and the disclosure of automated calls (Decree 13/2023/ND-CP; Law on Personal Data Protection 2025 and its implementing decree);
+- the lawful basis for processing and the disclosure of automated calls (Decree 13/2023/ND-CP; Personal Data Protection Law 91/2025/QH15 and its implementing decree);
 - marketing calls and messages: hours, frequency and the do-not-call register (Decree 91/2020/ND-CP);
 - consumer protection and the call recording notice (Law on Protection of Consumers' Rights 2023);
 - the prohibition of discounts or rebates on compulsory TNDS cover (Law on Insurance Business 08/2022/QH15; Decree 67/2023/ND-CP);

@@ -74,7 +74,7 @@ The scale phase is made up of ten modules. The timeline in section 17 shows the 
 | S10 Full-scale assurance | Performance and security retest at full scale | MVP test assets | 40 | 10,000 |
 | **Total** | | | **566** | **141,500** |
 
-Each module is priced on its own at a blended USD 250 per person-day and capped, so TASCO can take the modules in the order that suits it. Reuse keeps them small: the Zalo Mini App and TASCO's app and website are new front doors on journeys that already exist, and partners such as Tasco360 use the partner API delivered in the MVP. S3 can start straight after go-live, at a fixed USD 6,500, if TASCO wants its own app and website live before the pilot read-out.
+Each module is priced on its own at a blended USD 250 per person-day and capped, so TASCO can take the modules in the order that suits it. Reuse keeps them small: the Zalo Mini App and TASCO's app and website are new front doors on journeys that already exist, and partners such as Tasco360 use the partner API delivered in the MVP. S3 can start in March 2027, after hypercare, at a fixed USD 6,500, if TASCO wants its own app and website live before the pilot read-out.
 
 | Service | Basis | Price (USD) |
 |---|---|---:|
@@ -124,11 +124,11 @@ Infrastructure is estimated at about USD 1,650 per month at pilot scale (three a
 | For | Benefit |
 |---|---|
 | TASCO's business | New own-channel sales, renewal and new business, from an audience TASCO already reaches; cross-sell of personal accident and physical damage cover; a data asset that improves every year |
-| Customers | Renewal at the right time in one tap, honest and regulated pricing, help on the road, a verifiable e-certificate, and fewer unwanted calls |
+| Customers | Renewal at the right time in as few as three steps, honest and regulated pricing, help on the road, a verifiable e-certificate, and fewer unwanted calls |
 | VETC | More value from the app and wallet, and a new reason for drivers to engage |
 | Telesales | Warm, verified leads with context instead of cold lists |
 | Partners | Faster quoting and issuance through the API, with transparent commission |
-| Compliance and risk | Approved wording only, consent and contact rules enforced by the system, and a tamper-evident audit trail |
+| Compliance and risk | Approved wording only, consent and contact rules enforced by the system, every data request logged against its deadline, and a tamper-evident audit trail |
 | IT | Modern, documented, portable platform; business changes without releases; no vendor lock-in |
 | TASCO's earlier investments | The core system, TASCO's app and website, the Zalo Official Account, Tasco360 and the 1900 1562 contact centre gain a new source of demand instead of being replaced |
 

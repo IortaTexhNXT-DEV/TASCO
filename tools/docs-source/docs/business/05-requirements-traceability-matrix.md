@@ -9,6 +9,7 @@ reviewed_by: TASCO Insurance, Product Owner and QA Lead
 approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
+  - [AI, Artificial intelligence]
   - [API, Application Programming Interface]
   - [B2B, Business to business]
   - [FR, Functional requirement]
@@ -41,7 +42,7 @@ This matrix traces every functional requirement in TGP-BUS-02 to the user storie
 
 ## Scope
 
-All 117 functional requirements, FR-001 to FR-117. The matrix is presented in two views: requirement to story and test, and requirement to component and API. An appendix records the engineering findings raised while tracing the requirements to the software.
+All 119 functional requirements, FR-001 to FR-119. The matrix is presented in two views: requirement to story and test, and requirement to component and API. An appendix records the engineering findings raised while tracing the requirements to the software.
 
 ## Audience
 
@@ -60,13 +61,13 @@ The TASCO product owner, QA lead and IT architecture team, and the iorta TechNXT
 
 ## Test status
 
-All test suites below run in continuous integration. The latest run has 255 tests: 252 pass, 0 fail and 3 are to-do (the manual or roadmap scenarios US-055, US-076 and US-077). The PostgreSQL suite of 8 tests runs separately against a real database. Coverage is 99.41% of lines, 88.25% of branches and 97.12% of functions. The API has 80 routes: 6 public, 60 staff, 10 customer and 4 partner. Detailed results are in the test cases and results workbook described in TGP-QA-02.
+All test suites below run in continuous integration. The latest run has 271 tests: 268 pass, 0 fail and 3 are to-do (the manual or roadmap scenarios US-055, US-076 and US-077). The PostgreSQL suite of 8 tests runs separately against a real database, and all 8 pass. Line coverage is above 99%; TGP-QA-01 Test Strategy records the figures of each build. The API has 103 routes: 6 public, 82 staff, 11 customer and 4 partner. Detailed results are in the test cases and results workbook described in TGP-QA-02.
 
 Build status follows TGP-BUS-02: B is built, P is partial, Pl is planned.
 
 ## Test suites
 
-Functional suites F-1 to F-3 hold one test per scenario in TGP-BUS-04, named "US-nnn · scenario title": 124 scenarios, of which 121 are automated and 3 are manual or roadmap.
+Functional suites F-1 to F-3 hold one test per scenario of US-001 to US-077 in TGP-BUS-04, named "US-nnn · scenario title": 124 scenarios, of which 121 are automated and 3 are manual or roadmap. The 11 scenarios of US-078 and US-079 are covered by the suites API-DQ and U-QR.
 
 | Code | Suite | Scope |
 |---|---|---|
@@ -77,12 +78,14 @@ Functional suites F-1 to F-3 hold one test per scenario in TGP-BUS-04, named "US
 | U-ST | Store unit tests | In-memory store, event outbox, audit hash chain |
 | U-VB | Voice assistant unit tests | Dialogue |
 | U-CC | Core rating client unit tests | TASCO core REST client |
+| U-QR | Quick renewal unit tests | Quick renewal eligibility and reasons; service levels validation, including the data-request response time |
 | I-GV | Governance integration tests | Rules, identity, access, voice, customer, operations |
 | I-JN | Journey integration tests | Seed data, journeys, triggers, recompute |
 | I-SA | Sales integration tests | Quote, purchase, compensation, partners |
 | I-CR | Core rating integration tests | Rating modes, indicative quotes, re-rating, catalogue sync, integration status |
 | I-RF | Regression integration tests | Fixes from design and code reviews |
 | API | API contract tests | HTTP contract, authentication and authorisation |
+| API-DQ | Data-request and quick-renewal API tests | Data-request register, export, erasure and refusal; quick renewal in the customer app |
 | SEC | Security tests | Controls against the OWASP Top 10 |
 | PG | PostgreSQL suite | Database adapter, migrations, audit immutability |
 | PERF | Load smoke test | 95th-percentile budget |
@@ -222,13 +225,15 @@ Functional suites F-1 to F-3 hold one test per scenario in TGP-BUS-04, named "US
 | FR-074 | Customer session | US-036 | API, SEC, F-2 | B |
 | FR-075 | Cover status home | US-037 | I-GV, API, F-2 | B |
 | FR-076 | Confirm my expiry | US-038 | U-RD, I-GV, F-2 | B |
-| FR-077 | Purchase with add-ons | US-035, US-039 | API, I-SA, I-CR, F-2 | B |
+| FR-077 | Purchase with add-ons | US-035, US-039, US-079 | API, API-DQ, I-SA, I-CR, F-2 | B |
 | FR-078 | Consent centre | US-028, US-059 | I-GV, API, F-2, F-3 | B |
-| FR-079 | Download my data | US-060 | I-GV, API, F-3 | B |
-| FR-080 | Data-subject requests by staff | US-061 | I-GV, SEC, F-3 | B |
+| FR-079 | Download my data | US-060, US-078 | I-GV, API, API-DQ, F-3 | B |
+| FR-080 | Export and erasure by staff | US-061, US-078 | I-GV, SEC, API-DQ, F-3 | B |
 | FR-081 | Masking by permission | US-062 | I-GV, SEC, F-3 | B |
-| FR-116 | Confirm vehicle use and seats | None | API | B |
+| FR-116 | Confirm vehicle use and seats | US-079 | API, API-DQ | B |
 | FR-117 | Same journeys in every host app | None | API | B |
+| FR-118 | Data-subject request register | US-078 | API-DQ, U-QR | B |
+| FR-119 | Quick renewal | US-079 | U-QR, API-DQ | B |
 
 ## L. Rules governance
 
@@ -423,13 +428,15 @@ Components are named as they are in the code base, without paths. Every API endp
 | FR-074 | Signed links, `customerService.issueCustomerToken` | `POST /api/customer/session` | Attribute access policies |
 | FR-075 | `customerService.home` | `GET /api/customer/home` | Benefits |
 | FR-076 | `customerService.declareExpiry` | `POST /api/customer/expiry` | Service levels |
-| FR-077 | `salesService` | `POST /api/customer/quotes`, `POST /api/customer/orders` | Product catalogue, tariffs, rating |
+| FR-077 | `salesService` | `POST /api/customer/quotes`, `POST /api/customer/orders` | Product catalogue, tariffs, rating, service levels |
 | FR-078 | `customerService.updateConsent`, `ingestionService.rebuild` | `PUT /api/customer/consent` | Contact policy |
-| FR-079 | `customerService.exportData` | `GET /api/customer/data-export` | None |
-| FR-080 | `customerService.exportData`, `customerService.erase` | `POST /api/dsar/:id/export`, `POST /api/dsar/:id/erase` | Data retention |
+| FR-079 | `customerService.exportData`, `dsarService.recordSelfServiceExport` | `GET /api/customer/data-export` | None |
+| FR-080 | `dsarService`, `customerService.exportData`, `customerService.erase` | `POST /api/dsar/:id/complete-export`, `POST /api/dsar/:id/erase`; the older `POST /api/dsar/:id/export` still works | Data retention |
 | FR-081 | `accessPolicy.maskProfile` | `GET /api/customers/:id` | Roles |
 | FR-116 | `enrichment` (customer vehicle evidence), `ingestionService` | `POST /api/customer/vehicle` | Data enrichment |
 | FR-117 | `customerService.issueCustomerToken`, `salesService` (payment by host) | `POST /api/customer/session` | Products |
+| FR-118 | `dsarService` | `GET /api/dsar`, `POST /api/dsar`, `GET /api/dsar/:id`, `POST /api/dsar/:id/start`, `/complete-export`, `/erase`, `/refuse` | Service levels |
+| FR-119 | `quickRenewal`, `customerService.quickRenewal`, `salesService.quote` | `GET /api/customer/home`, `POST /api/customer/quotes` (quick flow), `POST /api/customer/orders` | Service levels, product catalogue |
 
 ## L. Rules governance
 
@@ -506,15 +513,15 @@ Components are named as they are in the code base, without paths. Every API endp
 | H Value and benefits | 5 | 5 | 3 | 5 |
 | I Partners and fleet | 8 | 8 | 8 | 3 |
 | J Claims | 3 | 3 | 3 | 1 |
-| K Customer and privacy | 10 | 8 | 10 | 9 |
+| K Customer and privacy | 12 | 11 | 12 | 11 |
 | L Rules governance | 7 | 6 | 6 | 7 |
 | M Identity and access | 8 | 8 | 8 | 3 |
 | N Audit | 3 | 3 | 2 | 0 |
 | O Operations and interfaces | 11 | 8 | 10 | 2 |
 | P TASCO core integration | 5 | 2 | 5 | 4 |
-| Total | 117 | 108 | 108 | 72 |
+| Total | 119 | 111 | 110 | 74 |
 
-Every requirement has at least one automated or manual test. The nine requirements without a user story (FR-088, FR-101, FR-106, FR-107, FR-112 to FR-114, FR-116 and FR-117) are platform and integration requirements verified directly by unit and integration tests.
+Every requirement has at least one automated or manual test. The eight requirements without a user story (FR-088, FR-101, FR-106, FR-107, FR-112 to FR-114 and FR-117) are platform and integration requirements verified directly by unit and integration tests.
 
 ## Build status
 
@@ -530,13 +537,13 @@ Every requirement has at least one automated or manual test. The nine requiremen
 | H Value and benefits | 2 | 1 | 2 |
 | I Partners and fleet | 7 | 1 | 0 |
 | J Claims | 3 | 0 | 0 |
-| K Customer and privacy | 10 | 0 | 0 |
+| K Customer and privacy | 12 | 0 | 0 |
 | L Rules governance | 7 | 0 | 0 |
 | M Identity and access | 7 | 1 | 0 |
 | N Audit | 3 | 0 | 0 |
 | O Operations and interfaces | 10 | 1 | 0 |
 | P TASCO core integration | 4 | 1 | 0 |
-| Total | 110 | 5 | 2 |
+| Total | 112 | 5 | 2 |
 
 "Built" includes requirements whose production connector is still to be built in the MVP, for example the live VETC wallet and the production TASCO core issuance, which run against sandbox connectors today.
 
@@ -544,14 +551,14 @@ Every requirement has at least one automated or manual test. The nine requiremen
 
 ## Engineering findings
 
-These findings were raised while tracing requirements to the software and were re-checked on 7 October 2026. Severity H is a compliance, security or money risk, M a functional gap, L a hygiene item.
+These findings were raised while tracing requirements to the software and were re-checked against the current build. Severity H is a compliance, security or money risk, M a functional gap, L a hygiene item.
 
 | ID | Severity | Status | Finding |
 |---|---|---|---|
 | E-01 | H | Resolved | Assistant campaigns bypassed the contact policy |
 | E-02 | M | Open, mitigated | The automatic call function does not itself refuse do-not-contact customers |
 | E-03 | M | Partly resolved | Motorbike plates were rejected; lead premium always uses the car tariff |
-| E-04 | M | Open | Zalo is never recorded as the sales channel; customer quotes are always tagged as VETC app |
+| E-04 | M | Resolved | Zalo was never recorded as the sales channel; customer quotes were always tagged as VETC app. The session now records the host (FR-117) |
 | E-05 | M | Partly resolved | Some business thresholds are still written in code |
 | E-06 | M | Resolved | Physical damage inspection was not enforced before payment |
 | E-07 | M | Resolved | Company vehicles entered consumer journeys |
@@ -577,7 +584,6 @@ These findings were raised while tracing requirements to the software and were r
 |---|---|---|
 | E-02 | The automatic call relies on its callers; all current callers check eligibility first | Check do-not-contact and consent inside the call function |
 | E-03 | Lead premium uses the car tariff for every vehicle | Choose the tariff by vehicle class |
-| E-04 | Zalo mini-app sales cannot be attributed or restricted | Derive the channel from the customer session |
 | E-05 | Remaining literals: confirmation prompt below 0.75, assistant "expiry known" at 0.5, assistant +365 days, stuck order after one hour, data-quality completeness denominator | Move them into the service levels or data enrichment rule sets |
 | E-08 | The next best action can recommend a call that the contact policy then blocks | Add marketing consent to the call rule |
 | E-09 | Profile anonymisation and archival are reported as done by an archival pipeline that does not yet exist | Implement, or show as manual on the operations screen |

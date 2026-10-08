@@ -3,11 +3,11 @@ id: TGP-ARC-07
 title: Architecture Decision Records
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Solution Architecture
 reviewed_by: TASCO Insurance, IT Architecture
 approved_by: TASCO Insurance, Programme Sponsor
-change_history: Initial issue for submission; consolidates ADR-001 to ADR-013
+change_history: Initial issue for submission; consolidates ADR-001 to ADR-014
 acronyms:
   - [ADR, Architecture decision record]
   - [AES-GCM, Advanced Encryption Standard in Galois/Counter Mode]
@@ -34,6 +34,7 @@ acronyms:
   - [LTS, Long-term support]
   - [MFA, Multi-factor authentication]
   - [MVC, Model-view-controller]
+  - [NFR, Non-functional requirement]
   - [OIDC, OpenID Connect]
   - [ORM, Object-relational mapping]
   - [OWASP, Open Worldwide Application Security Project]
@@ -42,11 +43,13 @@ acronyms:
   - [REST, Representational state transfer]
   - [RFC, Request for Comments (IETF standard)]
   - [SBOM, Software bill of materials]
+  - [SHA, Secure Hash Algorithm]
   - [SIEM, Security information and event management]
   - [SIT, System integration testing]
   - [SMS, Short message service]
   - [SQL, Structured Query Language]
   - [TLS, Transport Layer Security]
+  - [TNDS, Compulsory motor third-party liability insurance (Bảo hiểm TNDS bắt buộc)]
   - [TOTP, Time-based one-time password]
   - [UAT, User acceptance testing]
   - [VAT, Value added tax]
@@ -67,7 +70,7 @@ This document records the significant architecture decisions behind the TASCO Gr
 
 ## Scope and format
 
-Thirteen decisions are recorded, from the overall structure to TASCO core's role as master for products and rating. Each record has the same five parts: context, decision drivers, options considered, decision and consequences. Consequences include the known limitations and the planned follow-up, so the trade-off is visible. A decision is changed by a new record that supersedes the old one; records are not rewritten.
+Fourteen decisions are recorded, from the overall structure to TASCO core's role as master for products and rating and the rules for quick renewal. Each record has the same five parts: context, decision drivers, options considered, decision and consequences. Consequences include the known limitations and the planned follow-up, so the trade-off is visible. A decision is changed by a new record that supersedes the old one; records are not rewritten.
 
 Status values: Accepted means the decision is in force and implemented. Accepted (interim) means the decision is in force for the pilot and UAT, and the record defines the target that replaces it.
 
@@ -103,6 +106,7 @@ TASCO IT architecture and information security, VETC technical leads, internal a
 | ADR-011 | Framework-free front end with design tokens | Accepted | 07/10/2026 |
 | ADR-012 | Containers on Kubernetes, Railway for UAT | Accepted | 07/10/2026 |
 | ADR-013 | TASCO core as master for products and rating | Accepted | 07/10/2026 |
+| ADR-014 | Quick renewal decided by rules, with an explicit declaration | Accepted | 08/10/2026 |
 
 # ADR-001 Ports and adapters architecture
 
@@ -230,7 +234,7 @@ The aggregates are document-shaped and evolve quickly: a golden profile nests ve
 
 ## Decision
 
-One table per collection with a document column and typed columns extracted from it, declared in a single registry (`schema.js`) of 19 collections, each listing its indexed columns, encrypted fields and blind-index columns. A shared codec encrypts personal fields, computes blind indexes and extracts column values for both stores. Every statement uses bind parameters; identifiers come only from the registry; filtering and sorting are limited to declared columns; result size is capped at 5,000. Updates use optimistic locking on a version number. Migrations are numbered SQL files applied in order under an advisory lock.
+One table per collection with a document column and typed columns extracted from it, declared in a single registry (`schema.js`) of 20 collections, each listing its indexed columns, encrypted fields and blind-index columns. A shared codec encrypts personal fields, computes blind indexes and extracts column values for both stores. Every statement uses bind parameters; identifiers come only from the registry; filtering and sorting are limited to declared columns; result size is capped at 5,000. Updates use optimistic locking on a version number. Migrations are numbered SQL files applied in order under an advisory lock.
 
 ## Consequences
 
@@ -282,7 +286,7 @@ Events are written to `domain_events` as pending. A relay claims a batch in a sh
 
 ## Context
 
-The platform holds personal data on millions of Vietnamese vehicle owners: names, phones, call transcripts, claim descriptions and locations, and staff authenticator seeds. Vietnam's personal data protection rules require appropriate technical protection (Decree 13/2023/ND-CP and the Law on Personal Data Protection 2025, to be confirmed by TASCO legal). Disk encryption alone does not protect against a database operator reading data, leaked backups or replicas, or exfiltration through a compromised read path. Exact search by phone is still needed, for example to find a customer from a call.
+The platform holds personal data on millions of Vietnamese vehicle owners: names, phones, call transcripts, claim descriptions and locations, and staff authenticator seeds. Vietnam's personal data protection rules require appropriate technical protection (Decree 13/2023/ND-CP and the Personal Data Protection Law 91/2025/QH15, to be confirmed by TASCO legal). Disk encryption alone does not protect against a database operator reading data, leaked backups or replicas, or exfiltration through a compromised read path. Exact search by phone is still needed, for example to find a customer from a call.
 
 ## Decision drivers
 
@@ -302,7 +306,7 @@ The platform holds personal data on millions of Vietnamese vehicle owners: names
 
 ## Decision
 
-AES-256-GCM per field with a random IV and the key id in each value, in addition to storage encryption and TLS. Several data keys can be loaded with one active; decryption picks the key by its id, so a new key can be activated without downtime and old values re-encrypt on their next write, with a re-key job planned to finish the rotation. Encrypted fields: source record phone and name; profile name, phone and other phones; message recipient; call transcript; handoff name; claim description and location; staff display name and authenticator seed. The phone blind index is an HMAC with its own key, used by the console's global search.
+AES-256-GCM per field with a random IV and the key id in each value, in addition to storage encryption and TLS. Several data keys can be loaded with one active; decryption picks the key by its id, so a new key can be activated without downtime and old values re-encrypt on their next write, with a re-key job planned to finish the rotation. Encrypted fields: source record phone and name; profile name, phone and other phones; message recipient; call transcript; handoff name; claim description and location; data-subject request note; staff display name and authenticator seed. The phone blind index is an HMAC with its own key, used by the console's global search.
 
 ## Consequences
 
@@ -316,7 +320,7 @@ AES-256-GCM per field with a random IV and the key id in each value, in addition
 
 ## Context
 
-Four kinds of principal call the platform: staff in 13 roles using the console; customers in the VETC app or from Zalo; partner systems; and batch jobs. The TASCO identity provider and VETC app sign-on could not be integrated in the pilot timeframe, yet privileged roles need MFA from day one and joiners, movers and leavers must be controlled.
+Four kinds of principal call the platform: staff in 13 roles using the console; customers in the customer app, hosted in the VETC app, TASCO's app and website or a Zalo Mini App; partner systems; and batch jobs. The TASCO identity provider and VETC app sign-on could not be integrated in the pilot timeframe, yet privileged roles need MFA from day one and joiners, movers and leavers must be controlled.
 
 ## Decision drivers
 
@@ -461,7 +465,7 @@ Many consumers depend on the API: the staff console and customer app, partners i
 
 ## Decision
 
-Each route declares its method, path, audience, permission, partner scope, body and query schemas, idempotency requirement, rate cost and handler. The pipeline enforces, in order: rate limit; body reading (1 MiB, JSON objects only) and path parameter checks; authentication for the declared audience; permission and partner scope; schema validation that rejects unknown fields; the idempotency key format; then the handler. The generator emits OpenAPI 3.1 with the audience and permission of each operation, strict request schemas and a uniform error body. The specification is served by the API and committed to the repository, and CI fails if they differ. The API has 81 operations at the time of writing: 6 public, 61 staff, 10 customer and 4 partner.
+Each route declares its method, path, audience, permission, partner scope, body and query schemas, idempotency requirement, rate cost and handler. The pipeline enforces, in order: rate limit; body reading (1 MiB, JSON objects only) and path parameter checks; authentication for the declared audience; permission and partner scope; schema validation that rejects unknown fields; the idempotency key format; then the handler. The generator emits OpenAPI 3.1 with the audience and permission of each operation, strict request schemas and a uniform error body. The specification is served by the API and committed to the repository, and CI fails if they differ. The API has 103 routes: 6 public, 82 staff, 11 customer and 4 partner, published as 92 OpenAPI paths.
 
 ## Consequences
 
@@ -476,7 +480,7 @@ Each route declares its method, path, audience, permission, partner scope, body 
 
 ## Context
 
-The front end has three parts: the staff console, the customer app embedded in the VETC app, and the public certificate check. It must be fast on mid-range Android phones, accessible and bilingual for staff, carry TASCO's brand, and resist cross-site scripting and supply-chain risk, because staff sessions can see personal data.
+The front end has three parts: the staff console, the customer app (embedded in the VETC app and, later, TASCO's app and website and a Zalo Mini App), and the public certificate check. It must be fast on mid-range Android phones, accessible and bilingual for staff, carry TASCO's brand, and resist cross-site scripting and supply-chain risk, because staff sessions can see personal data.
 
 ## Decision drivers
 
@@ -543,7 +547,7 @@ A multi-stage image on `node:22-alpine` with production dependencies only, runni
 
 ## Context
 
-TASCO core holds the product catalogue, tariffs and rating, and issues every policy. The first version of the platform rated quotes locally from versioned rule sets, which suits a sandbox but creates two sources of truth in production. A premium shown in the VETC app must be exactly the premium TASCO core binds and issues, and product or tariff changes must be made once, in core.
+TASCO core holds the product catalogue, tariffs and rating, and issues every policy. The first version of the platform rated quotes locally from versioned rule sets, which suits a sandbox but creates two sources of truth in production. A premium shown in the customer app must be exactly the premium TASCO core binds and issues, and product or tariff changes must be made once, in core.
 
 ## Decision drivers
 
@@ -582,3 +586,37 @@ TASCO core holds the product catalogue, tariffs and rating, and issues every pol
 - The customer journey depends on core latency; a rating response of 1 second or less at the 95th percentile must be agreed with TASCO.
 - Policy issuance still uses a sandbox adapter; the real adapter is built against TASCO's specification.
 - If core cannot expose a rating API in time, the replicated-tariff option becomes the interim path, with core re-rating at issue and rejecting any mismatch.
+
+# ADR-014 Quick renewal decided by rules, with an explicit declaration
+
+## Context
+
+Most renewals are simple: the same vehicle, compulsory TNDS cover, a regulated premium and a customer who already holds a TASCO policy. The full purchase flow takes 6 steps, and the non-functional target is a median renewal of 60 seconds or less. Some cases are not simple: physical damage cover needs an inspection, an unconfirmed vehicle can carry the wrong tariff category, a core outage gives only an indicative price, and a short wallet balance fails at payment. The customer's declaration must stay explicit for compliance.
+
+## Decision drivers
+
+- Fewer steps where the case allows it, without a second purchase path to secure and test.
+- No wrong premium and no failed payment caused by a shortcut.
+- The declaration remains an explicit, recorded act by the customer.
+- Business owners can tune or switch off the rule without a release.
+
+## Options considered
+
+| Option | Assessment |
+|---|---|
+| Server-side eligibility from settings in the service levels rule set; the quick path reuses the normal quote and purchase services | One purchase path; the decision is explainable and governed |
+| A shorter flow for every customer | Simplest, but sells with unconfirmed vehicle data and fails on physical damage cover and low balances |
+| Eligibility decided in the app | Fast to build, but cannot be trusted or audited, and differs between hosts |
+| Pre-ticked or implied declaration | One step fewer, but weakens the customer's consent; rejected |
+
+## Decision
+
+A pure domain function (`src/domain/quickRenewal.js`) decides eligibility from facts gathered by the customer service and the `quickRenewal` settings: enabled, journeys, require a confirmed vehicle, confirmation age of 365 days, add-ons not allowed, require a sufficient wallet balance. The home screen returns the result with reasons, and a quick quote request is checked again on the server and priced by TASCO core like any other quote. The quick path is 3 steps: open, tick the declaration, confirm payment. The full 6-step flow is always available as "Tùy chỉnh gói bảo hiểm".
+
+## Consequences
+
+- Eligible customers renew in 3 steps; NFR-035 is restated to match (quick renewal in 3 steps where the case allows, the full flow in 6, median 60 seconds or less).
+- The settings change through maker-checker; switching the rule off sends everyone to the full flow.
+- Each refusal carries a reason in Vietnamese and a reason code, so the share of customers who miss the quick path, and why, can be measured.
+- The wallet check uses the last known balance from VETC data, which can be out of date; the payment itself remains the real check.
+- Quick renewal covers TNDS only today; adding personal accident cover is a setting (`allowAddOns`) that needs a product decision.

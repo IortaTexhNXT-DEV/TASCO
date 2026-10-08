@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| Prepared for | TASCO Insurance, in partnership with VETC |
+| Prepared for | TASCO Insurance |
 | Prepared by | iorta TechNXT |
 | Reference | ITN-TASCO-2026-001 |
-| Version | 1.0, issued 07 October 2026 |
+| Version | 1.0, issued 8 October 2026 |
 | Validity | 90 days from the date of issue |
 | Classification | Commercial in confidence |
 
@@ -15,11 +15,11 @@ Every month, around six million drivers pass through VETC toll gantries, and mos
 
 We spent time with the brief and with the data behind it, and we do not believe the problem is demand. TNDS cover is compulsory, so the need is guaranteed. The problem is that TASCO does not know *when* most drivers need to renew, because only about one record in ten carries a reliable expiry date. Drivers do not trust insurance sales calls. The one lever customers ask for, a discount, is one TASCO is not allowed to pull. And the VETC app, for all its reach, cannot yet complete a purchase.
 
-Our proposal is a growth platform that fixes these four things together. It builds a clean record for every vehicle and improves it with every interaction. It decides who to contact, when, through which channel, and with what offer. It does not ask drivers to install anything new. The same journeys run inside the VETC app, TASCO's own app and website, and Zalo, and the platform reuses TASCO's core system, the VETC wallet and TASCO's contact centre rather than duplicating them. It reaches drivers in ways they trust: in the VETC app they already use, by Zalo, and by an AI voice assistant that identifies itself and asks the driver to confirm their licence plate before anything else. When a driver is ready, they confirm and pay in the VETC app in a single step. TASCO's core system prices the policy and issues the e-certificate within seconds. Because price cannot be the reason to choose TASCO, the platform makes service the reason: roadside assistance, an e-certificate that police and inspectors can verify by QR code, reminders before inspection, and a faster claims start.
+Our proposal is a growth platform that fixes these four things together. It builds a clean record for every vehicle and improves it with every interaction. It decides who to contact, when, through which channel, and with what offer. It does not ask drivers to install anything new. The same customer app runs inside the VETC app first, and later inside TASCO's own app and website and as a Zalo Mini App, and the platform reuses TASCO's core system, the VETC wallet and TASCO's contact centre rather than duplicating them. It reaches drivers in ways they trust: in the VETC app they already use, by Zalo, and by an AI voice assistant that identifies itself and asks the driver to confirm their licence plate before anything else. When a driver is ready, they renew in the VETC app: in three steps where TASCO's rules allow quick renewal, otherwise through the full purchase flow. TASCO's core system prices the policy and issues the e-certificate within seconds. Because price cannot be the reason to choose TASCO, the platform makes service the reason: roadside assistance, an e-certificate that police and inspectors can verify by QR code, reminders before inspection, and a faster claims start.
 
 The platform is designed for growth, not only for retention. Alongside renewals, it runs journeys for drivers insured elsewhere, for new vehicles at the moment their VETC tag is activated, for lapsed and uninsured drivers, and for cross-sell of personal accident and physical damage cover. It also gives TASCO's partners an API to sell through, so that the platform works with the channels that perform today instead of against them.
 
-The platform already exists. It is running in a UAT environment that TASCO can use today. It has a staff console for thirteen roles in Vietnamese and English, a customer app in Vietnamese, 97 API endpoints and more than 250 automated tests. That changes the economics of the MVP. TASCO's budget does not need to pay for building commodity software. It pays for what matters: connecting the platform to TASCO's core system and VETC's channels, loading and repairing real data, hardening the platform for production, and running a measured pilot.
+The platform already exists. It is running in a UAT environment that TASCO can use today. It has a staff console for thirteen roles in Vietnamese and English, a customer app in Vietnamese, 103 API endpoints and more than 265 automated tests. That changes the economics of the MVP. TASCO's budget does not need to pay for building commodity software. It pays for what matters: connecting the platform to TASCO's core system and VETC's channels, loading and repairing real data, hardening the platform for production, and running a measured pilot.
 
 We propose a fixed-price MVP of **USD 94,800**, within TASCO's MVP budget of USD 100,000, leaving USD 5,200 as a change reserve under TASCO's control. The pilot can be live **13 weeks** after contract signature, followed by four weeks of hypercare. We recommend a pilot of 50,000 to 100,000 vehicles in one or two provinces, measured against a control group, so that the decision to scale is based on evidence rather than projections.
 
@@ -39,7 +39,7 @@ TASCO already has a presence online, and the platform is designed to work with i
 |---|---|---|
 | e.baohiemtasco.vn | Online purchase of compulsory TNDS for cars. The customer says whether the vehicle is used for business, then gives the vehicle type, number of seats and a phone number. Physical damage cover is marked "coming soon". | Both channels price from the same TASCO core, so a driver sees the same premium wherever they buy. The VETC app asks the same vehicle questions before it quotes. Physical damage with inspection, which is in the MVP, can later be offered on the site through the same services. Where consent allows, phone numbers left on the site without a purchase could become warm leads; we will agree this in discovery. |
 | Tasco360 app | TASCO's mobile app for partners and other stakeholders, covering consultation, sales and after-sales | Tasco360 can call the partner API for quotes by plate, instant issuance and commission statements, with VETC vehicle data behind each quote. Partners keep the tool they already use. We will confirm in discovery whether Tasco360 is the first partner integration in the MVP. |
-| Hotline 1900 1562, info@baohiemtasco.vn, Zalo, Messenger and website chat | Claims, general support and insurance questions | The customer app shows the same official contacts, so the driver hears one TASCO voice. Outbound calls should present a registered TASCO number that customers already recognise. Claims guidance points to TASCO's published compensation guidelines. |
+| Hotline 1900 1562, info@baohiemtasco.vn, the Zalo Official Account, Facebook and Messenger | Claims, general support and insurance questions | The customer app shows the same official contacts, so the driver hears one TASCO voice. Outbound calls should present a registered TASCO number that customers already recognise. Claims guidance points to TASCO's published compensation guidelines. |
 
 None of these channels can reach the 6 million drivers who already use VETC at the moment they need cover, or tell when that moment is. The platform fills that gap and leaves the existing channels in place.
 
@@ -65,7 +65,7 @@ The solution has been designed around the rules that apply to motor insurance di
 |---|---|
 | Compulsory TNDS (Decree 67/2023/ND-CP) | Shows the regulated price as returned by TASCO's core system, and never offers a premium discount |
 | Law on Insurance Business 08/2022/QH15 | Pays commission only to licensed partners and within configured caps; keeps disclosure text under compliance control |
-| Personal data protection (Decree 13/2023/ND-CP and the Personal Data Protection Law, effective 1 January 2026) | Purpose-based consent, a consent centre for customers, data-subject requests, retention rules and breach-ready audit evidence |
+| Personal data protection (Decree 13/2023/ND-CP and the Personal Data Protection Law 91/2025/QH15, effective 1 January 2026) | Purpose-based consent, a consent centre for customers, a register of access and erasure requests with a response deadline (72 hours, to be confirmed by TASCO legal), retention rules and breach-ready audit evidence |
 | Cybersecurity Law 2018 and Decree 53/2022/ND-CP | Production hosting in Vietnam; no personal data leaves the country |
 | Electronic Transactions Law 20/2023/QH15 | E-certificates issued by TASCO's core system and verifiable by QR code |
 | Advertising and spam rules (Decree 91/2020/ND-CP) | Contact window of 08:00 to 20:00, frequency caps, do-not-contact handling and a copy guard on every message |
@@ -105,20 +105,18 @@ Finally, TASCO is not locked in. The platform uses mainstream technology (Node.j
 
 iorta TechNXT focuses on insurance technology, with the strapline "Transforming Insurance with AI Innovation". We operate in more than ten countries from eight offices and serve more than eleven insurance markets, including Vietnam, Malaysia, India, the Philippines, Thailand, Cambodia, Singapore, Hong Kong, Ethiopia and the USA. Our presence in Vietnam means that discovery, user acceptance testing, go-live and hypercare can be run on site with TASCO's teams, in Vietnamese and English.
 
-*[For iorta TechNXT to confirm before submission: named insurance references that may be cited, and certifications held (for example ISO/IEC 27001).]*
-
 ## 5. How the solution answers each challenge
 
 | Challenge | What the platform does | How we will know it works |
 |---|---|---|
-| Renewals through own channels are close to zero | Renewal journey from 45 days before expiry, ending in one-tap purchase in the VETC app | Own-channel renewal rate in the pilot cohort against the control group |
+| Renewals through own channels are close to zero | Renewal journey from 45 days before expiry, ending in purchase in the VETC app: quick renewal in three steps where the case allows it, the full flow otherwise | Own-channel renewal rate in the pilot cohort against the control group |
 | Data is weak and fragmented | One record per plate from all sources; expiry estimated with a stated confidence; customers confirm their own expiry; every contact writes back | Share of vehicles with a usable expiry date, measured monthly |
 | Customers do not trust sales calls | The assistant says it is automated, asks the driver to state their plate before anything else, never asks for codes or payment, and payment happens only in the VETC app | Call completion, opt-out and complaint rates |
 | Discounts are not allowed | A copy guard blocks discount language; the offer is built on service: roadside assistance, verifiable e-certificate, reminders, faster claims, multi-year cover | Zero copy-guard breaches; uptake of benefits |
 | Partners close faster | Partners get an API to quote by plate and issue in under a minute, with commission capped by rule; leads are routed to the channel most likely to close | Policies through the partner API; time to certificate |
 | Growth beyond renewals | Journeys for drivers insured elsewhere, new vehicles, lapsed and uninsured drivers, and cross-sell | Share of new-business policies |
 | Pricing must stay correct | Every quote is priced live by TASCO's core system; the product catalogue is synchronised from core and approved before release | Zero differences between quoted and issued premium |
-| Privacy and messaging rules | Consent centre, contact window, frequency caps, data-subject requests and a full audit trail | Zero contact-policy breaches |
+| Privacy and messaging rules | Consent centre, contact window, frequency caps, a register of data requests with a response deadline, and a full audit trail | Zero contact-policy breaches; every data request answered on time |
 
 ## 6. The solution
 
@@ -159,13 +157,13 @@ flowchart TB
 
 **Voice assistant and telesales.** The assistant identifies itself, verifies the plate, asks about current cover and interest, writes the answers back to the record and passes warm leads to a telesales agent with a summary and suggested talking points. Agents never take payment. They send the quote to the customer's VETC app, where the customer pays.
 
-**Quote, pay and issue.** Quotes are priced by TASCO's core system. The customer pays from the VETC wallet. TASCO's core system binds the quote it priced and issues the policy and e-certificate. If issuance fails after payment, the platform refunds automatically.
+**Quote, pay and issue.** Quotes are priced by TASCO's core system. A customer renewing the same TNDS cover, with vehicle details already confirmed, can use quick renewal: review, tick the declaration and confirm payment. Everyone else uses the full purchase flow, which is always available. The customer pays from the VETC wallet. TASCO's core system binds the quote it priced and issues the policy and e-certificate. If issuance fails after payment, the platform refunds automatically.
 
 **Benefits and claims start.** The offer is built on service rather than price. Customers can report an accident in the app with photos and location, and the claims team receives it in a queue.
 
 **Partner channel.** Partners quote and bind through a secure API, with commission calculated and capped by rule and a monthly statement for each partner.
 
-**Governance and audit.** A rules studio with simulation and four-eyes approval, a consent centre, data-subject requests, role-based dashboards, and an audit trail that can be verified for tampering.
+**Governance and audit.** A rules studio with simulation and four-eyes approval, a consent centre, a register of customers' data requests (access and erasure) with its response deadline, role-based dashboards, and an audit trail that can be verified for tampering.
 
 ### 6.2 New business, not only renewals
 
@@ -187,7 +185,7 @@ The brief asked about renewals. We think the larger opportunity lies in the driv
 |---|---|---|
 | Instant e-certificate with QR verification | Proof of cover at inspection or a roadside check in seconds, and protection against fake certificates | Yes |
 | Inspection and expiry reminders | Avoids driving uninsured by accident | Yes |
-| 24/7 roadside assistance | Help on the road, especially for long-distance drivers | Yes, through TASCO's assistance provider |
+| Roadside assistance | Help on the road, especially for long-distance drivers | Yes, through TASCO's assistance provider |
 | Accident reporting in the app | A faster, clearer start to a claim | Yes |
 | Multi-year TNDS cover | One purchase for up to three years | Yes |
 | Personal accident and physical damage add-ons | Wider protection, priced by TASCO's core system | Yes; physical damage requires an inspection |

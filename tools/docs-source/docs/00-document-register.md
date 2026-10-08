@@ -11,6 +11,7 @@ change_history: Initial issue for submission
 acronyms:
   - [AI, Artificial Intelligence]
   - [API, Application Programming Interface]
+  - [ID, Identifier]
   - [IT, Information Technology]
   - [MVP, Minimum Viable Product]
   - [QA, Quality Assurance]
@@ -146,7 +147,7 @@ The engagement manager maintains this register until the end of hypercare. TASCO
 | ID | Title | Purpose | Primary audience | Owner |
 |---|---|---|---|---|
 | TGP-MAN-01 | Staff Console User Manual | How each staff role uses the console, one chapter per role | TASCO and VETC staff | Business analyst and insurance SME |
-| TGP-MAN-02 | Customer App Guide | How customers use the app in the VETC app | Customer service, VETC | Business analyst and insurance SME |
+| TGP-MAN-02 | Customer App Guide | How customers use the customer app, starting in the VETC app | Customer service, VETC | Business analyst and insurance SME |
 | TGP-MAN-03 | Partner API Integration Guide | How a partner connects to and certifies on the partner API | Partner developers, partner managers | Senior engineer (integration lead) |
 
 # Supporting artefacts

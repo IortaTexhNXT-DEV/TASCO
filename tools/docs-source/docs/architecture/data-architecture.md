@@ -3,17 +3,20 @@ id: TGP-ARC-03
 title: Data Architecture
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Solution Architecture
 reviewed_by: TASCO Insurance, IT Architecture
 approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
+  - [ADR, Architecture decision record]
+  - [AES, Advanced Encryption Standard]
   - [API, Application programming interface]
   - [B2B, Business to business]
   - [BI, Business intelligence]
   - [DPO, Data protection officer]
   - [DSAR, Data subject access request]
+  - [GCM, Galois/Counter Mode]
   - [IP, Internet Protocol]
   - [SIT, System integration testing]
   - [SMS, Short message service]
@@ -23,7 +26,7 @@ acronyms:
   - [VAT, Value added tax]
   - [VETC, Vietnam Electronic Toll Collection]
 signoff:
-  - [Retention periods per entity, to be confirmed by TASCO legal, Open]
+  - [Retention periods per entity, including closed data-subject requests, to be confirmed by TASCO legal, Open]
   - [Treatment of licence plates as personal data, TASCO legal and DPO, Open]
   - [Lawful basis for partner and telesales lists before migration, to be confirmed by TASCO legal, Open]
   - [Policy book extract format from TASCO core, TASCO IT Architecture, Open]
@@ -61,18 +64,18 @@ TASCO data office and data protection officer, data stewards, BI and data wareho
 | Every fact has a source and a confidence | Each profile field records where it came from, how confident the platform is and which rule produced it. |
 | Facts captured on the platform are not lost | A customer's declared expiry, a steward's correction or a TASCO-issued policy survives the next rebuild from source data. |
 | Collect the minimum | National id, address and date of birth are not accepted. Partners cannot submit marketing consent. |
-| Personal data is encrypted at the field level | Names, phones, call transcripts, claim descriptions and staff authenticator seeds are encrypted before they reach the database. |
+| Personal data is encrypted at the field level | Names, phones, call transcripts, claim descriptions, data-request notes and staff authenticator seeds are encrypted before they reach the database. |
 | No decrypted personal data leaves for analytics | Extracts are pseudonymised with a separate key. |
 
 # Storage pattern
 
-Each of the 19 collections is a PostgreSQL table with the same shape: an identifier, a version number for optimistic locking, the document as `jsonb` with personal fields encrypted, typed columns extracted from the document for filtering and sorting, blind-index columns where needed, and creation and update timestamps.
+Each of the 20 collections is a PostgreSQL table with the same shape: an identifier, a version number for optimistic locking, the document as `jsonb` with personal fields encrypted, typed columns extracted from the document for filtering and sorting, blind-index columns where needed, and creation and update timestamps.
 
 ```text
 id text primary key | version integer | data jsonb | <indexed columns> | <blind-index columns> | created_at | updated_at
 ```
 
-Only declared indexed columns, plus id and the timestamps, can be filtered or sorted, so a query can never reach an unindexed or personal field. The `audit_log` table is separate: append-only, hash-chained, with database triggers that block update, delete and truncate. Applied migrations are recorded in `schema_migrations`. ADR-004 in TGP-ARC-07 Architecture Decision Records explains the choice of this pattern.
+Only declared indexed columns, plus id and the timestamps, can be filtered or sorted, so a query can never reach an unindexed or personal field. The `audit_log` table is separate: append-only, hash-chained, with database triggers that block update, delete and truncate. Applied migrations are recorded in `schema_migrations`. Three migrations exist: `001_init.sql` creates the collection tables and the audit log, `002_integrity_hardening.sql` allows only one active rule set per kind and blocks truncation of the audit log, and `003_dsar_requests.sql` adds the data-subject request register. ADR-004 in TGP-ARC-07 Architecture Decision Records explains the choice of this pattern.
 
 Relationships between collections are logical. They are enforced in the application services and checked by the nightly reconciliation; there are no database foreign keys. This keeps the document schema free to evolve without heavy migrations.
 
@@ -86,7 +89,7 @@ Relationships between collections are logical. They are enforced in the applicat
 | Engagement | `touchpoints`, `messages`, `voice_sessions`, `handoffs` | Planned and executed contacts, calls and telesales handoffs |
 | Commerce | `quotes`, `orders`, `policies`, `claims` | Quotes, payments, issued policies and first notice of loss |
 | Partners | `partners`, `api_keys` | Partner organisations and their API credentials |
-| Governance | `users`, `rulesets`, `domain_events`, `job_runs`, `audit_log` | Staff accounts, rule versions, event outbox, job history, audit trail |
+| Governance | `users`, `rulesets`, `domain_events`, `job_runs`, `audit_log`, `dsar_requests` | Staff accounts, rule versions, event outbox, job history, audit trail, data-subject requests |
 
 The diagrams below show the key entities by subject area. Each shows the identifier, the indexed columns that relate entities and the main encrypted fields.
 
@@ -288,7 +291,7 @@ erDiagram
 
 ## Governance
 
-Staff users author and approve rule set versions and appear as actors in the audit trail. Domain events and job runs stand alone.
+Staff users author and approve rule set versions and appear as actors in the audit trail. Domain events and job runs stand alone. Each data-subject request concerns one profile and is handled by a compliance officer.
 
 ```mermaid
 %% caption: Governance, part 1: staff users, rule set versions and the audit trail
@@ -336,11 +339,35 @@ erDiagram
   }
 ```
 
+```mermaid
+%% caption: Governance, part 3: data-subject requests about a profile, handled by a staff user
+%%{init: {"er": {"entityPadding": 6, "minEntityWidth": 60, "minEntityHeight": 40, "diagramPadding": 10}}}%%
+erDiagram
+  PROFILES ||--o{ DSAR_REQUESTS : "subject of"
+  USERS |o--o{ DSAR_REQUESTS : "handles"
+  PROFILES {
+    text id PK "normalised plate"
+  }
+  DSAR_REQUESTS {
+    text id PK "reference DSR-yymmdd-xxxx"
+    text profile_id FK
+    text type "access or erasure"
+    text status
+    timestamptz received_at
+    timestamptz due_at
+    jsonb data "note encrypted"
+  }
+  USERS {
+    text id PK
+    text username
+  }
+```
+
 # Data classification
 
 | Class | Examples | Controls |
 |---|---|---|
-| Restricted, personal | Customer name and phone, call transcript, claim description and location, staff authenticator seed | Field encryption (AES-256-GCM); masked unless the user may see personal data; redacted in logs; included in DSAR export and erasure |
+| Restricted, personal | Customer name and phone, call transcript, claim description and location, data-request note, staff authenticator seed | Field encryption (AES-256-GCM); masked unless the user may see personal data; redacted in logs; included in DSAR export and erasure |
 | Confidential, linked to a person | Licence plate, policy expiry and insurer, engagement metrics, wallet balance, consent flags, IP addresses in the audit trail | Stored in clear for matching and filtering; role and attribute-based access; pseudonymised in analytics. Whether the plate is personal data is to be confirmed by TASCO legal and the DPO. |
 | Confidential, business | Quotes, orders, commission, tariffs and scoring rules, partner data | Role-based access; audited |
 | Internal | Metrics, job runs, data quality counts | Staff access |
@@ -395,6 +422,7 @@ One profile per vehicle. "Indexed" fields are extracted columns that can be filt
 | `lineage` | Entity id, entity type | None | Batch lineage: source, record count, rejected count, time |
 | `job_runs` | Kind, started at | None | Job history and results, including catalogue sync outcomes |
 | `audit_log` | Sequence, actor, action, entity | None | Details hold ids, reasons and IP addresses, never names or phones |
+| `dsar_requests` | Profile, type, status, received at, due at | Note | Register of access and erasure requests: channel, due time, identity verification, timeline of status changes, outcome or refusal reason. Holds a masked name and the plate only; the name is removed once the person is erased. |
 
 # Golden record
 
@@ -430,6 +458,7 @@ The most trusted non-empty value wins for each field. Source trust is set in the
 |---|---|
 | TASCO core | 1.00 |
 | VETC app purchase | 0.95 |
+| Customer vehicle confirmation (use and seats, in the app) | 0.90 |
 | VETC account | 0.85 |
 | Customer declared | 0.75 |
 | Partner inspection centre | 0.65 |
@@ -437,7 +466,7 @@ The most trusted non-empty value wins for each field. Source trust is set in the
 | Partner agent | 0.50 |
 | Telesales list and unknown sources | 0.40 |
 
-Ownership type, tag activation, engagement, channels and consent come from the VETC account record, which is the system of record for the account. The vehicle category comes from a decision table over seats, toll class and commercial use, with a confidence and a basis.
+Ownership type, tag activation, engagement, channels and consent come from the VETC account record, which is the system of record for the account. The vehicle category comes from a decision table over seats, toll class and commercial use, with a confidence and a basis. When a customer confirms use and seats in the app, the answer lands as a source record of its own and wins over VETC data; quick renewal accepts such a confirmation for 365 days.
 
 ## Expiry inference
 
@@ -508,7 +537,7 @@ Retention is a rule set under maker-checker, approved only by a compliance offic
 
 ## Erasure and export
 
-A data subject can request export or erasure through a compliance officer, and a customer can download their own data in the app. Erasure is refused while an active policy exists, because the policy must be retained by law. Otherwise erasure:
+Every access or erasure request is logged in the data-subject request register (`dsar_requests`) with its channel, due time and outcome; TGP-ARC-04 Security Architecture describes the handling process. A customer can also download their own data in the app, which is recorded in the register as a completed access request on the app channel. Erasure is refused while an active policy exists, because the policy must be retained by law; the request is then closed as refused with the reason. Otherwise erasure:
 
 - removes the profile's name, phones and competitor note, marks it anonymised and sets do-not-contact with no consent;
 - deletes the lead;
@@ -518,9 +547,10 @@ A data subject can request export or erasure through a compliance officer, and a
 - clears handoff names, masked phones and notes;
 - replaces claim descriptions and locations;
 - ends the customer's sessions and invalidates renewal links;
+- removes the name from every register entry about the person;
 - writes an audit entry.
 
-Export includes the profile, lead, policies, messages, source records, call sessions, quotes, orders, claims and telesales handoffs. VETC must also be told of an erasure through a suppression list, or the next feed lands the contact data again; the profile itself stays anonymised because a rebuild skips anonymised profiles. Claim records follow claims retention, to be confirmed by TASCO legal.
+Export includes the profile, lead, policies, messages, source records, call sessions, quotes, orders, claims, telesales handoffs and the person's own data-subject requests (without staff notes). It is downloaded as a JSON file named `TASCO-data-<plate>-<date>.json`. VETC must also be told of an erasure through a suppression list, or the next feed lands the contact data again; the profile itself stays anonymised because a rebuild skips anonymised profiles. Claim records follow claims retention, to be confirmed by TASCO legal.
 
 ## Backup
 
@@ -579,3 +609,4 @@ No decrypted personal data leaves the platform for analytics. The plate is repla
 | Source record age counts from first landing | A record refreshed daily is still deleted after 365 days | Base retention on last update, or keep the latest version per source | Before go-live |
 | Free-text call signals stored in clear | Personal data outside field encryption | Encrypt the signals or keep structured values only | Before go-live |
 | Archival pipeline not built | Archive actions are recorded but not executed | Build the archival pipeline to write-once storage in Vietnam | Scale phase |
+| The data-subject request register has no retention rule | Requests are kept indefinitely | Add a retention rule for closed requests once TASCO legal confirms the period | Before go-live |

@@ -20,6 +20,7 @@ acronyms:
   - [DNC, Do Not Contact]
   - [DQ, Data Quality]
   - [DR, Disaster Recovery]
+  - [FR, Functional Requirement]
   - [HA, High Availability]
   - [HCM, Hồ Chí Minh City]
   - [HMAC, Hash-based Message Authentication Code]
@@ -33,6 +34,7 @@ acronyms:
   - [MDM, Master Data Management]
   - [MFA, Multi-Factor Authentication]
   - [MiB, Mebibyte]
+  - [NFR, Non-Functional Requirement]
   - [NFT, Non-Functional Testing]
   - [NVDA, NonVisual Desktop Access (screen reader)]
   - [OA, Official Account (Zalo)]
@@ -67,6 +69,7 @@ acronyms:
   - [VND, Vietnamese đồng]
   - [ZNS, Zalo Notification Service]
 signoff:
+  - ["Data request response time of 72 hours (TC-184, TC-193) to be confirmed by TASCO legal", TASCO Legal, Open]
   - [TC-180 contract tests re-based on the confirmed TASCO core interface specification, TASCO IT Architecture, Open]
 ---
 
@@ -94,7 +97,7 @@ Related documents:
 | Preconditions and steps | Starting state, then the action taken |
 | Expected result | The observable outcome; error codes come from the body `{ error: { code, message, details, requestId } }` |
 | Type/Priority | Type: Unit, Int (integration), API, Sec (security), PG (needs PostgreSQL), SIT, UAT, NFT, UI (manual check of a screen). Priority: P1 must pass for any release, P2 must pass for go-live, P3 should pass |
-| Automation | Test file under `test/` (for example `api` is `test/api/api.test.js`, `unit/identity` is `test/unit/identity.test.js`), or Manual |
+| Automation | Test file under `test/` (for example `api` is `test/api/api.test.js`, `unit/identity` is `test/unit/identity.test.js`; `api/dsarQuickRenewal` is suite API-DQ and `unit/quickRenewal` is suite U-QR), or Manual |
 
 Preconditions use the demo users created by `src/bootstrap/seed.js` (for example `admin`, `agent.hn`, `author`, `approver`). They exist only where demo mode is on (local, development and the hosted UAT). `admin`, `approver`, `compliance` and `steward` need a TOTP code. Times are Vietnam time (ICT, UTC+7) unless stated.
 
@@ -403,7 +406,7 @@ The data requests register (FR-118) records every access and erasure request, wh
 | TC-193 | Response time and overdue requests | Request logged by phone, received four days ago, identity verified. Filter overdue and not overdue | Request overdue. The overdue filter returns only overdue requests and the overdue count is at least 1; the not-overdue filter returns none | API · P1 | `api/dsarQuickRenewal` |
 | TC-194 | App download recorded as a request | Customer downloads their data in the app. `compliance` filters the register by the customer | Download 200. The register shows a completed access request, channel app, outcome exported, identity verified, made by the customer | API · P1 | `api/dsarQuickRenewal` |
 | TC-195 | Earlier export and erase endpoints still work | `compliance` calls export and erase by customer ID for a customer without a policy | Export 200 with the customer's data; erasure done; audited | API · P3 | `api/dsarQuickRenewal` |
-| TC-196 | Data requests screen | `compliance` opens Governance, "Yêu cầu dữ liệu cá nhân", in Vietnamese and English; another role looks for it | Indicators for open, due within 24 hours, overdue and completed in 30 days; timeline per request; erase dialog asks for a reason and the typed plate. Not in the menu for other roles | UI · P2 | Manual |
+| TC-196 | Data requests screen | `compliance` opens Governance › "Data requests" ("Yêu cầu dữ liệu cá nhân" in Vietnamese); uses "Log request", "Export data" and "Erase personal data"; another role looks for the screen | Indicators for open requests, "Due within 24 h", "Overdue" and "Completed in 30 days"; timeline per request; "Erase personal data" asks for a reason and the typed plate. Not in the menu for other roles | UI · P2 | Manual |
 | TC-197 | Quick renewal for an eligible case | Renewal journey, vehicle confirmed by the customer 30 days ago, VETC wallet covers the premium | Eligible, no reasons; offers TNDS for one year | Unit · P1 | `unit/quickRenewal` |
 | TC-198 | Each reason for no quick renewal | Vary one fact at a time: other journey; already renewed; seats unknown or never confirmed; confirmation over 365 days old; physical damage cover; product not sold on the host; TASCO core unavailable; wallet below the premium | Reason returned for each, in Vietnamese with no codes. A TASCO TNDS renewal qualifies on any journey. No wallet check on TASCO hosts or when the premium is unknown | Unit · P1 | `unit/quickRenewal` |
 | TC-199 | Vehicle evidence and cover carried over | Vehicle known from TASCO core with no date; current TASCO TNDS and personal accident cover per seat, two-year term | TASCO core evidence has no age limit. Add-ons left out while `allowAddOns` is false, included when true. Term carried over; wallet checked for the whole term | Unit · P2 | `unit/quickRenewal` |
@@ -423,8 +426,8 @@ The data requests register (FR-118) records every access and erasure request, wh
 | Purchase and voice | TC-064 to TC-080a, TC-145, TC-151 to TC-154, TC-156, TC-157, TC-160, TC-163 |
 | TASCO core rating and product catalogue | TC-165 to TC-180, TC-153 |
 | Customer channels and vehicle confirmation | TC-181 to TC-183 |
-| Data requests register (FR-118) | TC-105 to TC-107, TC-184 to TC-196 |
-| Quick renewal (FR-119, NFR-035) | TC-197 to TC-205 |
+| Data requests register (FR-118, US-078) | TC-105 to TC-107, TC-184 to TC-196 |
+| Quick renewal (FR-119, US-079, NFR-035) | TC-197 to TC-205 |
 | Governance, partners, claims and operations | TC-081 to TC-107, TC-113 to TC-116, TC-155, TC-161, TC-164 |
 | Platform security and non-functional requirements | TC-117 to TC-144, TC-158, TC-159, TC-162 |
 

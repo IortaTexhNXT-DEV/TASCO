@@ -3,12 +3,13 @@ id: TGP-ARC-05
 title: Deployment and Infrastructure Architecture
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Solution Architecture
 reviewed_by: TASCO Insurance, IT Infrastructure
 approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
+  - [ADR, Architecture decision record]
   - [API, Application programming interface]
   - [BI, Business intelligence]
   - [CAB, Change advisory board]
@@ -26,6 +27,7 @@ acronyms:
   - [KMS, Key management service]
   - [MFA, Multi-factor authentication]
   - [mTLS, Mutual Transport Layer Security]
+  - [OA, Official Account (Zalo)]
   - [OWASP, Open Worldwide Application Security Project]
   - [PITR, Point-in-time recovery]
   - [SBOM, Software bill of materials]
@@ -84,7 +86,7 @@ TASCO IT infrastructure and operations, information security, the platform and s
 | Twelve-factor processes | Configuration from the environment and secrets from mounted files; JSON logs on standard output; stateless processes with state in PostgreSQL; API and jobs share one image with different commands. |
 | Least privilege | Containers run as the image's non-root `node` user (uid 1000) with a read-only root file system, all Linux capabilities dropped and the default seccomp profile. Network policy denies by default. The database has separate owner and application roles. |
 | Fail safe | Production refuses to start without its secrets or a database, or with demo mode on. Readiness stays false until the database answers. On shutdown the pod drops readiness first, drains and exits within 25 seconds. |
-| Data residency | Production personal data is stored and processed in Vietnam (to be confirmed by TASCO legal under the Cybersecurity Law 2018, Decree 53/2022/ND-CP, Decree 13/2023/ND-CP and the Law on Personal Data Protection 2025). |
+| Data residency | Production personal data is stored and processed in Vietnam (to be confirmed by TASCO legal under the Cybersecurity Law 2018, Decree 53/2022/ND-CP, Decree 13/2023/ND-CP and the Personal Data Protection Law 91/2025/QH15). |
 
 # Hosting in Vietnam
 
@@ -227,12 +229,14 @@ All settings are read by `src/shared/config.js`. Non-secret values sit in a conf
 | `TASCO_CORE_TOKEN_URL`, `TASCO_CORE_SCOPE` | Core address plus `/oauth2/token`; rating and product scopes | As agreed with TASCO core |
 | `TASCO_CORE_TIMEOUT_MS` | 5,000 | 5,000 |
 | `ALLOW_LOCAL_RATING` | `false` | `false` |
-| `CORS_ORIGINS` | Same origin only | VETC and Zalo origins only if they call cross-origin |
+| `CORS_ORIGINS` | Same origin only | Host origins (VETC app, Zalo Mini App, TASCO app and website) only if they call cross-origin |
 | `RATE_LIMIT_MAX`, `RATE_LIMIT_LOGIN_MAX` | 300, 10 per minute | Keep; the edge enforces global limits |
 | `LOCKOUT_MAX_FAILURES`, `LOCKOUT_MINUTES` | 5, 15 | Keep |
 | `TRUST_PROXY`, `TRUST_PROXY_HOPS` | On in production, 1 | `true`, number of proxies in front |
 | `METRICS_TOKEN` (file) | Unset | Required |
 | `LINK_TTL_DAYS` | 30 | 30 |
+| `SUPPORT_HOTLINE`, `SUPPORT_EMAIL`, `SUPPORT_WEBSITE` | 1900 1562, info@baohiemtasco.vn, baohiemtasco.vn | TASCO's official contacts, shown in the customer app |
+| `SUPPORT_FACEBOOK_URL`, `SUPPORT_MESSENGER_URL`, `SUPPORT_ZALO_NAME`, `SUPPORT_ZALO_URL` | TASCO Facebook page and Messenger; Zalo OA "Bảo hiểm Tasco"; no Zalo link | Add the Zalo OA link when TASCO provides one |
 | `MIGRATE_ON_START` | Runs unless `false` | `false`; the migration job runs instead |
 | `DEMO_MODE` and UAT demo settings | Off, unset | Off and unset |
 

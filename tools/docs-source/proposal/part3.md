@@ -27,7 +27,7 @@ flowchart TB
   end
   subgraph SV2["Business services: service and control"]
     direction LR
-    S5["Benefits and claims intake"] ~~~ S6["Partners and commission"] ~~~ S7["Identity, consent and privacy"] ~~~ S8["Insights and operations"]
+    S5["Benefits and claims intake"] ~~~ S6["Partners and commission"] ~~~ S7["Identity, consent, data requests"] ~~~ S8["Insights and operations"]
   end
   subgraph FND["Foundation"]
     direction LR
@@ -50,7 +50,7 @@ The platform follows a hexagonal (ports and adapters) design. Business logic sit
 | Layer | What it contains | Technology |
 |---|---|---|
 | Presentation | Staff console, customer app, certificate verification page | HTML5 and JavaScript with no third-party runtime, strict content security policy, WCAG 2.2 AA design system; console in Vietnamese and English, customer app in Vietnamese |
-| API | 80 REST endpoints described in OpenAPI 3; rate limiting, idempotency keys, input validation | Node.js 22 |
+| API | 103 REST endpoints (6 public, 82 staff, 11 customer, 4 partner) described in OpenAPI 3; rate limiting, idempotency keys, input validation | Node.js 22 |
 | Application | Use cases: ingestion, journeys, voice, sales, partners, claims, privacy, rules, audit | Node.js 22 |
 | Domain | Pure business logic: plate and phone normalisation, enrichment, scoring, rating fallback, contact policy, dialogue | Node.js 22, no dependencies |
 | Rules | JSON Logic and decision tables, versioned, simulated and approved before publication | Built in, no code evaluation |
@@ -228,8 +228,8 @@ Insurance platforms hold exactly the kind of data that attackers and regulators 
 | Data protection | AES-256-GCM encryption of personal fields with key rotation; blind indexes so encrypted data can still be searched; TLS everywhere; data minimisation on ingestion |
 | Application security | Parameterised queries only; strict content security policy; output encoding; rate limiting; idempotency on payments; request size limits; trusted-proxy handling |
 | Secrets | No secrets in code; injected from a secrets manager; separate keys per environment |
-| Audit | Append-only, hash-chained audit trail protected by database triggers; daily verification |
-| Privacy | Purpose-based consent; consent centre for customers; data-subject access, correction and erasure; retention rules; data lineage |
+| Audit | Append-only, hash-chained audit trail protected by database triggers; verified by an hourly automated check |
+| Privacy | Purpose-based consent; consent centre for customers; a data-request register in the staff console for access and erasure requests, with identity verification before any export or erasure, a 72-hour response deadline (to be confirmed by TASCO legal), escalation of overdue requests and a timeline for each request; correction through the data steward; retention rules; data lineage |
 | AI governance | The voice assistant's script is versioned and approved; it discloses that it is automated; scores are explainable; humans make the final sales contact |
 | Assurance | Static analysis, dependency and container scanning, secret scanning, dynamic scanning in CI; independent penetration test before go-live |
 

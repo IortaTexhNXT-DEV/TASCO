@@ -3,7 +3,7 @@ id: TGP-OPS-03
 title: Disaster Recovery and Business Continuity Plan
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Service Operations
 reviewed_by: TASCO Insurance, IT Infrastructure and Information Security
 approved_by: TASCO Insurance, Head of IT

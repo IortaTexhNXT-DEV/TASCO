@@ -31,6 +31,7 @@ acronyms:
   - [OWASP, Open Worldwide Application Security Project]
   - [PITR, Point-in-time recovery]
   - [QA, Quality assurance]
+  - [SHA, Secure Hash Algorithm]
   - [SMS, Short message service]
   - [SQL, Structured Query Language]
   - [TLS, Transport Layer Security]
@@ -45,6 +46,7 @@ signoff:
   - ["Data protection impact assessment and processing register approved", "TASCO Compliance", Open]
   - ["Independent penetration test scope and provider agreed", "TASCO IT Security", Open]
   - ["Retention schedule and legal-hold rules confirmed (to be confirmed by TASCO legal)", "TASCO Legal", Open]
+  - ["72-hour response time for data-subject requests confirmed (to be confirmed by TASCO legal)", "TASCO Legal and Compliance", Open]
   - ["Workload assumptions W-1 to W-7 confirmed against VETC data", "VETC Data and Integration Lead", Open]
 ---
 
@@ -52,7 +54,7 @@ signoff:
 
 ## Purpose
 
-This document states how well the TASCO Growth Platform must perform: speed, capacity, availability, security, privacy, accessibility, recovery, maintainability and compliance. Each requirement has a measurable target, a verification method and its status on 7 October 2026.
+This document states how well the TASCO Growth Platform must perform: speed, capacity, availability, security, privacy, accessibility, recovery, maintainability and compliance. Each requirement has a measurable target, a verification method and its build status.
 
 ## Scope
 
@@ -77,7 +79,7 @@ TASCO IT architecture, IT security and operations, VETC integration, and the ior
 
 Requirements are numbered NFR-nnn. Status is Built (in place and tested), Partial (in place with a gap noted) or Planned. Targets are proposed; they are agreed with TASCO and VETC IT during discovery and confirmed by a full-scale performance test in pre-production before the base grows beyond the pilot.
 
-The current quality baseline is 255 automated tests (252 pass, 0 fail, 3 manual or roadmap scenarios), plus a separate PostgreSQL suite of 8 tests. Coverage is 99.41% of lines, 88.25% of branches and 97.12% of functions, with no lint errors. A load smoke test on a single instance on 7 October 2026 reached 337 requests per second with a 95th-percentile response time of 103 ms and no errors.
+The current quality baseline is 271 automated tests (268 pass, 0 fail, 3 to-do for manual or roadmap scenarios), plus a separate PostgreSQL suite of 8 tests, all passing. Line coverage is above 99%, and there are no lint errors. TGP-QA-01 Test Strategy records the coverage figures of each build. A load smoke test on a single instance on 7 October 2026 reached 337 requests per second with a 95th-percentile response time of 103 ms and no errors.
 
 ## Workload model
 
@@ -150,7 +152,7 @@ The legal basis is to be confirmed by TASCO legal: the Personal Data Protection 
 | ID | Requirement | Target | Verification | Status |
 |---|---|---|---|---|
 | NFR-028 | Consent by purpose and channel | Marketing and call consent stored per profile, checked before every marketing message and call, audited, and honoured within one minute | Contact policy integration tests | Built |
-| NFR-029 | Data-subject rights | Access (self-service and staff export) and erasure by anonymisation completed within 72 hours of a verified request; legal-retention exceptions documented | Governance and functional tests (US-060, US-061) | Built; the 72-hour handling is an operational process |
+| NFR-029 | Data-subject rights | Every access or erasure request logged in the data-request register (FR-118) and answered within the response time in the service levels rule set, 72 hours from receipt, to be confirmed by TASCO legal. Identity verified before export or erasure; refusals, such as erasure while a policy is in force, carry a recorded reason | Governance, API and functional tests (US-060, US-061, US-078); overdue count on the data-requests screen | Built: register, due times and overdue alerts; meeting the deadline is an operational duty of compliance |
 | NFR-030 | Data residency | Personal data of Vietnamese data subjects stored and processed in Vietnam, as proposed, or in another location approved by TASCO legal. A cross-border transfer impact assessment is filed for any offshore processor, such as a voice vendor | Architecture review | Planned; to be confirmed by TASCO legal |
 | NFR-031 | Data minimisation and masking | Staff without personal-data permission never see full name or phone; handoffs carry a masked phone; the certificate check shows a masked plate and no personal data | Security tests | Built |
 | NFR-032 | Processing records and impact assessment | A DPIA and processing register for each purpose: renewal, conquest, assistant calls, partner sharing | Compliance sign-off | Planned |
@@ -160,11 +162,11 @@ The legal basis is to be confirmed by TASCO legal: the Personal Data Protection 
 
 | ID | Requirement | Target | Verification | Status |
 |---|---|---|---|---|
-| NFR-034 | Accessibility | WCAG 2.2 Level AA for the console and the customer app: contrast 4.5:1 or more, full keyboard use, visible focus, targets of 24 × 24 px or more, labelled fields, reduced motion respected | Automated scan with no serious issues; manual screen-reader check (TalkBack and VoiceOver) | Partial: formal audit after the redesign |
-| NFR-035 | Customer task efficiency | Renew from a reminder in three taps or fewer after opening the link; median renewal 60 seconds or less | Usability test with at least 8 participants per segment; adoption dashboard | Planned |
+| NFR-034 | Accessibility | WCAG 2.2 Level AA for the console and the customer app: contrast 4.5:1 or more, full keyboard use, visible focus, targets of 24 × 24 px or more, labelled fields, reduced motion respected | Automated scan with no serious issues; manual screen-reader check (TalkBack and VoiceOver) | Partial: review findings G-1 to G-4 fixed; automated scan in the build pipeline (G-5) planned (TGP-UX-02) |
+| NFR-035 | Customer task efficiency | Quick renewal in three steps where the case allows it (FR-119); the full renewal flow in six steps; median renewal time 60 seconds or less | Usability test with at least 8 participants per segment; adoption dashboard | Partial: both paths built; the median time is measured in usability testing and the pilot |
 | NFR-036 | Staff task efficiency | Agent reaches the next lead and its talking points within two clicks of home; first contact on a handoff within two business hours | Usability test; handoff timestamps | Planned |
 | NFR-037 | Explainability | Every score, action and benefit shown to staff carries a readable reason | Interface review | Built |
-| NFR-038 | Help | Contextual help on every console screen in Vietnamese and English | Interface review | Partial: English help built; Vietnamese help text with the redesign |
+| NFR-038 | Help | Contextual help on every console screen in Vietnamese and English | Interface review | Built |
 
 # Localisation
 
@@ -178,10 +180,10 @@ The legal basis is to be confirmed by TASCO legal: the Personal Data Protection 
 
 | ID | Requirement | Target | Verification | Status |
 |---|---|---|---|---|
-| NFR-042 | Automated test coverage | Lines 80% or more, functions 80% or more, branches 70% or more (excluding start-up code and the PostgreSQL adapter, which has its own suite) | Coverage gate in CI | Built: 99.41% lines, 88.25% branches, 97.12% functions |
+| NFR-042 | Automated test coverage | Lines 80% or more, functions 80% or more, branches 70% or more (excluding start-up code and the PostgreSQL adapter, which has its own suite) | Coverage gate in CI | Built: above 99% of lines (figures per build in TGP-QA-01) |
 | NFR-043 | Static analysis | No lint errors on any commit | Lint in CI | Built |
 | NFR-044 | Architecture | Ports and adapters: pure domain logic, application services, adapters behind interfaces; no business thresholds in domain code | Code review; dependency rule check | Built; remaining literals listed in E-05 |
-| NFR-045 | API first | Every route described in OpenAPI 3, generated from the route table | CI comparison of the published description | Built (80 routes) |
+| NFR-045 | API first | Every route described in OpenAPI 3, generated from the route table | CI comparison of the published description | Built (103 routes, 92 OpenAPI paths) |
 | NFR-046 | Schema governance | Database migrations match the data registry; applied migrations are never edited; migrations take a lock | Schema drift test; PostgreSQL suite | Built |
 
 # Observability

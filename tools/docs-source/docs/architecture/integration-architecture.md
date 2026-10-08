@@ -3,12 +3,13 @@ id: TGP-ARC-02
 title: Integration Architecture
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Solution Architecture
 reviewed_by: TASCO Insurance, IT Architecture
 approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
+  - [ADR, Architecture decision record]
   - [AI, Artificial intelligence]
   - [API, Application programming interface]
   - [B2B, Business to business]
@@ -27,7 +28,9 @@ acronyms:
   - [IT, Information technology]
   - [MFA, Multi-factor authentication]
   - [MVP, Minimum viable product]
+  - [OA, Official Account (Zalo)]
   - [OIDC, OpenID Connect]
+  - [PGP, Pretty Good Privacy (file encryption)]
   - [PIN, Personal identification number]
   - [PKCE, Proof Key for Code Exchange]
   - [QR, Quick response (code)]
@@ -36,6 +39,7 @@ acronyms:
   - [SIT, System integration testing]
   - [SMS, Short message service]
   - [TLS, Transport Layer Security]
+  - [TNDS, Compulsory motor third-party liability insurance (Bảo hiểm TNDS bắt buộc)]
   - [TOTP, Time-based one-time password]
   - [UAT, User acceptance testing]
   - [VAT, Value added tax]
@@ -44,6 +48,8 @@ acronyms:
 signoff:
   - [Integration specifications for TASCO core rating, catalogue, issuance and policy extract confirmed in discovery, TASCO IT Architecture, Open]
   - [VETC wallet confirmation model (synchronous or asynchronous customer confirmation), VETC Payments, Open]
+  - [TASCO payment gateway interface specification for the TASCO app and website (scale module S3), TASCO IT Architecture, Open]
+  - [Caller identity and number for automated calls (the approved script currently names VETC), TASCO Customer Experience and VETC, Open]
   - [VETC data feed format and CDC availability, VETC Data Office, Open]
   - [Zalo ZNS template classes and SMS brandname registration, to be confirmed by TASCO legal, Open]
   - [Call recording disclosure wording and vendor data processing agreement, to be confirmed by TASCO legal, Open]
@@ -53,7 +59,7 @@ signoff:
 
 ## Purpose
 
-This document defines how the TASCO Growth Platform exchanges data with every external system: TASCO core, VETC, Zalo ZNS, the SMS provider, the voice AI vendor, partners and the TASCO data warehouse. For each integration it gives the contract, the pattern, security, idempotency, failure behaviour and the current build status. Integration teams at TASCO, VETC and each vendor build against it.
+This document defines how the TASCO Growth Platform exchanges data with every external system: TASCO core, the TASCO payment gateway, VETC, Zalo ZNS, the SMS provider, the voice AI vendor, partners and the TASCO data warehouse. For each integration it gives the contract, the pattern, security, idempotency, failure behaviour and the current build status. Integration teams at TASCO, VETC and each vendor build against it.
 
 ## Scope
 
@@ -126,6 +132,7 @@ flowchart LR
   subgraph TAS["TASCO Insurance"]
     direction TB
     CORE["TASCO core: products, rating, policies, claims"]
+    TPAY["TASCO payment gateway: debit and refund"]
     DWH["Data warehouse: daily extract"]
   end
   subgraph VOUT["VETC, outbound"]
@@ -143,6 +150,7 @@ flowchart LR
   VEVT --> GP
   PART --> GP
   GP <--> CORE
+  GP --> TPAY
   GP --> DWH
   GP <--> VAPP
   GP --> VWAL
@@ -162,6 +170,7 @@ flowchart LR
 | VETC tag events | VETC to platform | Event stream or signed webhook | Staff-authenticated event API | Tag activation |
 | VETC app web view and push | Both | Signed deep links; push through VETC | Signed links built; push sandbox | Yes |
 | VETC wallet | Platform to VETC | Real-time REST plus daily settlement file | Sandbox | Yes |
+| TASCO payment gateway | Platform to TASCO | Real-time REST, same contract as the wallet | Sandbox | Scale module S3 |
 | Zalo ZNS and SMS | Platform to provider | Provider API, approved templates | Sandbox | Yes |
 | Voice AI vendor | Both | SIP and streaming API | Simulated caller | One vendor |
 | Partners | Partner to platform | Partner API with key scopes | Built | One partner |
@@ -501,7 +510,7 @@ interface NotificationChannel {
 
 ## Zalo ZNS template governance
 
-Zalo ZNS sends only pre-approved templates with typed parameters, through TASCO's or VETC's Official Account. The production adapter therefore sends a template id and parameters, never free text; the sandbox accepts free text, which is not how ZNS works. The flow below keeps the platform's wording and Zalo's templates in step.
+Zalo ZNS sends only pre-approved templates with typed parameters, through TASCO's Official Account "Bảo hiểm Tasco". The production adapter therefore sends a template id and parameters, never free text; the sandbox accepts free text, which is not how ZNS works. The flow below keeps the platform's wording and Zalo's templates in step.
 
 ```mermaid
 %% caption: Zalo ZNS template governance, from draft wording to delivery monitoring
@@ -523,7 +532,7 @@ The message content rule set holds the canonical wording, and the Zalo template 
 
 ## SMS
 
-Messages go out under a registered brandname ("VETC" or "TASCO") through an SMS aggregator, under the anti-spam and advertising rules of Decree 91/2020/ND-CP (to be confirmed by TASCO legal). Vietnamese diacritics force UCS-2 encoding at 70 characters per segment, so templates are checked for segment count before approval.
+Messages go out under a registered TASCO brandname through an SMS aggregator, under the anti-spam and advertising rules of Decree 91/2020/ND-CP (to be confirmed by TASCO legal). Vietnamese diacritics force UCS-2 encoding at 70 characters per segment, so templates are checked for segment count before approval.
 
 # Voice AI vendor
 
@@ -536,7 +545,7 @@ The platform keeps the dialogue policy: which line to say next and what each ans
 | Production shape | Streaming session (WebSocket or gRPC); per-turn timeout plus an overall call cap of about four minutes; the call result returns through a webhook |
 | Data sent | Phone number to dial and the approved line text. The bot speaks a masked plate and never reads out the customer's data. |
 | Recording | Vendor recordings need a DPA, storage in Vietnam, deletion after 180 days and deletion on DSAR. Disclosure wording to be confirmed by TASCO legal. |
-| Caller id | The official VETC hotline or brandname number only |
+| Caller id | A registered official number only. The approved script currently introduces the assistant as VETC's; the caller identity is agreed with TASCO and VETC before go-live. |
 | Sandbox | Simulated caller with weighted personas (eager, self-serve, price shopper, sceptic, already renewed, busy, opt-out, wrong plate) |
 
 ## Voice handoff sequence
@@ -642,9 +651,9 @@ The platform reuses the systems TASCO and VETC already run and builds only what 
 | Existing asset | Owner | What the platform reuses | How it connects | MVP |
 |---|---|---|---|---|
 | Core system | TASCO | Products, tariffs, rating, policy issuance, e-certificates, claims | Catalogue sync, live rating, bind and issue, daily policy extract; claims by staff queue first | Yes |
-| Customer app and website (e.baohiemtasco.vn) | TASCO | Customer accounts, brand, online payment gateway | The same renewal and purchase journeys, opened as a web view or called through the customer API; payment through TASCO's own gateway; sales recorded against the TASCO channel | Supported by the platform; go-live with TASCO's release plan |
+| Customer app and website (e.baohiemtasco.vn) | TASCO | Customer accounts, brand, online payment gateway | The same renewal and purchase journeys, opened as a web view or called through the customer API; payment through TASCO's own gateway; sales recorded against the TASCO channel | Scale module S3, from March 2027 |
 | Tasco360 | TASCO | The app partners and agents already use | Partner API: quote by plate, bind, statements | Candidate first partner |
-| Zalo Official Account | TASCO | Followers, approved ZNS templates, chat | ZNS reminders and service messages; OA chat linked from the app; the same journeys as a Zalo Mini App later | ZNS yes; Mini App in the scale phase |
+| Zalo Official Account | TASCO | Followers, approved ZNS templates, chat | ZNS reminders and service messages; OA chat linked from the app; the same journeys as a Zalo Mini App later | ZNS yes; Mini App in scale module S4 |
 | Hotline 1900 1562 and contact centre | TASCO | Agents, caller identity customers recognise | Telesales inbox and handoffs; outbound calls from a registered TASCO number | Yes |
 | VETC app | VETC | Reach to about 6 million drivers, push | Web view with signed links; push for reminders; single sign-on later | Yes |
 | VETC wallet | VETC | Card-free payment | Debit, refund and daily reconciliation | Yes |
@@ -661,6 +670,10 @@ TASCO already sells and serves customers through its own digital channels. The p
 | e.baohiemtasco.vn | Online purchase of compulsory TNDS for cars; asks business use, vehicle type, seats and phone. Physical damage is marked "coming soon". | Same core catalogue and rating, so premiums match across channels. The customer app asks the same vehicle questions through `POST /api/customer/vehicle`, which records the answer as evidence from the customer with source trust 0.9 and recalculates the tariff category. An enquiry feed (phone left without purchase, with consent) can enter through the ingestion API; scope to be agreed. |
 | Tasco360 | Mobile app for partners and stakeholders: consultation, sales and after-sales | Calls the partner API as a partner of type agent: quote by plate, bind, own policies and commission statement. Needs an API key with `quote` and `purchase` scopes. |
 | Contact centre and chat | Hotline 1900 1562, info@baohiemtasco.vn, Zalo, Messenger and website chat | The customer app reads the official contacts from configuration through `GET /api/meta`: hotline 1900 1562, info@baohiemtasco.vn, baohiemtasco.vn, the Facebook page and Messenger (m.me/tasco.baohiem), and the Zalo Official Account "Bảo hiểm Tasco", which customers find by searching in Zalo until TASCO provides a direct OA link. An unset channel is hidden. Voice handoffs and telesales callbacks present a registered TASCO caller identity. |
+
+## TASCO payment gateway
+
+When the customer app runs in TASCO's app or website (`tasco_app` or `tasco_web`), payment goes through a second payment port backed by TASCO's existing online payment gateway, the one behind e.baohiemtasco.vn. The port has the same `debit` and `refund` contract, idempotency, circuit breaker and saga refund as the wallet, so the payment and refund sequences in section 5 apply unchanged. The sales service chooses the port from the host channel in the customer's session; the VETC app and the Zalo Mini App always use the VETC wallet. Today the port is a sandbox adapter; the real adapter is built against TASCO's gateway specification with scale module S3, and card data never passes through the platform.
 
 # Data warehouse and outbound feeds
 
@@ -692,6 +705,7 @@ These figures are proposals for the integration agreements; each is confirmed wi
 | TASCO core rating | 99.9% in contact hours | 1 s | 10 per second | Fail closed or indicative price, per rating mode |
 | TASCO core issuance | 99.9% | 3 s per line | 10 per second | Cancel and refund, then reconciliation |
 | VETC wallet | 99.95% | 2 s | 5 per second | Payment returns 503, quote released, no partial state |
+| TASCO payment gateway | 99.95% | 2 s | 5 per second | As for the VETC wallet |
 | App push | 99.9% | 500 ms to accept | 200 per second | Next channel in the step |
 | Zalo ZNS | Provider terms | 1 s to accept | 50 per second (quota) | Next channel in the step |
 | SMS | Provider terms | 1 s to accept | 50 per second | Next channel or next run |
@@ -706,7 +720,7 @@ These figures are proposals for the integration agreements; each is confirmed wi
 | TASCO core client | Request mapping, token caching, error mapping, timeouts and schema checks against a mocked core | `npm test` in CI |
 | PostgreSQL | Store behaviour on real PostgreSQL: `SKIP LOCKED`, optimistic locking, audit chain | `npm run test:pg` in CI |
 | Contract | A shared suite per port run against the sandbox and the real adapter | Planned, SIT |
-| System integration | TASCO core UAT, VETC wallet sandbox, Zalo test account, SMS test brandname, voice vendor test trunk | SIT environment |
+| System integration | TASCO core UAT, VETC wallet sandbox, TASCO payment gateway test account, Zalo test account, SMS test brandname, voice vendor test trunk | SIT environment |
 | Resilience | Fault injection on sandbox gateways and a network fault proxy in SIT | SIT and performance environment |
 | Load | Load smoke in CI (337 requests per second, 95th percentile 103 ms, no errors on one process) and simulated caller personas | CI and performance environment |
 
