@@ -162,7 +162,7 @@ T0 is Wednesday 27 January 2027 at 08:15, the first scheduled journey run (job `
 | 27 to 29 January | Car TNDS renewal journey only; app push and ZNS; voice bot up to 200 calls a day; telesales teams in the pilot provinces | About 20,000 vehicles; expiry in 15 to 60 days | Daily KPIs green; no compliance incident |
 | 1 to 14 February (Tết freeze) | Run only: no deployments; no rule changes except emergency rollback (RB-10) or the kill switch (SOP-07). Journeys continue at low volume; voice campaigns paused from 5 to 14 February | Same cohort | — |
 | From 15 February | Renewal, conquest and lapsed-recovery journeys; SMS fallback on | Rest of the cohort loaded in steps up to 50,000 to 100,000 vehicles by 12 March; voice up to 2,000 calls a day | Weekly pilot review |
-| Early May 2027 | Pilot read-out against the control group (about 12 weeks after go-live) and G4 scale decision | — | Steering Committee |
+| Early May 2027 | Pilot read-out against the control group and G4 scale decision | — | Steering Committee |
 
 # Rollback
 

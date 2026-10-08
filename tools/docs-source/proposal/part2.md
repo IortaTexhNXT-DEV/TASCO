@@ -203,7 +203,7 @@ The platform finds no valid cover for Anh Tuấn's car. His record is good enoug
 
 ## 9. User stories
 
-The full backlog contains 15 epics and more than 120 acceptance scenarios, each written in Given/When/Then form. All but three are automated functional tests; the three others are checked by hand in UAT. The table below gives one representative story per epic and shows what is in the MVP.
+The full backlog contains 79 user stories in 15 epics, with 135 acceptance scenarios written in Given/When/Then form. Most scenarios are automated functional tests; the few that need a person or a physical device are checked by hand in UAT. The table below gives one representative story per epic and shows what is in the MVP.
 
 | Epic | Representative user story | In the MVP |
 |---|---|---|

@@ -60,7 +60,7 @@ gantt
 | M3 Acceptance | 13 | 26 January 2027 | UAT signed off; no open critical or high security findings |
 | M4 Pilot live and hypercare complete | 17 | 26 February 2027 | Pilot live; four weeks within service levels |
 
-The pilot read-out, with conversion measured against the control group, is planned about 12 weeks after go-live (early May 2027). That is long enough to cover a full renewal cycle of 45 days and to measure the conquest and new-vehicle journeys properly.
+The pilot read-out, with conversion measured against the control group, is planned for early May 2027. That is long enough to cover a full renewal cycle of 45 days and to measure the conquest and new-vehicle journeys properly.
 
 After go-live, the roadmap opens further front doors on the same journeys and connects the remaining systems. The modules (S1 to S10) are priced in section 24.3.
 
