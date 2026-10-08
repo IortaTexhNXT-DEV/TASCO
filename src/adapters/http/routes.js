@@ -135,7 +135,7 @@ function buildRoutes() {
     // ---------- Public ----------
     { method: 'GET', path: '/api/meta', auth: 'public', tag: 'Platform', summary: 'Client bootstrap metadata',
       handler: async ({ c }) => {
-        const meta = { name: 'TASCO Growth Platform', version: require('../../../package.json').version, demoMode: c.config.demoMode, today: c.clock.today(), store: c.store.kind, supportHotline: c.config.supportHotline || null };
+        const meta = { name: 'TASCO Growth Platform', version: require('../../../package.json').version, demoMode: c.config.demoMode, today: c.clock.today(), store: c.store.kind, supportHotline: c.config.supportHotline || null, supportEmail: c.config.supportEmail || null };
         if (c.config.demoMode) {
           // Demo only: a few customers per journey so the customer app can be explored without a real link.
           meta.demoCustomers = await c.services.customers.demoCustomers();
