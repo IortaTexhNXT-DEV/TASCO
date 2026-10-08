@@ -44,6 +44,7 @@ body.c-locked { overflow: hidden; }
 .c-appbar--flow { padding-left: 4px; }
 .c-appbar-title { flex: 1; min-width: 0; margin: 0; font-size: 17px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .c-appbar-spacer { width: 44px; flex: 0 0 44px; }
+.c-appbar-end { margin-left: auto; }
 .c-brand { display: inline-flex; align-items: center; gap: 8px; min-width: 0; flex: 1; color: var(--text-muted); font-size: 13px; font-weight: 600; }
 .c-brand img { height: 22px; width: auto; display: block; }
 .c-brand-x { color: var(--text-subtle); font-weight: 400; }
@@ -308,7 +309,7 @@ label.c-product-head { cursor: pointer; }
 .c-help { font-size: 13px; color: var(--text-muted); }
 .c-err { font-size: 13px; color: var(--danger); display: flex; gap: 6px; align-items: center; }
 .c-err:empty { display: none; }
-body.customer .c-input { min-height: 48px; border-radius: 12px; padding: 0 14px; font-size: 16px; border: 1px solid var(--border-strong); background: var(--surface); box-shadow: none; width: 100%; color: var(--text); }
+body.customer .c-input { min-height: 48px; border-radius: 12px; padding: 0 14px; font-size: 16px; border: 1px solid var(--border-input); background: var(--surface); box-shadow: none; width: 100%; color: var(--text); }
 body.customer textarea.c-input { min-height: 120px; padding: 12px 14px; line-height: 1.5; }
 body.customer .c-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); outline: none; }
 body.customer .c-input[aria-invalid="true"] { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-bg); }

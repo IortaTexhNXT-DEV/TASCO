@@ -180,7 +180,7 @@ button.kpi-tile:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .field .error:empty, .error:empty { display: none; }
 .field .error:not(:empty) { display: flex; align-items: center; gap: var(--sp-1); }
 input, select, textarea {
-  font: inherit; font-size: var(--fs-14); color: var(--text); background: var(--surface); border: 1px solid var(--border-strong);
+  font: inherit; font-size: var(--fs-14); color: var(--text); background: var(--surface); border: 1px solid var(--border-input);
   border-radius: var(--radius); min-height: var(--control-h); padding: 0 var(--sp-3); width: 100%;
   transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); box-shadow: var(--shadow-xs);
 }

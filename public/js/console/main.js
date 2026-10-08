@@ -341,8 +341,20 @@ function loginView() {
 }
 
 
+/** Warn two minutes before the access token expires (WCAG 2.2.1 timing adjustable: users are told in advance). */
+let expiryTimer = null;
+function scheduleExpiryWarning(token) {
+  clearTimeout(expiryTimer);
+  let exp = 0;
+  try { exp = JSON.parse(atob(String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp || 0; } catch { return; }
+  const ms = exp * 1000 - Date.now() - 120000;
+  if (ms <= 0) return;
+  expiryTimer = setTimeout(() => { if (state.token === token) toast(t('sessionEnding'), 'warn', { timeout: 0 }); }, ms);
+}
+
 function onSignedIn(r) {
   state.token = r.accessToken;
+  scheduleExpiryWarning(r.accessToken);
   state.user = r.user;
   try { sessionStorage.setItem('token', r.accessToken); } catch { /* ignore */ }
   toast(`${t('hello')}, ${r.user.displayName || r.user.username}`, 'ok', { timeout: 3500 });
@@ -524,6 +536,8 @@ function buildShell() {
   syncCollapse(collapsedPref);
 
   function setCrumbs(items) {
+    const last = items[items.length - 1];
+    if (last?.label) document.title = `${last.label} · ${t('appTitle')}`;
     mount(crumbs, h('ol', {}, items.map((c, i) => h('li', {},
       i ? icon('chevron-right', { size: 14, class: 'crumb-sep' }) : null,
       c.href && i < items.length - 1 ? h('a', { href: c.href }, c.label) : h('span', { 'aria-current': i === items.length - 1 ? 'page' : null }, c.label)))));
@@ -696,6 +710,7 @@ async function render() {
     try {
       const me = await api.get('/api/auth/me');
       state.user = { ...me, displayName: me.displayName || me.username };
+      scheduleExpiryWarning(state.token);
     } catch { state.token = null; }
   }
   if (!state.user) { shell = null; mount(root, loginView()); root.querySelector('input')?.focus(); return; }

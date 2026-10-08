@@ -326,11 +326,14 @@ const supportFab = () => (supportLinks().length
 
 /** Tab page: white branded app bar, optional hero, content, floating support button and tab bar. */
 function tabPage(current, content, { hero } = {}) {
-  return h('div', { class: 'c-app c-has-fab' },
-    h('header', { class: 'c-appbar' }, brandMark()),
+  // Home carries the main call to action, so support sits in the app bar there instead of floating over it.
+  const home = current === 'home' && supportLinks().length;
+  return h('div', { class: home ? 'c-app' : 'c-app c-has-fab' },
+    h('header', { class: 'c-appbar' }, brandMark(),
+      home ? h('button', { class: 'c-iconbtn c-appbar-end', type: 'button', 'aria-label': 'Hỗ trợ khách hàng', 'aria-haspopup': 'dialog', onclick: supportSheet }, ic('headset', 22)) : null),
     hero || null,
     h('main', { class: 'c-main', id: 'app-main', tabindex: '-1' }, content),
-    supportFab(),
+    home ? null : supportFab(),
     tabbar(current));
 }
 
