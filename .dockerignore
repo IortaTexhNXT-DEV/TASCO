@@ -7,3 +7,4 @@ docs
 deploy
 *.md
 .env*
+tools
