@@ -191,3 +191,11 @@
 .campaign-name { display: block; min-width: 220px; }
 .form-section + .preview-panel, .stack > .preview-panel { margin-top: var(--sp-2); }
 .cell-w { max-width: 170px; }
+/* 1280–1439: dense workflow tables let headers wrap and cap the one-line audience text so nothing scrolls sideways. */
+@media (max-width: 1439px) {
+  .card.wf-dense th { white-space: normal; line-height: 1.25; }
+  .card.wf-dense th .sort-btn { padding: 0 10px; }
+  .card.wf-dense .trunc-1 { max-width: 170px; }
+  .card.wf-dense th:first-child, .card.wf-dense td:first-child { padding-left: 16px; }
+  .card.wf-dense th:last-child, .card.wf-dense td:last-child { padding-right: 16px; }
+}

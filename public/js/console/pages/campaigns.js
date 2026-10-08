@@ -175,7 +175,7 @@ export default {
         hot ? kpiTile({ label: st('hotHandoffs'), icon: 'inbox', value: formatNumber(hot), hint: called ? st('ofCalls', formatPercent(hot / called)) : null }) : null,
         links ? kpiTile({ label: st('linksSent'), icon: 'send', value: formatNumber(links), hint: called ? st('ofCalls', formatPercent(links / called)) : null }) : null,
       ].filter(Boolean)) : null,
-      card({ flush: true, body: table }));
+      card({ flush: true, class: 'wf-dense', body: table }));
     if (route.query.new) { history.replaceState(null, '', '#/campaigns'); open(); }
     if (route.query.id) { const r = items.find((x) => x.id === route.query.id); history.replaceState(null, '', '#/campaigns'); if (r) resultsDrawer(r); }
   },

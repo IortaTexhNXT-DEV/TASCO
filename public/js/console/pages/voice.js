@@ -147,7 +147,7 @@ export default {
       columns: [
         { key: 'startedAt', label: st('when'), sortable: true, nowrap: true, render: (r) => relTime(r.startedAt), value: (r) => r.startedAt, exportValue: (r) => formatDateTime(r.startedAt) },
         { key: 'plate', label: st('vehicle'), render: (r) => plateTag(r.plateMasked || r.customerId), value: (r) => r.plateMasked },
-        { key: 'region', label: st('region'), sortable: true, nowrap: true },
+        { key: 'region', label: st('region'), sortable: true },
         { key: 'mode', label: st('callType'), render: (r) => (r.mode === 'campaign' ? st('typeCampaign') : st('typeRehearsal')) },
         { key: 'verified', label: st('verification'), render: (r) => (r.verified ? badge(st('verified'), 'ok', { icon: 'badge-check' }) : badge(st('notVerified'), 'neutral')), exportValue: (r) => (r.verified ? st('verified') : st('notVerified')) },
         { key: 'outcome', label: st('outcome'), sortable: true, render: (r) => outcomeChip(r.outcome), value: (r) => outcomeLabel(r.outcome) },
@@ -175,7 +175,7 @@ export default {
         hot ? kpiTile({ label: st('hotHandoffs'), icon: 'inbox', value: formatNumber(hot), hint: formatPercent(hot / n) }) : null,
         links ? kpiTile({ label: st('linksSent'), icon: 'send', value: formatNumber(links), hint: formatPercent(links / n) }) : null,
       ].filter(Boolean)) : null,
-      card({ flush: true, body: n || outcome ? table : emptyState({ icon: 'mic', title: st('noCalls'), text: st('noCallsHint'), action: button({ label: st('rehearse'), icon: 'phone-call', onClick: () => rehearsePicker(api, navigate) }) }) }));
+      card({ flush: true, class: 'wf-dense', body: n || outcome ? table : emptyState({ icon: 'mic', title: st('noCalls'), text: st('noCallsHint'), action: button({ label: st('rehearse'), icon: 'phone-call', onClick: () => rehearsePicker(api, navigate) }) }) }));
     if (route.query.call) openCall(api, route.query.call, navigate, () => history.replaceState(null, '', '#/voice'));
   },
 };

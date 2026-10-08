@@ -289,10 +289,10 @@ function supportLinks() {
   const host = (u) => new URL(u).host.replace(/^www\./, '');
   const path = (u) => { const x = new URL(u); return `${x.host.replace(/^www\./, '')}${x.pathname.replace(/\/$/, '')}`; };
   return [
-    HOTLINE ? { href: `tel:${HOTLINE.tel}`, icon: 'phone-call', tone: '', title: `Gọi ${HOTLINE.display}`, sub: 'Tổng đài hỗ trợ 24/7', end: 'phone' } : null,
+    HOTLINE ? { href: `tel:${HOTLINE.tel}`, icon: 'phone-call', tone: '', title: `Gọi ${HOTLINE.display}`, sub: 'Bồi thường, hỗ trợ và tư vấn bảo hiểm', end: 'phone' } : null,
     SUPPORT_LINKS.zalo ? { href: SUPPORT_LINKS.zalo, icon: 'message-circle', tone: 'teal', title: ZALO_NAME ? `Zalo: ${ZALO_NAME}` : 'Nhắn tin qua Zalo', sub: 'Zalo Official Account', ext: true }
       : ZALO_NAME ? { copy: ZALO_NAME, icon: 'message-circle', tone: 'teal', title: `Zalo: ${ZALO_NAME}`, sub: `Tìm “${ZALO_NAME}” trong Zalo, chọn tài khoản có dấu tích xanh, rồi bấm Quan tâm hoặc Nhắn tin` } : null,
-    SUPPORT_LINKS.messenger ? { href: SUPPORT_LINKS.messenger, icon: 'message-circle', tone: 'teal', title: 'Nhắn tin qua Messenger', sub: host(SUPPORT_LINKS.messenger), ext: true } : null,
+    SUPPORT_LINKS.messenger ? { href: SUPPORT_LINKS.messenger, icon: 'message-circle', tone: 'teal', title: 'Nhắn tin qua Messenger', sub: path(SUPPORT_LINKS.messenger), ext: true } : null,
     SUPPORT_LINKS.facebook ? { href: SUPPORT_LINKS.facebook, icon: 'thumbs-up', tone: '', title: 'Fanpage Bảo hiểm TASCO', sub: path(SUPPORT_LINKS.facebook), ext: true } : null,
     SUPPORT_EMAIL ? { href: `mailto:${SUPPORT_EMAIL}`, icon: 'mail', tone: '', title: 'Gửi email', sub: SUPPORT_EMAIL } : null,
     SUPPORT_LINKS.website ? { href: SUPPORT_LINKS.website, icon: 'globe', tone: '', title: 'Trang web Bảo hiểm TASCO', sub: host(SUPPORT_LINKS.website), ext: true } : null,
@@ -997,7 +997,7 @@ async function viewClaims() {
       : notice('info', 'shield', 'Chưa có hợp đồng đang hiệu lực', 'Cần có hợp đồng TASCO còn hiệu lực để báo tai nạn trên ứng dụng.', h('a', { class: 'c-btn sm soft', href: '#/buy' }, 'Mua bảo hiểm')),
     h('div', { class: 'c-emergency' },
       h('a', { href: 'tel:115' }, h('span', { class: 'c-ichip sm rose' }, ic('phone-call', 18)), h('span', {}, h('strong', {}, 'Cấp cứu 115'), 'Người bị thương')),
-      HOTLINE ? h('a', { href: `tel:${HOTLINE.tel}` }, h('span', { class: 'c-ichip sm' }, ic('headset', 18)), h('span', {}, h('strong', {}, HOTLINE.display), 'Tổng đài 24/7')) : null),
+      HOTLINE ? h('a', { href: `tel:${HOTLINE.tel}` }, h('span', { class: 'c-ichip sm' }, ic('headset', 18)), h('span', {}, h('strong', {}, HOTLINE.display), 'Tổng đài TASCO')) : null),
     SUPPORT_EMAIL ? h('p', { class: 'c-xs c-muted c-help-mail' }, 'Cần hỗ trợ về hồ sơ bồi thường? Email ', h('a', { href: `mailto:${SUPPORT_EMAIL}` }, SUPPORT_EMAIL)) : null,
     h('section', { class: 'c-section', 'aria-labelledby': 'my-claims' },
       h('div', { class: 'c-section-head' }, h('h2', { id: 'my-claims' }, 'Yêu cầu của tôi'), list.length ? h('span', { class: 'c-xs c-muted' }, `${list.length} yêu cầu`) : null),
