@@ -449,7 +449,7 @@ function quickActions(home) {
   const hasActive = home.policies.some((p) => p.status === 'active');
   const qa = (href, name, tone, text, attrs = {}) => h('a', { href, ...attrs }, h('span', { class: `c-ichip ${tone}` }, ic(name, 22)), h('span', {}, text));
   return h('nav', { class: 'c-quick', 'aria-label': 'Tiện ích nhanh' },
-    HOTLINE ? qa(`tel:${HOTLINE.tel}`, 'truck', 'rose', 'Cứu hộ 24/7', { 'aria-label': `Cứu hộ 24/7, gọi ${HOTLINE.display}` }) : qa('#/home', 'truck', 'rose', 'Cứu hộ 24/7'),
+    HOTLINE ? qa(`tel:${HOTLINE.tel}`, 'truck', 'rose', 'Cứu hộ', { 'aria-label': `Cứu hộ, gọi ${HOTLINE.display}` }) : qa('#/home', 'truck', 'rose', 'Cứu hộ 24/7'),
     qa(hasActive ? '#/claims/new' : '#/claims', 'siren', 'amber', 'Báo tai nạn'),
     qa('#/policies', 'qr-code', 'teal', 'Giấy chứng nhận'),
     qa('#/buy', 'shield-check', '', 'Mua bảo hiểm'));
@@ -1373,9 +1373,9 @@ async function viewEntry() {
       h('h1', { tabindex: '-1' }, H.partner ? `Bảo hiểm xe ngay trong ${H.open}` : 'Bảo hiểm xe trực tuyến cùng TASCO'),
       h('p', {}, state.entryError || `Mở từ ${H.open} hoặc liên kết gia hạn được gửi cho bạn để tiếp tục.`),
       h('ul', { class: 'c-splash-points' },
-        h('li', {}, ic('check-circle', 20), 'Gia hạn bảo hiểm TNDS trong một chạm'),
+        h('li', {}, ic('check-circle', 20), 'Gia hạn bảo hiểm TNDS nhanh, ngay trên điện thoại'),
         h('li', {}, ic('check-circle', 20), 'Giấy chứng nhận điện tử có mã QR'),
-        h('li', {}, ic('check-circle', 20), 'Cứu hộ 24/7 và báo tai nạn nhanh'))),
+        h('li', {}, ic('check-circle', 20), 'Hỗ trợ cứu hộ và báo tai nạn nhanh'))),
     h('div', { class: 'c-splash-foot' },
       demo ? h('button', { class: 'c-btn light block', type: 'button', onclick: demoSheet }, ic('users', 20), 'Chọn khách hàng demo') : null,
       h('p', { class: 'c-splash-note' }, demo ? 'Chế độ demo · dữ liệu mô phỏng' : `Bảo hiểm TASCO · Phân phối qua ${H.via}`))));

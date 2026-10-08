@@ -55,7 +55,7 @@ The third is **price**. TNDS premiums are set by Decree 67/2023/ND-CP, and premi
 
 The fourth is **channel friction**. When a driver does want to renew, the VETC app cannot complete the sale. A partner can, so the partner closes it.
 
-None of these can be fixed on its own. Better data without a trusted channel only produces better-targeted calls that still go unanswered. A trusted channel without one-tap purchase loses the customer at the last step. This is why we propose a single platform rather than four separate tools.
+None of these can be fixed on its own. Better data without a trusted channel only produces better-targeted calls that still go unanswered. A trusted channel without purchase in the app loses the customer at the last step. This is why we propose a single platform rather than four separate tools.
 
 ### 2.4 The regulatory frame
 

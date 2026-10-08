@@ -3,7 +3,7 @@ id: TGP-QA-03
 title: Performance and Capacity Test Plan
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Quality Engineering
 reviewed_by: TASCO Insurance, IT Infrastructure
 approved_by: TASCO Insurance, Programme Sponsor
@@ -56,7 +56,7 @@ Related documents:
 
 Every workload figure marked (A) is an assumption. VETC and TASCO confirm it with real data in discovery, and it is re-based after the first two weeks of the pilot.
 
-The latest smoke result (7 October 2026, `npm run test:perf`, one process, 25 concurrent users, in-memory store) is 337 requests per second, p95 103 ms and 0 errors, against a budget of p95 ≤ 300 ms and errors ≤ 1 %.
+The latest smoke result (8 October 2026, `npm run test:perf`, one process, 25 concurrent users, in-memory store) is 194 requests per second, p95 210 ms and 0 errors, against a budget of p95 ≤ 300 ms and errors ≤ 1 %.
 
 # Objectives
 

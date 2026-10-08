@@ -108,7 +108,7 @@ Under the vehicle card:
 
 - **Báo giá đang chờ bạn xác nhận** (a quote waiting for your confirmation) appears when a TASCO telesales advisor has sent a quote. It shows each product, the period, **Tổng thanh toán** (total to pay) and when the quote expires. **Xem và thanh toán** opens it at the review step.
 - **Ngày hết hạn đã chính xác chưa?** asks the customer to confirm the expiry date when TASCO's record is uncertain. **Xác nhận ngay** opens the confirmation form.
-- Quick actions: **Cứu hộ 24/7** (roadside assistance; calls the hotline 1900 1562), **Báo tai nạn** (report an accident), **Giấy chứng nhận** (certificates) and **Mua bảo hiểm** (buy insurance).
+- Quick actions: **Cứu hộ** (roadside assistance; calls the hotline 1900 1562), **Báo tai nạn** (report an accident), **Giấy chứng nhận** (certificates) and **Mua bảo hiểm** (buy insurance).
 - **Quyền lợi đi kèm**: the service benefits that come with the cover, such as roadside assistance, the e-certificate with QR code and inspection reminders. Swipe sideways to see more.
 
 ::: {custom-style="Figure"}
@@ -298,7 +298,7 @@ Safety comes first.
 
 - If anyone is injured, call **115** (ambulance) at once. The **Bồi thường** tab and the accident form both have a **Gọi 115** button.
 - Call **113** for the police if needed, and **114** for fire and rescue.
-- For roadside help, call the TASCO hotline **1900 1562** (the **Cứu hộ 24/7** roadside assistance quick action on the home screen calls it).
+- For roadside help, call the TASCO hotline **1900 1562** (the **Cứu hộ** roadside assistance quick action on the home screen calls it).
 - Report the accident in the app when it is safe to do so.
 
 ## The claims tab
@@ -386,7 +386,7 @@ The support sheet (the headset button) and the **Hỗ trợ** group in the Accou
 
 TASCO's Zalo Official Account has no direct link. The row explains what to do: "Tìm "Bảo hiểm Tasco" trong Zalo, chọn tài khoản có dấu tích xanh, rồi bấm Quan tâm hoặc Nhắn tin". In English: search for "Bảo hiểm Tasco" in Zalo, choose the account with the blue verified tick, then tap **Quan tâm** (follow) or **Nhắn tin** (message). Tapping the row copies the account name and confirms "Đã sao chép tên tài khoản Zalo", so the customer can paste it into Zalo's search.
 
-The hotline is also called by the **Cứu hộ 24/7** quick action on the home screen, and appears in the claims tab and in the footer of the Account tab, with the e-mail address and the website.
+The hotline is also called by the **Cứu hộ** quick action on the home screen, and appears in the claims tab and in the footer of the Account tab, with the e-mail address and the website.
 
 ::: {custom-style="Figure"}
 ![](../../shots/app-customer-support-sheet.png){width=6cm} ![](../../shots/app-customer-account-support.png){width=6cm}
@@ -451,7 +451,7 @@ Tell the assistant "nhầm số" (wrong number), or call the hotline. TASCO upda
 | Screen | Main labels |
 |---|---|
 | Tab bar | Trang chủ · Bảo hiểm của tôi · Bồi thường · Tài khoản |
-| Home | Gia hạn nhanh · Tùy chỉnh gói bảo hiểm · Gia hạn ngay · Mua bảo hiểm ngay · Cập nhật ngày hết hạn · Xem và thanh toán · Cứu hộ 24/7 · Báo tai nạn |
+| Home | Gia hạn nhanh · Tùy chỉnh gói bảo hiểm · Gia hạn ngay · Mua bảo hiểm ngay · Cập nhật ngày hết hạn · Xem và thanh toán · Cứu hộ · Báo tai nạn |
 | Quick renewal | Gia hạn nhanh · Gia hạn TNDS bắt buộc · Phương thức thanh toán · Xác nhận thanh toán · Tùy chỉnh gói bảo hiểm |
 | Purchase stepper | Chọn gói · Xác nhận · Thanh toán |
 | Quote form | Xe có kinh doanh vận tải không? · Loại xe · Số chỗ ngồi · Thời hạn bảo hiểm · Bảo vệ thêm · Xem phí bảo hiểm |

@@ -722,7 +722,7 @@ These figures are proposals for the integration agreements; each is confirmed wi
 | Contract | A shared suite per port run against the sandbox and the real adapter | Planned, SIT |
 | System integration | TASCO core UAT, VETC wallet sandbox, TASCO payment gateway test account, Zalo test account, SMS test brandname, voice vendor test trunk | SIT environment |
 | Resilience | Fault injection on sandbox gateways and a network fault proxy in SIT | SIT and performance environment |
-| Load | Load smoke in CI (337 requests per second, 95th percentile 103 ms, no errors on one process) and simulated caller personas | CI and performance environment |
+| Load | Load smoke in CI (194 requests per second, 95th percentile 210 ms, no errors on one process) and simulated caller personas | CI and performance environment |
 
 # Appendix
 

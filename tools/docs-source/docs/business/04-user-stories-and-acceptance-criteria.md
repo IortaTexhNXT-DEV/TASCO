@@ -3,7 +3,7 @@ id: TGP-BUS-04
 title: User Stories and Acceptance Criteria
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Business Analysis
 reviewed_by: TASCO Insurance, Product Owner
 approved_by: TASCO Insurance, Programme Sponsor
@@ -494,7 +494,7 @@ Scenario: Price asked
   Given I am verified and my premium is VND 480,700 including VAT
   When I say "phí bao nhiêu tiền"
   Then the assistant says TNDS premiums are set by regulation and identical at every insurer, and states "480.700 đồng" including VAT
-  And mentions one-tap renewal, the instant e-certificate and 24/7 roadside assistance
+  And mentions quick renewal in the app, the instant e-certificate and roadside assistance
   And any handoff records that I asked about price
 ```
 
@@ -687,7 +687,7 @@ Scenario: Declare expiry
   Then my expiry becomes 14/02/2027 from my declaration, and my journey and touchpoints are re-planned
 ```
 
-## US-039 Renew in one tap with my VETC wallet
+## US-039 Renew in the app with my VETC wallet
 
 As a customer (PC-1), I want to pay from my VETC wallet and get my certificate immediately, so that renewing takes under a minute. Requirements FR-046, FR-047, FR-049, FR-053, FR-056, FR-077. Priority M.
 

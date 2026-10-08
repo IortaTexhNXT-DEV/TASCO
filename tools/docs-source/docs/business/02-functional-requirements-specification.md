@@ -3,7 +3,7 @@ id: TGP-BUS-02
 title: Functional Requirements Specification
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Business Analysis
 reviewed_by: TASCO Insurance, Product Owner
 approved_by: TASCO Insurance, Programme Sponsor
@@ -297,7 +297,7 @@ sequenceDiagram
 | FR-012 | Fact model. Derive one set of facts per vehicle and use it in every rule set: days to expiry, days lapsed, expiry confidence and method, insurer, tag age, owner type, region, category, seats, usage, vehicle age, reachable channels, consent, premium and engagement | None | M | T2 | Built |
 | FR-013 | Journey assignment. Place each vehicle in the first journey, by priority, whose audience matches: uninsured recovery (1), new vehicle (2), renewal (3), conquest (4) | Journeys rule set | M | T3, NB | Built |
 | FR-014 | Explainable lead score. Score 0 to 100 as the weighted sum of five factors: urgency 35, data confidence 15, engagement 20, reachability 15, relationship 15. Multiply by (0.6 + 0.4 × expiry confidence); set to zero for do-not-contact. Tiers: hot at 70 or more, warm at 45 or more, otherwise nurture. Each factor shows points, maximum and a plain reason | Weights must total 100 and hot must exceed warm, checked on save | M | T2 | Built |
-| FR-015 | Next best action. Choose one action per vehicle with a first-match table: do not contact; route to fleet or B2B team (company); ask customer to confirm expiry (confidence below 0.5); welcome new vehicle; schedule reminders (more than 45 days away); urgent: vehicle uninsured (lapsed); AI voice assistant then telesales (hot, call consent, phone); one-tap renew link by app or Zalo; SMS reminder; default find a contact channel. Each action has a label and a reason | Next best action rule set | M | T2 | Built |
+| FR-015 | Next best action. Choose one action per vehicle with a first-match table: do not contact; route to fleet or B2B team (company); ask customer to confirm expiry (confidence below 0.5); welcome new vehicle; schedule reminders (more than 45 days away); urgent: vehicle uninsured (lapsed); AI voice assistant then telesales (hot, call consent, phone); renewal link by app or Zalo; SMS reminder; default find a contact channel. Each action has a label and a reason | Next best action rule set | M | T2 | Built |
 | FR-016 | Benefits per lead. Rank eligible benefits by relevance and attach the top three, each with a reason | At most 3 shown | M | T4 | Built |
 | FR-017 | Prioritised lead queue. Staff list leads filtered by tier, journey, action, region, maximum days to expiry and minimum score, sorted by score or expiry, at most 500 per page. Users without dashboard access who have a region see only their region | Regional data policy | M | T2 | Built |
 | FR-018 | Recompute. Recompute leads on demand by a campaign manager, on events (profiles rebuilt, recompute requested, policy issued) and on a schedule. Re-plan touchpoints when the journey or tier changes | None | M | T2 | Built |
@@ -361,7 +361,7 @@ sequenceDiagram
 | ID | Requirement | Key rules | Pri | Track | Status |
 |---|---|---|---|---|---|
 | FR-053 | Regulated TNDS tariff. Annual premium by category excluding VAT, pro-rata by days over 365; term one to three years; VAT 10%. Car and motorbike tariffs per Decree 67/2023/ND-CP, to be confirmed by TASCO underwriting. Used by TASCO core rating and, locally, only for indicative quotes and testing | VAT between 0 and 0.2; positive whole premiums, checked on save | M | T3 | Built |
-| FR-054 | Physical damage cover. Premium = sum insured × rate (by usage and vehicle age) × (1 − deductible relief), minimum VND 1,000,000. Sums insured above VND 5 billion are referred to an underwriter. Deductibles VND 0, 500,000 or 1,000,000. A recorded vehicle inspection (passed, with evidence) is required before payment; one-tap purchase is blocked until then | Illustrative rates | S | NB | Built |
+| FR-054 | Physical damage cover. Premium = sum insured × rate (by usage and vehicle age) × (1 − deductible relief), minimum VND 1,000,000. Sums insured above VND 5 billion are referred to an underwriter. Deductibles VND 0, 500,000 or 1,000,000. A recorded vehicle inspection (passed, with evidence) is required before payment; purchase is blocked until then | Illustrative rates | S | NB | Built |
 | FR-055 | Personal accident cover per seat. Premium = seats (1 to 60) × sum insured per seat (VND 10, 20, 50 or 100 million) × rate per seat. Exempt from VAT | Illustrative rates | S | NB | Built |
 | FR-056 | No-discount pricing. Quotes for price-regulated products carry no discount field and state "Premium fixed by regulation, identical at every insurer" | Price-regulated flag | M | T4, PL | Built |
 | FR-057 | Products by configuration. Add a product by configuration: code, rating method (tariff table, rate on sum insured, per seat), rate rule set, channels and status. Unknown methods, duplicate codes and bundles of unknown products are rejected | Product catalogue rule set | S | PL | Built |

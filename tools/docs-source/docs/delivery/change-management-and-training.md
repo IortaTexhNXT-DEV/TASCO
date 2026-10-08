@@ -3,7 +3,7 @@ id: TGP-DEL-06
 title: Organisational Change and Training Plan
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Delivery Management
 reviewed_by: TASCO Insurance, Product and Distribution
 approved_by: TASCO Insurance, Programme Sponsor

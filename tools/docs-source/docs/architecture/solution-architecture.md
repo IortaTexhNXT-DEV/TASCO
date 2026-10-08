@@ -493,13 +493,13 @@ The application tier is stateless, so capacity grows by adding pods. The databas
 
 | Measure | Today (single instance) | Pilot target | Full-scale target |
 |---|---|---|---|
-| API throughput | 337 requests per second | 50 per second sustained | 300 per second sustained |
-| API response time, 95th percentile | 103 ms | Under 300 ms | Under 300 ms |
+| API throughput | 194 requests per second | 50 per second sustained | 300 per second sustained |
+| API response time, 95th percentile | 210 ms | Under 300 ms | Under 300 ms |
 | Vehicles under management | Synthetic test set | 100,000 | 6 million |
 | Daily journey evaluations | Not measured | 100,000 | 6 million |
 | Ingestion | 5,000 records per batch | Initial load within one day | Full base within one weekend |
 
-The load smoke test was run on 7 October 2026 with one process, the in-memory store and 25 concurrent clients: 337 requests per second, p95 103 ms against a 300 ms budget, with no errors. Full-scale capacity will be proven in pre-production during the scale phase (TGP-QA-03 Performance and Capacity Test Plan).
+The load smoke test was run on 8 October 2026 with one process, the in-memory store and 25 concurrent clients: 194 requests per second, p95 210 ms against a 300 ms budget, with no errors. Full-scale capacity will be proven in pre-production during the scale phase (TGP-QA-03 Performance and Capacity Test Plan).
 
 The following changes are planned before the base grows beyond the pilot. None of them changes the public interfaces.
 

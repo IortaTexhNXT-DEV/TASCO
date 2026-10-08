@@ -3,7 +3,7 @@ id: TGP-QA-01
 title: Test Strategy
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Quality Engineering
 reviewed_by: TASCO Insurance, IT Quality Assurance
 approved_by: TASCO Insurance, Programme Sponsor
@@ -424,7 +424,7 @@ The latest full run was on 8 October 2026 on release 1.0.0 (Node.js 22; PostgreS
 | User-story scenarios (TGP-BUS-04) | 135: 132 automated and passing (121 in the functional suite, the rest of US-078 and US-079 in API-DQ and U-QR), 3 manual or roadmap | All automated pass |
 | Coverage (lines, branches, functions) | 99.4 %, 88.1 %, 97.2 % | 80 %, 70 %, 80 % |
 | Lint | 0 errors | 0 errors |
-| Load smoke (one process, 25 concurrent, 15 s) | 337 requests per second, p95 103 ms, 0 errors | p95 ≤ 300 ms, errors ≤ 1 % |
+| Load smoke (one process, 25 concurrent, 15 s) | 194 requests per second, p95 210 ms, 0 errors (8 October 2026) | p95 ≤ 300 ms, errors ≤ 1 % |
 | Catalogue cases in the workbook | 206; for the Pass, Not Run and Blocked counts, see the workbook regenerated on 8 October 2026 | — |
 
 The Not Run cases are the SIT, UAT, DR, accessibility and at-scale performance cases, which belong to later phases. The Blocked cases depend on open known issues: TC-017 (KI-07), TC-029 (KI-10), TC-114 (KI-13) and TC-155 (KI-18). The automated cases for the data requests register and quick renewal (TC-184 to TC-205, except the manual TC-196 and TC-205) run in `test/api/dsarQuickRenewal.test.js` and `test/unit/quickRenewal.test.js`.

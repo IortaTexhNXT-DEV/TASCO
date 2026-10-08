@@ -45,16 +45,16 @@
         "en": "Thank you, vehicle {{plateMasked}} verified. Do you remember which month your current TNDS cover ends?"
       },
       "pitch": {
-        "vi": "Quý khách có thể gia hạn ngay trong ứng dụng VETC chỉ với một chạm, thanh toán bằng ví VETC và nhận giấy chứng nhận điện tử ngay, kèm cứu hộ giao thông 24/7. Quý khách muốn nhân viên tư vấn gọi lại, hay để tôi gửi đường dẫn gia hạn vào ứng dụng VETC và Zalo ạ?",
-        "en": "You can renew in the VETC app in one tap, pay from your VETC wallet and get an e-certificate instantly, plus 24/7 roadside assistance. Would you like an advisor to call back, or shall I send the renewal link to your VETC app and Zalo?"
+        "vi": "Quý khách có thể gia hạn ngay trong ứng dụng VETC chỉ trong vài bước, thanh toán bằng ví VETC và nhận giấy chứng nhận điện tử ngay, kèm hỗ trợ cứu hộ giao thông. Quý khách muốn nhân viên tư vấn gọi lại, hay để tôi gửi đường dẫn gia hạn vào ứng dụng VETC và Zalo ạ?",
+        "en": "You can renew in the VETC app in a few steps, pay from your VETC wallet and get an e-certificate instantly, plus roadside assistance. Would you like an advisor to call back, or shall I send the renewal link to your VETC app and Zalo?"
       },
       "price": {
-        "vi": "Phí bảo hiểm TNDS do Nhà nước quy định và giống nhau ở mọi công ty bảo hiểm; với loại xe của Quý khách là {{premiumVi}} đã gồm VAT. Khi mua qua VETC, Quý khách được gia hạn một chạm, giấy chứng nhận điện tử ngay và cứu hộ 24/7. Quý khách muốn tôi gửi đường dẫn gia hạn không ạ?",
-        "en": "TNDS premiums are set by regulation and are the same at every insurer; for your vehicle it is {{premium}} incl. VAT. Via VETC you get one-tap renewal, an instant e-certificate and 24/7 roadside assistance. Shall I send the renewal link?"
+        "vi": "Phí bảo hiểm TNDS do Nhà nước quy định và giống nhau ở mọi công ty bảo hiểm; với loại xe của Quý khách là {{premiumVi}} đã gồm VAT. Khi mua qua VETC, Quý khách được gia hạn nhanh trong ứng dụng, giấy chứng nhận điện tử ngay và hỗ trợ cứu hộ giao thông. Quý khách muốn tôi gửi đường dẫn gia hạn không ạ?",
+        "en": "TNDS premiums are set by regulation and are the same at every insurer; for your vehicle it is {{premium}} incl. VAT. Via VETC you get quick renewal in the app, an instant e-certificate and roadside assistance. Shall I send the renewal link?"
       },
       "benefits": {
-        "vi": "Khi mua qua VETC cùng Bảo hiểm TASCO, Quý khách có cứu hộ 24/7, giấy chứng nhận điện tử tra cứu bằng QR, nhắc lịch đăng kiểm và báo tai nạn nhanh trên ứng dụng. Quý khách muốn tôi gửi đường dẫn hay nhân viên gọi lại ạ?",
-        "en": "Buying via VETC with TASCO Insurance includes 24/7 roadside assistance, a QR-verifiable e-certificate, inspection reminders and in-app accident reporting. Link or advisor callback?"
+        "vi": "Khi mua qua VETC cùng Bảo hiểm TASCO, Quý khách có hỗ trợ cứu hộ giao thông, giấy chứng nhận điện tử tra cứu bằng QR, nhắc lịch đăng kiểm và báo tai nạn nhanh trên ứng dụng. Quý khách muốn tôi gửi đường dẫn hay nhân viên gọi lại ạ?",
+        "en": "Buying via VETC with TASCO Insurance includes roadside assistance, a QR-verifiable e-certificate, inspection reminders and in-app accident reporting. Link or advisor callback?"
       },
       "trust": {
         "vi": "Quý khách hoàn toàn có thể kiểm tra: VETC gọi cho chủ tài khoản thu phí không dừng đã đăng ký số điện thoại này. Tôi sẽ không hỏi OTP hay thông tin thẻ. Mọi thanh toán chỉ thực hiện trong ứng dụng VETC chính thức. Quý khách muốn tôi gửi thông báo vào ứng dụng VETC để tự kiểm tra không ạ?",

@@ -239,8 +239,8 @@ The platform is stateless at the application tier, so capacity grows by adding p
 
 | Measure | Today (single instance, test environment) | Pilot target | Full-scale target |
 |---|---|---|---|
-| API throughput | About 337 requests per second | 50 per second sustained | 300 per second sustained |
-| API response time (95th percentile) | About 103 ms | Under 300 ms | Under 300 ms |
+| API throughput | About 190 requests per second | 50 per second sustained | 300 per second sustained |
+| API response time (95th percentile) | About 210 ms | Under 300 ms | Under 300 ms |
 | Vehicles under management | Synthetic test set | 100,000 | 6 million |
 | Daily journey evaluations | | 100,000 | 6 million |
 | Ingestion | 5,000 records per batch | Initial load within one day | Full base within one weekend; daily changes within one hour |

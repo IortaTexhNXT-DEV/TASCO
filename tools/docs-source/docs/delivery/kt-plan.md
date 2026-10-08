@@ -3,7 +3,7 @@ id: TGP-DEL-05
 title: Knowledge Transfer Plan
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Delivery Management
 reviewed_by: TASCO Insurance, IT
 approved_by: TASCO Insurance, Programme Sponsor
@@ -182,7 +182,7 @@ The test suites are the safety net for every change the receiving team makes. `n
 | `test/security` | 12 tests. OWASP Top 10 checks: access control, encryption, injection, configuration, authentication, audit integrity, rate limits, double-charge protection |
 | `test/functional` | 124 tests, one per Given/When/Then scenario in TGP-BUS-04 User Stories and Acceptance Criteria (three of them manual or roadmap); the scenarios of US-078 and US-079 run in suites API-DQ and U-QR |
 | `test/pg` | PostgreSQL store, 8 tests, run separately with `npm run test:pg` |
-| `test/perf` | Load smoke test (`load.js`): 337 requests per second, p95 103 ms, no errors on a single instance |
+| `test/perf` | Load smoke test (`load.js`): 194 requests per second, p95 210 ms, no errors on a single instance |
 
 The CI pipeline runs lint, the test suites, coverage gates and the dependency audit on every change. The test-case workbook is described in TGP-QA-02 Test Case Catalogue.
 

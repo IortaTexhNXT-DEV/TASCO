@@ -3,7 +3,7 @@ id: TGP-BUS-06
 title: Personas and Customer Journeys
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Business Analysis and User Experience
 reviewed_by: TASCO Insurance, Product Owner
 approved_by: TASCO Insurance, Programme Sponsor
@@ -93,7 +93,7 @@ The TASCO product owner, campaign managers, the telesales lead, compliance, and 
 | Triggers to act | Inspection booking; wallet top-up; a credible reminder with an exact date |
 | What wins him | Purchase in a trusted app, an instant e-certificate, no calls, roadside assistance |
 | Signals the platform sees | Medium app sessions and toll trips; app push enabled; marketing consent given |
-| Typical next best action | Ask customer to confirm expiry (if confidence is below 0.5), then a one-tap renew link by app or Zalo |
+| Typical next best action | Ask customer to confirm expiry (if confidence is below 0.5), then a renewal link by app or Zalo |
 
 ## PC-2 Chú Hùng, 51: long-haul driver between Thanh Hóa, Hà Nội and Hải Phòng
 
@@ -105,7 +105,7 @@ The TASCO product owner, campaign managers, the telesales lead, compliance, and 
 | Pain points | Breakdowns far from home; unsure what TNDS covers (it does not cover his passengers or his own car) |
 | What wins him | 24/7 roadside assistance, made relevant by his long trips and toll use; personal accident cover per seat for seven seats; later, never-lapse auto renewal (roadmap) |
 | Signals the platform sees | Many highway kilometres over 90 days, auto top-up on, wallet balance above the premium |
-| Typical next best action | AI voice assistant then telesales if hot with call consent; otherwise a one-tap renew link |
+| Typical next best action | AI voice assistant then telesales if hot with call consent; otherwise a renewal link |
 
 ## PC-3 Chị Thảo, 32, TP. Hồ Chí Minh: new car buyer
 

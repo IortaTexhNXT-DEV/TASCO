@@ -197,7 +197,7 @@ The customer app has four tabs for looking things up and four full-screen flows 
 
 | Tab | Vietnamese label | Contents |
 |---|---|---|
-| Home | Trang chủ | Greeting; vehicle card with cover status and day ring; a quote waiting for payment; expiry confirmation prompt; quick actions (Cứu hộ 24/7, Báo tai nạn, Giấy chứng nhận, Mua bảo hiểm); benefits; safety messages |
+| Home | Trang chủ | Greeting; vehicle card with cover status and day ring; a quote waiting for payment; expiry confirmation prompt; quick actions (Cứu hộ, Báo tai nạn, Giấy chứng nhận, Mua bảo hiểm); benefits; safety messages |
 | My insurance | Bảo hiểm của tôi | Policies with period and status; e-certificate with QR code, full-screen QR and save as image |
 | Claims | Bồi thường | Emergency and support numbers; "Báo tai nạn"; the customer's claims with progress steps |
 | Account | Tài khoản | Consent switches; download my data; support channels; language; sign out; brand footer |
