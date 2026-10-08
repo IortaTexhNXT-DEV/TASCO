@@ -1424,10 +1424,11 @@ addUiStrings({
  * confirm button). Resolves with onSubmit's result, or null when cancelled. With no fields it is a one-step confirm.
  * fields: [{name, label, control, required?, help?, optional?, read?: (control) => value, validate?: (value, values) => string|null,
  *           summary?: (value) => string|Node}]
- * @param {{title: string, intro?: string|Node, fields?: Array<object>, confirmLabel: string, danger?: boolean, size?: string,
+ * notice: optional Node (e.g. a danger banner "cannot be undone") shown above the fields and again above the summary.
+ * @param {{title: string, intro?: string|Node, notice?: () => Node, fields?: Array<object>, confirmLabel: string, danger?: boolean, size?: string,
  *          summaryTitle?: string, onSubmit: (values) => Promise<any>}} o
  */
-export function decisionDialog({ title, intro, fields = [], confirmLabel, danger = false, size = 'md', summaryTitle, onSubmit } = {}) {
+export function decisionDialog({ title, intro, notice, fields = [], confirmLabel, danger = false, size = 'md', summaryTitle, onSubmit } = {}) {
   return new Promise((resolve) => {
     let result = null;
     const readOne = (f) => {
@@ -1444,7 +1445,7 @@ export function decisionDialog({ title, intro, fields = [], confirmLabel, danger
       try { result = await onSubmit(values); m.close(); } catch (e) { errorToast(e); }
     } });
     function stepForm() {
-      mount(body, intro ? h('p', { class: 'muted' }, intro) : null, wrapped.map((f) => f.field));
+      mount(body, intro ? h('p', { class: 'muted' }, intro) : null, notice ? notice() : null, wrapped.map((f) => f.field));
       if (!fields.length) { mount(footer, button({ label: t('cancel'), onClick: () => m.close() }), submitBtn({})); return; }
       mount(footer, button({ label: t('cancel'), onClick: () => m.close() }), button({ label: t('reviewStep'), variant: 'primary', iconRight: 'chevron-right', onClick: () => {
         const values = {};
@@ -1464,7 +1465,7 @@ export function decisionDialog({ title, intro, fields = [], confirmLabel, danger
     function stepConfirm(values) {
       const rows = wrapped.filter((f) => values[f.name] !== '' && values[f.name] !== null && values[f.name] !== undefined)
         .map((f) => [f.label, f.summary ? f.summary(values[f.name], values) : String(values[f.name])]);
-      mount(body, banner({ tone: danger ? 'warn' : 'info', title: summaryTitle || t('confirmCheck') }), keyValueList(rows, { columns: 1, inline: true }));
+      mount(body, notice ? notice() : null, banner({ tone: danger ? 'warn' : 'info', title: summaryTitle || t('confirmCheck') }), keyValueList(rows, { columns: 1, inline: true }));
       mount(footer, button({ label: t('backStep'), icon: 'chevron-left', onClick: () => stepForm() }), submitBtn(values));
       requestAnimationFrame(() => footer.querySelector('.btn.primary, .btn.danger')?.focus());
     }

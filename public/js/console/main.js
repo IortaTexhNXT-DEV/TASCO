@@ -61,6 +61,7 @@ const NAV = [
     { route: 'rules', icon: 'scale', perm: 'rules:read', badge: 'approvalsOnRules' },
     { route: 'approvals', icon: 'clipboard-check', perm: 'rules:approve', optional: true, badge: 'approvals' },
     { route: 'audit', icon: 'history', perm: 'audit:read' },
+    { route: 'dsar', navKey: 'dsarNav', icon: 'file-check', perm: 'dsar:manage', optional: true, badge: 'dsar' },
   ] },
   { group: 'groupAdmin', items: [
     { route: 'users', icon: 'user-cog', perm: 'users:manage' },
@@ -373,7 +374,7 @@ const signals = {
   at: 0,
   async load(force = false) {
     if (!force && this.cache && Date.now() - this.at < 30000) return this.cache;
-    const out = { handoffs: 0, approvals: 0, approvalsOnRules: 0, dq: 0, claims: 0, items: [] };
+    const out = { handoffs: 0, approvals: 0, approvalsOnRules: 0, dq: 0, claims: 0, dsar: 0, items: [] };
     const jobs = [];
     if (can('handoff:work')) {
       jobs.push(api.get('/api/handoffs?status=open&limit=10').then((r) => {
@@ -411,6 +412,16 @@ const signals = {
     if (can('dq:resolve')) {
       jobs.push(api.get('/api/dq/issues?status=open&limit=1').then((r) => { out.dq = r.total || 0; }));
     }
+    if (can('dsar:manage') && PAGES.dsar) {
+      // Data requests due within 24 hours or overdue (badge + notifications).
+      jobs.push(api.get('/api/dsar?limit=50').then((r) => {
+        const urgent = (r.items || []).filter((x) => x.overdue || x.dueSoon);
+        out.dsar = urgent.length;
+        for (const x of urgent.slice(0, 10)) {
+          out.items.push({ kind: 'dsar', icon: x.overdue ? 'alert-triangle' : 'clock', tone: x.overdue ? 'danger' : 'warn', title: t(x.overdue ? 'notifDsarOverdue' : 'notifDsarDue'), text: formatPlate(x.plate), at: x.dueAt, href: `#/dsar?id=${encodeURIComponent(x.id)}` });
+        }
+      }));
+    }
     await Promise.allSettled(jobs);
     out.items.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
     this.cache = out;
@@ -442,10 +453,10 @@ function buildShell() {
           const b = i.badge ? h('span', { class: 'nav-badge', hidden: true }) : null;
           if (b) badges.set(i.badge, [...(badges.get(i.badge) || []), b]);
           const a = h('a', { href: `#/${i.route}`, class: 'nav-link', onclick: () => closeMobileNav() },
-            icon(i.icon, { size: 18 }), h('span', { class: 'nav-label' }, t(i.route)), b);
-          a.dataset.label = t(i.route);
-          a.setAttribute('aria-label', t(i.route));
-          tooltip(a, t(i.route), { pos: 'right' });
+            icon(i.icon, { size: 18 }), h('span', { class: 'nav-label' }, t(i.navKey || i.route)), b);
+          a.dataset.label = t(i.navKey || i.route);
+          a.setAttribute('aria-label', t(i.navKey || i.route));
+          tooltip(a, t(i.navKey || i.route), { pos: 'right' });
           navLinks.set(i.route, a);
           return h('li', {}, a);
         })));
@@ -480,7 +491,7 @@ function buildShell() {
   function closeMobileNav() { el.dataset.navOpen = 'false'; menuBtn.setAttribute('aria-expanded', 'false'); }
   const crumbs = h('nav', { class: 'breadcrumb', 'aria-label': t('breadcrumb') });
 
-  const bell = can('handoff:work') || can('rules:approve') || can('claims:update') || can('dq:resolve')
+  const bell = can('handoff:work') || can('rules:approve') || can('claims:update') || can('dq:resolve') || can('dsar:manage')
     ? iconButton({ icon: 'bell', label: t('notifications') }) : null;
   if (bell) {
     popover(bell, () => notificationsPanel(), { label: t('notifications'), class: 'notif-pop', width: 380 });
@@ -554,7 +565,7 @@ function buildShell() {
         b.closest('a')?.setAttribute('aria-label', n ? `${b.closest('a').dataset.label} (${formatNumber(n)})` : b.closest('a').dataset.label);
       }
     }
-    if (bell) bell.setBadge(sg.handoffs + sg.approvals + sg.claims);
+    if (bell) bell.setBadge(sg.handoffs + sg.approvals + sg.claims + sg.dsar);
   }
 
   function notificationsPanel() {

@@ -64,51 +64,62 @@ function quickRenewalSettings(serviceLevels) {
  * @param {number} f.nowMs             epoch ms
  * @returns {{eligible: boolean, reasons: string[], codes: string[], products: Array, termYears: number}}
  */
+/** The customer's TASCO compulsory cover on the platform: latest policy, its term and the add-ons bought with it. */
+function currentCover(f) {
+  const pols = f.policies || [];
+  const tnds = pols.filter((p) => String(p.product || '').startsWith('TNDS') && p.status === 'active' && (p.insurer || 'TASCO') === 'TASCO')
+    .sort((a, b) => String(b.endDate).localeCompare(String(a.endDate)));
+  const latest = tnds[0] || null;
+  const years = latest ? Math.round((Date.parse(latest.endDate) - Date.parse(latest.startDate)) / (365 * DAY_MS)) : 1;
+  const sameOrder = latest ? pols.filter((p) => p.orderId && p.orderId === latest.orderId && p.status === 'active') : [];
+  return {
+    latest,
+    renewedAlready: tnds.some((p) => p.startDate > f.today),
+    termYears: Math.min(3, Math.max(1, years || 1)),
+    hadPa: sameOrder.some((p) => p.product === PA),
+    hadPd: pols.some((p) => p.product === 'MOTOR_PD' && p.status === 'active' && p.endDate >= f.today),
+  };
+}
+
+/** null when use and seats are known well enough, else the reason code. */
+function vehicleReason(f, s) {
+  const v = f.profile?.vehicle || {};
+  if (v.seats === null || v.seats === undefined || !v.usage) return 'vehicle_unconfirmed';
+  if (!s.requireConfirmedVehicle) return null;
+  const evidence = f.vehicleEvidence || [];
+  if (evidence.some((e) => e.source === 'tasco_core')) return null;
+  const confirmations = evidence.filter((e) => e.source === 'customer_vehicle_confirmed' && e.at);
+  if (confirmations.some((e) => f.nowMs - Date.parse(e.at) <= s.vehicleConfirmationMaxAgeDays * DAY_MS)) return null;
+  return confirmations.length ? 'vehicle_confirmation_expired' : 'vehicle_unconfirmed';
+}
+
+/** VETC wallet hosts: the last known balance must cover the estimated premium (skipped when either is unknown). */
+function walletLow(f, s, termYears) {
+  if (!s.requireWalletBalance || !VETC_WALLET_CHANNELS.includes(f.channel)) return false;
+  const balance = f.profile?.engagement?.walletBalance;
+  const premium = Number(f.lead?.premium) > 0 ? Number(f.lead.premium) * termYears : null;
+  return typeof balance === 'number' && premium !== null && balance < premium;
+}
+
 function evaluateQuickRenewal(f) {
   const s = f.settings;
-  const codes = [];
-  const tascoTnds = (f.policies || []).filter((p) => String(p.product || '').startsWith('TNDS') && p.status === 'active' && (p.insurer || 'TASCO') === 'TASCO')
-    .sort((a, b) => String(b.endDate).localeCompare(String(a.endDate)));
-  const latest = tascoTnds[0] || null;
-  const renewingTasco = !!latest || (f.profile?.policy?.insurer === 'TASCO');
-
-  // Term and cover carried over from the current TASCO policy (default: one year, compulsory TNDS only).
-  const termYears = latest ? Math.min(3, Math.max(1, Math.round((Date.parse(latest.endDate) - Date.parse(latest.startDate)) / (365 * DAY_MS)))) : 1;
-  const sameOrder = latest ? (f.policies || []).filter((p) => p.orderId && p.orderId === latest.orderId && p.status === 'active') : [];
-  const hadPa = sameOrder.some((p) => p.product === PA);
-  const hadPd = sameOrder.some((p) => p.product === 'MOTOR_PD') || (f.policies || []).some((p) => p.product === 'MOTOR_PD' && p.status === 'active' && p.endDate >= f.today);
-  const products = [{ code: TNDS, options: { termYears } }];
-  if (s.allowAddOns && hadPa) products.push({ code: PA, options: { sumInsuredPerSeat: PA_SUM_PER_SEAT } });
-
-  if (!s.enabled) codes.push('disabled');
-  if (!(f.lead?.journey && (s.journeys || []).includes(f.lead.journey)) && !renewingTasco) codes.push('journey');
-  if (tascoTnds.some((p) => p.startDate > f.today)) codes.push('already_renewed');
-
-  // Vehicle use and seats: TASCO core, or the customer's own recent confirmation.
-  const v = f.profile?.vehicle || {};
-  const known = v.seats !== null && v.seats !== undefined && !!v.usage;
-  const evidence = f.vehicleEvidence || [];
-  if (!known) codes.push('vehicle_unconfirmed');
-  else if (s.requireConfirmedVehicle) {
-    const core = evidence.some((e) => e.source === 'tasco_core');
-    const confirmations = evidence.filter((e) => e.source === 'customer_vehicle_confirmed' && e.at);
-    const fresh = confirmations.some((e) => f.nowMs - Date.parse(e.at) <= s.vehicleConfirmationMaxAgeDays * DAY_MS);
-    if (!core && !fresh) codes.push(confirmations.length ? 'vehicle_confirmation_expired' : 'vehicle_unconfirmed');
-  }
-
-  if (hadPd) codes.push('physical_damage');
+  const cover = currentCover(f);
+  const renewingTasco = !!cover.latest || f.profile?.policy?.insurer === 'TASCO';
+  const products = [{ code: TNDS, options: { termYears: cover.termYears } }];
+  if (s.allowAddOns && cover.hadPa) products.push({ code: PA, options: { sumInsuredPerSeat: PA_SUM_PER_SEAT } });
   const sellable = (code) => (f.catalogue?.products || []).some((p) => p.code === code && p.status === 'active' && (p.channels || []).includes(f.channel));
-  if (!products.every((p) => sellable(p.code))) codes.push('product_unavailable');
-  if (!f.coreAvailable) codes.push('core_unavailable');
 
-  if (s.requireWalletBalance && VETC_WALLET_CHANNELS.includes(f.channel)) {
-    const balance = f.profile?.engagement?.walletBalance;
-    const premium = Number(f.lead?.premium) > 0 ? Number(f.lead.premium) * termYears : null;
-    if (typeof balance === 'number' && premium !== null && balance < premium) codes.push('wallet_low');
-  }
-
-  const unique = [...new Set(codes)];
-  return { eligible: unique.length === 0, reasons: unique.map((c) => REASONS[c]), codes: unique, products, termYears };
+  const codes = [
+    s.enabled ? null : 'disabled',
+    (f.lead?.journey && (s.journeys || []).includes(f.lead.journey)) || renewingTasco ? null : 'journey',
+    cover.renewedAlready ? 'already_renewed' : null,
+    vehicleReason(f, s),
+    cover.hadPd ? 'physical_damage' : null,
+    products.every((p) => sellable(p.code)) ? null : 'product_unavailable',
+    f.coreAvailable ? null : 'core_unavailable',
+    walletLow(f, s, cover.termYears) ? 'wallet_low' : null,
+  ].filter(Boolean);
+  return { eligible: codes.length === 0, reasons: codes.map((c) => REASONS[c]), codes, products, termYears: cover.termYears };
 }
 
 module.exports = { evaluateQuickRenewal, quickRenewalSettings, QUICK_RENEWAL_REASONS: REASONS, QUICK_RENEWAL_DEFAULTS: DEFAULTS };

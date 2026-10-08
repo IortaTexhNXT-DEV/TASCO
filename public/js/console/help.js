@@ -88,6 +88,14 @@ const EN = {
       'Commission rates stay within the limits set by regulation.',
     ],
   },
+  dsar: {
+    title: 'Data requests',
+    body: [
+      'Log every request from a customer to see or erase their personal data, whatever the channel.',
+      'Each request has a response deadline; verify the requester’s identity before you export or erase.',
+      'Erasure anonymises the customer and cannot be undone; it is refused while a policy is in force.',
+    ],
+  },
   claims: {
     title: 'Claims',
     body: [
@@ -210,6 +218,14 @@ const VI = {
       'Quản lý ngân hàng, đại lý ô tô, đại lý bảo hiểm, đội xe và trung tâm đăng kiểm bán bảo hiểm TASCO.',
       'Cấp quyền truy cập an toàn để đối tác báo giá, bán hàng và tải bảng kê hoa hồng.',
       'Tỷ lệ hoa hồng luôn trong giới hạn theo quy định.',
+    ],
+  },
+  dsar: {
+    title: 'Yêu cầu dữ liệu cá nhân',
+    body: [
+      'Ghi nhận mọi yêu cầu xem hoặc xóa dữ liệu cá nhân của khách hàng, từ bất kỳ kênh nào.',
+      'Mỗi yêu cầu có hạn phản hồi; xác minh danh tính người yêu cầu trước khi xuất hoặc xóa dữ liệu.',
+      'Xóa dữ liệu sẽ ẩn danh khách hàng và không thể hoàn tác; không thực hiện khi hợp đồng còn hiệu lực.',
     ],
   },
   claims: {

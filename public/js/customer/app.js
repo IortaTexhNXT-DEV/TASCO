@@ -10,7 +10,7 @@ import { wordmark } from '../shared/brand.js';
  * method "Ví VETC" and "mở lại từ ứng dụng VETC"). Opens inside the VETC super-app (or Zalo mini app) WebView
  * from a signed renewal link. Vietnamese only, mobile-first (360–430px).
  *
- * Routes (hash): home · policies · claims · claims/new · account · buy[?quote=ID] · confirm
+ * Routes (hash): home · policies · claims · claims/new · account · buy[?quote=ID] · renew-quick · confirm
  * Tab pages share the bottom tab bar; task flows (buy, claim, confirm) take the full screen with a
  * back button and a sticky action bar. All DOM is built with h()/mount() (no innerHTML, CSP-safe).
  */
@@ -373,6 +373,15 @@ function coverInfo(home) {
   return { key: 'active', tone: 'ok', chip: 'Đang hiệu lực', line: `Hiệu lực đến ${fmtDate(expiry)}`, sub: null, days, frac: Math.min(1, days / 365) };
 }
 
+/** Short hint under "Gia hạn ngay" when quick renewal is not offered for a reason the customer can act on. */
+const QUICK_HINT_CODES = ['vehicle_unconfirmed', 'vehicle_confirmation_expired', 'wallet_low'];
+function quickHint(q) {
+  // Only when acting on it would unlock quick renewal (e.g. "Cần xác nhận thông tin xe"), never for other cases.
+  const codes = q?.codes || [];
+  if (!q || q.eligible || !codes.length || !codes.every((c) => QUICK_HINT_CODES.includes(c))) return null;
+  return h('p', { class: 'c-quick-hint' }, ic('info', 16), h('span', {}, q.reasons[0]));
+}
+
 function vehicleCard(home, cover, hasQuote) {
   let center; let unit; let label;
   if (cover.key === 'unknown') { center = ic('calendar', 24); unit = null; label = 'Chưa rõ ngày hết hạn'; }
@@ -380,8 +389,13 @@ function vehicleCard(home, cover, hasQuote) {
   else { center = String(cover.days); unit = 'ngày'; label = `Còn ${cover.days} ngày bảo hiểm`; }
   const tone = cover.tone === 'ok' ? '' : cover.tone;
   const actions = [];
-  if (hasQuote) { /* the pending quote card below is the call to action */ } else if (cover.key === 'lapsed') actions.push(h('a', { class: 'c-btn primary block', href: '#/buy' }, ic('shield-check', 20), 'Mua bảo hiểm ngay'));
-  else if (cover.key === 'due') actions.push(h('a', { class: 'c-btn primary block', href: '#/buy' }, ic('refresh', 20), 'Gia hạn ngay'));
+  // Quick renewal (3 taps) when the server says the case allows it; "Tùy chỉnh gói bảo hiểm" opens the full flow.
+  const quick = home.quickRenewal?.eligible && (cover.key === 'due' || cover.key === 'lapsed');
+  if (hasQuote) { /* the pending quote card below is the call to action */ } else if (quick) {
+    actions.push(h('a', { class: 'c-btn primary block', href: '#/renew-quick' }, ic('zap', 20), 'Gia hạn nhanh'));
+    actions.push(h('a', { class: 'c-btn ghost block c-quick-alt', href: '#/buy' }, ic('sliders', 18), 'Tùy chỉnh gói bảo hiểm'));
+  } else if (cover.key === 'lapsed') actions.push(h('a', { class: 'c-btn primary block', href: '#/buy' }, ic('shield-check', 20), 'Mua bảo hiểm ngay'), quickHint(home.quickRenewal));
+  else if (cover.key === 'due') actions.push(h('a', { class: 'c-btn primary block', href: '#/buy' }, ic('refresh', 20), 'Gia hạn ngay'), quickHint(home.quickRenewal));
   else if (cover.key === 'unknown') {
     actions.push(h('a', { class: 'c-btn primary block', href: '#/confirm' }, ic('calendar', 20), 'Cập nhật ngày hết hạn'));
     actions.push(h('a', { class: 'c-btn ghost block', href: '#/buy' }, 'Mua bảo hiểm mới'));
@@ -449,7 +463,8 @@ const footnote = () => h('footer', { class: 'c-footnote' },
 async function viewHome() {
   const [home, quotes] = await Promise.all([api.get('/api/customer/home'), api.get('/api/customer/quotes')]);
   state.home = home;
-  const pending = quotes.filter((q) => q.sentToCustomerAt || q.channel !== 'vetc_app');
+  // Quotes sent by telesales (or made on another host) wait on the home screen; quick-renewal quotes never do.
+  const pending = quotes.filter((q) => (q.sentToCustomerAt || q.channel !== 'vetc_app') && q.flow !== 'quick');
   const cover = coverInfo(home);
   const name = home.customer?.firstName;
   // Slim teal band with the diagonal parallelogram motif of the TASCO website (navy text on light teal: 6.1:1).
@@ -838,45 +853,132 @@ async function viewBuy(query) {
 
   async function pay() {
     f.setBar();
-    f.show(h('div', { class: 'c-processing', role: 'status', 'aria-live': 'polite' },
-      h('div', { class: 'c-spinner', 'aria-hidden': 'true' }), h('h2', {}, 'Đang xử lý thanh toán'), h('p', {}, 'Vui lòng không đóng ứng dụng.')));
+    f.show(processing());
     try {
       const r = await api.post('/api/customer/orders', { quoteId: s.quote.id }, { 'Idempotency-Key': idempotencyKey() });
       state.home = null;
       success(r);
-    } catch (ex) {
-      f.show(h('div', { class: 'c-result', role: 'alert' },
-        h('span', { class: 'c-ichip rose', style: 'width:72px;height:72px;border-radius:50%' }, ic('x-circle', 36)),
-        h('h2', {}, 'Thanh toán chưa thành công'), h('p', {}, `${viError(ex)} Bạn chưa bị trừ tiền.`)));
-      const retry = h('button', { class: 'c-btn primary block', type: 'button', onclick: () => go(3) }, 'Thử lại');
-      f.setBar(h('a', { class: 'c-btn ghost', href: '#/home' }, 'Về trang chủ'), retry);
-    }
+    } catch (ex) { payFailed(f, ex, () => go(3)); }
   }
 
   function success(r) {
     s.step = 4;
     st.set(4);
-    const pols = r.policies || [];
-    f.show(
-      h('div', { class: 'c-result', role: 'status' }, successMark(),
-        h('h2', { tabindex: '-1' }, 'Thanh toán thành công'),
-        h('p', {}, 'Giấy chứng nhận điện tử đã được cấp cho xe ', h('strong', { class: 'c-nowrap' }, home.vehicle.plate), '.'),
-        h('div', { class: 'c-amount' }, fmtVnd(r.order?.amount ?? s.quote.total))),
-      h('section', { class: 'c-card' }, h('dl', { class: 'c-kv' },
-        r.order?.paymentRef ? [h('dt', {}, 'Mã giao dịch'), h('dd', {}, String(r.order.paymentRef).toUpperCase())] : null,
-        h('dt', {}, 'Thời gian'), h('dd', {}, fmtDateTime(r.order?.completedAt || new Date().toISOString())),
-        pols.length ? [h('dt', {}, 'Số hợp đồng'), h('dd', {}, pols.map((p) => h('div', {}, p.policyNo || p.certNo)))] : null)),
-      pols.map((p) => certCard(p, home.vehicle.plate)));
-    const saveBtn = h('button', { class: 'c-btn soft', type: 'button' }, ic('download', 20), 'Lưu chứng nhận');
-    saveBtn.addEventListener('click', async () => { busy(saveBtn, true); for (const p of pols) await saveCertificate(p, home.vehicle.plate); busy(saveBtn, false); });
-    f.setBar(saveBtn, h('a', { class: 'c-btn primary', href: '#/home' }, 'Về trang chủ'));
-    f.app.querySelector('.c-result h2')?.focus();
+    successScreen(f, r, home, s.quote.total);
   }
 
   if (s.fromQuote) { st.set(2); step2(); } else if (query.quote) {
     st.set(1); step1();
     toast('Báo giá đã hết hạn hoặc đã được thanh toán. Vui lòng chọn lại gói bảo hiểm.', 'info');
   } else { st.set(1); step1(); }
+  return f.app;
+}
+
+/** Payment success with the e-certificates (full purchase flow and quick renewal). */
+function successScreen(f, r, home, fallbackTotal) {
+  const pols = r.policies || [];
+  f.show(
+    h('div', { class: 'c-result', role: 'status' }, successMark(),
+      h('h2', { tabindex: '-1' }, 'Thanh toán thành công'),
+      h('p', {}, 'Giấy chứng nhận điện tử đã được cấp cho xe ', h('strong', { class: 'c-nowrap' }, home.vehicle.plate), '.'),
+      h('div', { class: 'c-amount' }, fmtVnd(r.order?.amount ?? fallbackTotal))),
+    h('section', { class: 'c-card' }, h('dl', { class: 'c-kv' },
+      r.order?.paymentRef ? [h('dt', {}, 'Mã giao dịch'), h('dd', {}, String(r.order.paymentRef).toUpperCase())] : null,
+      h('dt', {}, 'Thời gian'), h('dd', {}, fmtDateTime(r.order?.completedAt || new Date().toISOString())),
+      pols.length ? [h('dt', {}, 'Số hợp đồng'), h('dd', {}, pols.map((p) => h('div', {}, p.policyNo || p.certNo)))] : null)),
+    pols.map((p) => certCard(p, home.vehicle.plate)));
+  const saveBtn = h('button', { class: 'c-btn soft', type: 'button' }, ic('download', 20), 'Lưu chứng nhận');
+  saveBtn.addEventListener('click', async () => { busy(saveBtn, true); for (const p of pols) await saveCertificate(p, home.vehicle.plate); busy(saveBtn, false); });
+  f.setBar(saveBtn, h('a', { class: 'c-btn primary', href: '#/home' }, 'Về trang chủ'));
+  f.app.querySelector('.c-result h2')?.focus();
+}
+
+/** Payment failed: nothing was charged; retry or go home. */
+function payFailed(f, ex, retry) {
+  f.show(h('div', { class: 'c-result', role: 'alert' },
+    h('span', { class: 'c-ichip rose c-result-icon' }, ic('x-circle', 36)),
+    h('h2', {}, 'Thanh toán chưa thành công'), h('p', {}, `${viError(ex)} Bạn chưa bị trừ tiền.`)));
+  f.setBar(h('a', { class: 'c-btn ghost', href: '#/home' }, 'Về trang chủ'), h('button', { class: 'c-btn primary block', type: 'button', onclick: retry }, 'Thử lại'));
+}
+
+const processing = () => h('div', { class: 'c-processing', role: 'status', 'aria-live': 'polite' },
+  h('div', { class: 'c-spinner', 'aria-hidden': 'true' }), h('h2', {}, 'Đang xử lý thanh toán'), h('p', {}, 'Vui lòng không đóng ứng dụng.'));
+
+/**
+ * Quick renewal: one review screen, 3 taps in all — "Gia hạn nhanh" on the home card (opens this screen and prices
+ * the cover the server offers), the declaration tick (still explicit, for compliance), "Xác nhận thanh toán".
+ * Pays with an Idempotency-Key and shows the same success screen as the full flow.
+ */
+async function viewQuickRenew() {
+  const home = await api.get('/api/customer/home');
+  state.home = home;
+  const f = flowPage({ title: 'Gia hạn nhanh', onBack: () => { location.hash = '#/home'; } });
+  const custom = () => h('a', { class: 'c-btn ghost block', href: '#/buy' }, ic('sliders', 18), 'Tùy chỉnh gói bảo hiểm');
+  if (!home.quickRenewal?.eligible) {
+    f.show(notice('info', 'info', 'Gia hạn nhanh chưa áp dụng cho xe này', (home.quickRenewal?.reasons || []).join('. ') || null));
+    f.setBar(h('a', { class: 'c-btn primary block', href: '#/buy' }, ic('refresh', 20), 'Gia hạn ngay'));
+    return f.app;
+  }
+  f.show(h('div', { class: 'c-card' }, h('div', { class: 'c-skel c-skel-block', 'aria-label': 'Đang tính phí' })));
+  let q;
+  try {
+    q = await api.post('/api/customer/quotes', { flow: 'quick', products: home.quickRenewal.products, termYears: home.quickRenewal.termYears });
+  } catch (ex) {
+    f.show(notice('warn', 'alert-triangle', 'Chưa tính được phí gia hạn nhanh', viError(ex)));
+    f.setBar(custom());
+    return f.app;
+  }
+  if (q.indicative) {
+    // Core did not price it: the full flow lets the customer confirm the official price first.
+    f.show(notice('warn', 'alert-triangle', 'Đây là giá tạm tính', 'Hệ thống định phí TASCO đang bận. Vui lòng dùng gia hạn đầy đủ để xác nhận giá chính thức.'));
+    f.setBar(custom());
+    return f.app;
+  }
+  const v = home.vehicle;
+  const tascoPay = host().tascoPay;
+  const bal = tascoPay ? null : home.wallet?.balance;
+  const period = q.lines[0] ? fmtPeriod(q.lines[0].startDate, q.lines[0].endDate) : '';
+  const agree = h('input', { type: 'checkbox', id: 'qagree' });
+  const agreeErr = h('span', { class: 'c-err', id: 'qagree-err', 'aria-live': 'polite' });
+  agree.addEventListener('change', () => mount(agreeErr));
+  f.show(
+    h('section', { class: 'c-card c-qr-review', 'aria-labelledby': 'qr-h' },
+      h('h2', { class: 'c-qform-title', id: 'qr-h' }, 'Gia hạn TNDS bắt buộc'),
+      h('p', { class: 'c-qform-sub' }, 'Giữ nguyên thông tin xe và gói bảo hiểm hiện tại'),
+      h('dl', { class: 'c-kv c-qr-kv' },
+        h('dt', {}, 'Biển số'), h('dd', {}, plateTag(v.plate, 'sm')),
+        h('dt', {}, 'Xe'), h('dd', {}, [vehicleType(v.category), v.seats ? `${v.seats} chỗ` : null, USAGE_TEXT[v.usage === 'commercial' ? 'commercial' : 'personal']].filter(Boolean).join(' · ')),
+        h('dt', {}, 'Thời hạn'), h('dd', { class: 'c-num' }, period)),
+      h('ul', { class: 'c-lines' }, q.lines.map((l) => h('li', { class: 'c-line' }, productIcon(l.product),
+        h('div', { class: 'c-line-text' }, h('div', { class: 'c-line-name' }, productName(l)), isTnds(l.product) ? h('div', { class: 'c-line-sub' }, 'Giá theo quy định của Bộ Tài chính') : null),
+        h('span', { class: 'c-line-amt' }, fmtVnd(l.total))))),
+      h('div', { class: 'c-total' }, h('span', { class: 'c-total-label' }, 'Tổng thanh toán'), h('span', { class: 'c-total-amt' }, fmtVnd(q.total)))),
+    h('section', { class: 'c-section', 'aria-labelledby': 'qpm-h' },
+      h('div', { class: 'c-section-head' }, h('h2', { id: 'qpm-h' }, 'Phương thức thanh toán')),
+      h('div', { class: 'c-pay' },
+        h('span', { class: 'c-ichip' }, ic(tascoPay ? 'credit-card' : 'wallet', 22)),
+        h('div', { class: 'c-item-text' }, h('span', { class: 'c-item-title c-strong' }, payMethod()),
+          h('span', { class: 'c-item-sub' }, tascoPay ? 'Thẻ ATM nội địa, thẻ quốc tế, QR ngân hàng' : typeof bal === 'number' ? ['Số dư: ', h('strong', { class: 'c-num' }, fmtVnd(bal))] : 'Số dư hiển thị trong ví VETC')),
+        h('span', { class: 'c-pay-check' }, ic('check', 16, { strokeWidth: 3, label: 'Đã chọn' })))),
+    h('div', {}, h('label', { class: 'c-check', for: 'qagree' }, agree, h('span', {}, 'Tôi xác nhận thông tin xe chính xác và đồng ý với quy tắc bảo hiểm của TASCO.')), agreeErr),
+    h('p', { class: 'c-meta-row' }, ic('lock', 16), tascoPay ? 'Thanh toán được bảo mật bởi cổng thanh toán TASCO.' : 'Thanh toán được bảo mật bởi VETC.'),
+    h('a', { class: 'c-link c-quick-custom', href: '#/buy' }, ic('sliders', 16), 'Tùy chỉnh gói bảo hiểm'));
+  const confirm = h('button', { class: 'c-btn primary block', type: 'button' }, 'Xác nhận thanh toán');
+  const bar = () => f.setBar(h('div', { class: 'c-actionbar-sum' }, h('span', { class: 'c-xs' }, 'Tổng thanh toán'), h('strong', {}, fmtVnd(q.total))), confirm);
+  async function pay() {
+    f.setBar();
+    f.show(processing());
+    try {
+      const r = await api.post('/api/customer/orders', { quoteId: q.id }, { 'Idempotency-Key': idempotencyKey() });
+      state.home = null;
+      successScreen(f, r, home, q.total);
+    } catch (ex) { payFailed(f, ex, pay); }
+  }
+  confirm.addEventListener('click', () => {
+    if (!agree.checked) { mount(agreeErr, ic('alert-circle', 16), 'Vui lòng xác nhận trước khi thanh toán.'); agree.focus(); return; }
+    pay();
+  });
+  bar();
   return f.app;
 }
 
@@ -1294,7 +1396,7 @@ async function startSession(body) {
 }
 
 // ---------------------------------------------------------------- render
-const TITLES = { home: 'Trang chủ', policies: 'Bảo hiểm của tôi', claims: 'Bồi thường', 'claims/new': 'Báo tai nạn', account: 'Tài khoản', buy: 'Mua bảo hiểm', confirm: 'Ngày hết hạn' };
+const TITLES = { home: 'Trang chủ', policies: 'Bảo hiểm của tôi', claims: 'Bồi thường', 'claims/new': 'Báo tai nạn', account: 'Tài khoản', buy: 'Mua bảo hiểm', 'renew-quick': 'Gia hạn nhanh', confirm: 'Ngày hết hạn' };
 let renderSeq = 0;
 async function render() {
   const seq = ++renderSeq;
@@ -1309,6 +1411,7 @@ async function render() {
     if (!state.token) node = await viewEntry();
     else if (path === 'confirm') node = viewConfirm();
     else if (path === 'buy') node = await viewBuy(query);
+    else if (path === 'renew-quick') node = await viewQuickRenew();
     else if (path === 'policies') node = await viewPolicies();
     else if (path === 'claims/new') node = await viewClaimNew();
     else if (path === 'claims') node = await viewClaims();

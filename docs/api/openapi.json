@@ -3,7 +3,7 @@
   "info": {
     "title": "TASCO Growth Platform API",
     "version": "1.0.0",
-    "description": "Motor insurance growth platform for TASCO Insurance × VETC: data enrichment, lead scoring, journeys, voice bot, sales, partners, claims FNOL, rules governance. Built by iorta TechNXT.",
+    "description": "Motor insurance growth platform for TASCO Insurance (sold in the VETC app, Zalo mini app and TASCO channels): data enrichment, lead scoring, journeys, voice bot, sales, partners, claims FNOL, rules governance. Built by iorta TechNXT.",
     "contact": {
       "name": "iorta TechNXT",
       "url": "https://www.iortatechnxt.com"
@@ -6409,12 +6409,543 @@
         }
       }
     },
+    "/api/dsar": {
+      "get": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Data-subject request register with SLA state and KPI summary (masked name and plate only)",
+        "operationId": "getApiDsar",
+        "x-permission": "dsar:manage",
+        "x-audience": "staff",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 1000,
+              "enum": [
+                "received",
+                "in_progress",
+                "completed",
+                "refused"
+              ]
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 1000,
+              "enum": [
+                "access",
+                "erasure"
+              ]
+            }
+          },
+          {
+            "name": "overdue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "pattern": "^[A-Za-z0-9_\\-:@.]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Log a data-subject request (customer by profile id, plate or phone); due date from service_levels.dsarResponseHours",
+        "operationId": "postApiDsar",
+        "x-permission": "dsar:manage",
+        "x-audience": "staff",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "profileId": {
+                    "type": "string",
+                    "maxLength": 80,
+                    "pattern": "^[A-Za-z0-9_\\-:@.]+$"
+                  },
+                  "plate": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "phone": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "type": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "enum": [
+                      "access",
+                      "erasure"
+                    ]
+                  },
+                  "channel": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "enum": [
+                      "hotline",
+                      "email",
+                      "app",
+                      "branch",
+                      "letter"
+                    ]
+                  },
+                  "receivedAt": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "verifiedIdentity": {
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "type",
+                  "channel"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/dsar/{id}": {
+      "get": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Data-subject request detail: timeline and a summary of the data held (counts only)",
+        "operationId": "getApiDsarId",
+        "x-permission": "dsar:manage",
+        "x-audience": "staff",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/dsar/{id}/start": {
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Start handling a data-subject request (optionally record that identity was verified)",
+        "operationId": "postApiDsarIdStart",
+        "x-permission": "dsar:manage",
+        "x-audience": "staff",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "verifiedIdentity": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/dsar/{id}/complete-export": {
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Fulfil an access request: export the data (JSON for download) and mark the request completed",
+        "operationId": "postApiDsarIdCompleteexport",
+        "x-permission": "dsar:manage",
+        "x-audience": "staff",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "verifiedIdentity": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/dsar/{id}/refuse": {
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Refuse a data-subject request with a reason",
+        "operationId": "postApiDsarIdRefuse",
+        "x-permission": "dsar:manage",
+        "x-audience": "staff",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/api/dsar/{id}/export": {
       "post": {
         "tags": [
           "Privacy"
         ],
-        "summary": "Data subject access export",
+        "summary": "Data subject access export by customer id (direct; kept for compatibility — prefer the request register)",
         "operationId": "postApiDsarIdExport",
         "x-permission": "dsar:manage",
         "x-audience": "staff",
@@ -6476,7 +7007,7 @@
         "tags": [
           "Privacy"
         ],
-        "summary": "Data subject erasure (anonymise)",
+        "summary": "Erase personal data (anonymise). For a logged request (DSR-…): needs a reason and the plate typed to confirm, and is recorded as refused while a policy is in force. For a customer id: direct erasure (compatibility)",
         "operationId": "postApiDsarIdErase",
         "x-permission": "dsar:manage",
         "x-audience": "staff",
@@ -6495,6 +7026,30 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "confirmPlate": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "verifiedIdentity": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -6618,7 +7173,7 @@
         "tags": [
           "Customer"
         ],
-        "summary": "My vehicle, cover and benefits",
+        "summary": "My vehicle, cover, benefits and quick-renewal eligibility",
         "operationId": "getApiCustomerHome",
         "x-audience": "customer",
         "security": [
@@ -6828,7 +7383,7 @@
         "tags": [
           "Customer"
         ],
-        "summary": "Quote for my vehicle",
+        "summary": "Quote for my vehicle (flow \"quick\": the quick-renewal cover decided by the server)",
         "operationId": "postApiCustomerQuotes",
         "x-audience": "customer",
         "security": [
@@ -6911,11 +7466,16 @@
                   "journey": {
                     "type": "string",
                     "maxLength": 40
+                  },
+                  "flow": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "enum": [
+                      "quick",
+                      "standard"
+                    ]
                   }
-                },
-                "required": [
-                  "products"
-                ]
+                }
               }
             }
           }

@@ -43,7 +43,7 @@ const EN = {
   noLeads: 'No leads match', noLeadsHint: 'Try removing a filter.', leadQueue: 'Lead queue', company: 'Company', exportAll: 'Export CSV',
   // Customer 360
   overview: 'Overview', policyQuotes: 'Policy & quotes', dataSources: 'Data & sources', journeyTab: 'Journey', contactHistory: 'Contact history', activity: 'Activity',
-  sendQuote: 'Send quote', startCall: 'Start assistant call', callCustomer: 'Call customer', correctExpiry: 'Correct expiry date', simulateTopUp: 'Simulate wallet top-up',
+  sendQuote: 'Send quote', startCall: 'Start assistant call', callCustomer: 'Call customer', correctExpiry: 'Correct expiry date', simulateTopUp: 'Simulate wallet top-up', dataRequests: 'Data requests', logDataRequest: 'Log data request',
   openInbox: 'Open in telesales inbox', insuredTasco: 'Insured with TASCO', expiresIn: (n) => (n === 0 ? 'Expires today' : `Expires in ${n} days`), lapsedFor: (n) => `Lapsed ${n} days`,
   expiresOn: (d) => `Expiry ${d}`, consentMarketing: 'Marketing consent', consentCall: 'Call consent', reachApp: 'VETC app notifications', reachZalo: 'Zalo', reachSms: 'SMS',
   given: 'given', notGiven: 'not given', available: 'available', notAvailable: 'not available', dnc: 'Do not contact', dncText: 'The customer opted out. Do not call or message.',
@@ -131,7 +131,7 @@ const VI = {
   inDays: (n) => (n === 0 ? 'hôm nay' : `còn ${n} ngày`), lapsedDays: (n) => `quá hạn ${n} ngày`, expiryUnknown: 'Chưa rõ',
   noLeads: 'Không có khách hàng phù hợp', noLeadsHint: 'Thử bỏ bớt bộ lọc.', leadQueue: 'Danh sách khách hàng', company: 'Doanh nghiệp', exportAll: 'Xuất CSV',
   overview: 'Tổng quan', policyQuotes: 'Hợp đồng & báo giá', dataSources: 'Dữ liệu & nguồn', journeyTab: 'Hành trình', contactHistory: 'Lịch sử liên hệ', activity: 'Hoạt động',
-  sendQuote: 'Gửi báo giá', startCall: 'Gọi bằng trợ lý tự động', callCustomer: 'Gọi khách hàng', correctExpiry: 'Hiệu chỉnh ngày hết hạn', simulateTopUp: 'Giả lập nạp ví',
+  sendQuote: 'Gửi báo giá', startCall: 'Gọi bằng trợ lý tự động', callCustomer: 'Gọi khách hàng', correctExpiry: 'Hiệu chỉnh ngày hết hạn', simulateTopUp: 'Giả lập nạp ví', dataRequests: 'Yêu cầu dữ liệu cá nhân', logDataRequest: 'Ghi nhận yêu cầu dữ liệu',
   openInbox: 'Mở trong hộp việc telesales', insuredTasco: 'Đang có bảo hiểm TASCO', expiresIn: (n) => (n === 0 ? 'Hết hạn hôm nay' : `Còn ${n} ngày`), lapsedFor: (n) => `Quá hạn ${n} ngày`,
   expiresOn: (d) => `Hết hạn ${d}`, consentMarketing: 'Đồng ý nhận tiếp thị', consentCall: 'Đồng ý nhận cuộc gọi', reachApp: 'Thông báo ứng dụng VETC', reachZalo: 'Zalo', reachSms: 'SMS',
   given: 'có', notGiven: 'không', available: 'có', notAvailable: 'không có', dnc: 'Không liên hệ', dncText: 'Khách đã từ chối liên hệ. Không gọi hoặc nhắn tin.',

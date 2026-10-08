@@ -41,7 +41,7 @@ export const KINDS = {
   'rating.pa_seat': { area: 'products', name: ['Seat accident rates', 'Biểu phí tai nạn người ngồi trên xe'], desc: ['Per-seat personal accident pricing', 'Phí tai nạn theo chỗ ngồi'] },
   commission: { area: 'partners', name: ['Partner commission', 'Hoa hồng đối tác'], desc: ['Commission rates within statutory caps', 'Tỷ lệ hoa hồng trong giới hạn luật định'] },
   enrichment: { area: 'data', name: ['Data trust & enrichment', 'Độ tin cậy & làm giàu dữ liệu'], desc: ['How sources are trusted and merged', 'Mức tin cậy và hợp nhất nguồn dữ liệu'] },
-  service_levels: { area: 'data', name: ['Service levels', 'Mức dịch vụ'], desc: ['Validity periods, SLAs and evidence weights', 'Thời hạn hiệu lực, SLA và trọng số bằng chứng'] },
+  service_levels: { area: 'data', name: ['Service levels', 'Mức dịch vụ'], desc: ['Validity periods, SLAs, evidence weights and quick renewal', 'Thời hạn hiệu lực, SLA, trọng số bằng chứng và gia hạn nhanh'] },
   abac: { area: 'compliance', name: ['Access policies', 'Chính sách truy cập'], desc: ['Who may see which records', 'Ai được xem dữ liệu nào'] },
   copy_guard: { area: 'compliance', name: ['Copy guard', 'Kiểm soát nội dung'], desc: ['Wording never allowed in customer copy', 'Từ ngữ cấm trong nội dung gửi khách hàng'] },
   retention: { area: 'compliance', name: ['Data retention', 'Lưu trữ dữ liệu'], desc: ['How long each kind of record is kept', 'Thời gian lưu trữ từng loại dữ liệu'] },

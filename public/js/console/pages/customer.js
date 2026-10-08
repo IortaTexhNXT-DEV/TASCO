@@ -361,6 +361,9 @@ export default {
       can('quote:create') && can('voice:operate') && lead && !dnc ? { label: st('startCall'), icon: 'mic', onClick: startCall } : null,
       can('handoff:read') ? { label: st('openInbox'), icon: 'inbox', onClick: () => navigate('handoffs') } : null,
       can('profile:update') ? { label: st('correctExpiry'), icon: 'edit', onClick: () => correctExpiryDrawer(api, p, ctx.rerender) } : null,
+      // Compliance: the customer's data-subject requests (register filtered to this customer) and logging a new one.
+      can('dsar:manage') ? { label: st('dataRequests'), icon: 'file-check', onClick: () => navigate(`dsar?profile=${encodeURIComponent(p.id)}`) } : null,
+      can('dsar:manage') ? { label: st('logDataRequest'), icon: 'plus', onClick: () => navigate(`dsar?log=${encodeURIComponent(p.id)}`) } : null,
       can('journeys:run') ? { label: st('simulateTopUp'), icon: 'wallet', onClick: async () => {
         try {
           const r = await api.post('/api/ecosystem/events', { type: 'vetc.wallet_topped_up', profileId: p.id });

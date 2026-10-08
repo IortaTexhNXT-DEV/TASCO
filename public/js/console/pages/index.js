@@ -13,6 +13,7 @@ import dq from './dataQuality.js';
 import partners from './partners.js';
 import users from './users.js';
 import ops from './operations.js';
+import dsar from './dsar.js';
 
 /** Route name → page module ({ perm, render(main, ctx) }). */
-export const PAGES = { home, leads, customer, voice, handoffs, journeys, campaigns, rules, approvals, partners, claims, dq, audit, users, ops };
+export const PAGES = { home, leads, customer, voice, handoffs, journeys, campaigns, rules, approvals, partners, claims, dq, audit, dsar, users, ops };

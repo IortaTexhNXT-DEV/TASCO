@@ -283,3 +283,10 @@ td .input-group.rf-num > .ig-suffix { height: var(--control-h-sm); padding: 0 va
 .ap-history th:nth-child(5) { width: 14%; }
 .ap-history th:nth-child(7) { width: 13%; }
 .au-integrity:not(:empty), .au-kpis { margin-bottom: var(--gutter); }
+
+/* Data requests (DSAR) register */
+.cell-sub.wf-inline-icon { display: inline-flex; align-items: center; gap: 4px; }
+.cell-sub.wf-inline-icon .icon { margin-top: 0; }
+.dsar-search { display: flex; flex-direction: column; gap: var(--sp-2); }
+.dsar-results { list-style: none; margin: 0; padding: var(--sp-1); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); max-height: 240px; overflow: auto; }
+.dsar-picked { min-height: 36px; }

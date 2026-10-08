@@ -64,6 +64,13 @@ const T = {
   'consent.withdrawn': { s: ['{object} asked not to be called again', '{object} yêu cầu không gọi lại'], tone: 'warn', icon: 'phone' },
   'dsar.access_exported': { s: ['{actor} exported the personal data of {object} (access request)', '{actor} đã xuất dữ liệu cá nhân của {object} (yêu cầu truy cập)'], tone: 'info', icon: 'download' },
   'dsar.erased': { s: ['{actor} erased the personal data of {object}', '{actor} đã xóa dữ liệu cá nhân của {object}'], tone: 'warn', icon: 'trash' },
+  'dsar.register_viewed': { s: ['{actor} opened the data request register', '{actor} đã mở danh sách yêu cầu dữ liệu cá nhân'], icon: 'eye' },
+  'dsar.request_logged': { s: (e) => (e.details?.type === 'erasure' ? ['{actor} logged an erasure request from {object}', '{actor} đã ghi nhận yêu cầu xóa dữ liệu của {object}'] : ['{actor} logged an access request from {object}', '{actor} đã ghi nhận yêu cầu truy cập dữ liệu của {object}']), tone: 'info', icon: 'file-check' },
+  'dsar.request_viewed': { s: ['{actor} viewed a data request of {object}', '{actor} đã xem yêu cầu dữ liệu của {object}'], icon: 'eye' },
+  'dsar.identity_verified': { s: ['{actor} verified the identity of {object} for a data request', '{actor} đã xác minh danh tính {object} cho yêu cầu dữ liệu'], icon: 'user-check' },
+  'dsar.request_started': { s: ['{actor} started handling a data request of {object}', '{actor} đã bắt đầu xử lý yêu cầu dữ liệu của {object}'], icon: 'play' },
+  'dsar.request_completed': { s: (e) => (e.details?.selfService ? ['{object} downloaded their own data in the app', '{object} đã tự tải dữ liệu của mình trên ứng dụng'] : e.details?.outcome === 'erased' ? ['{actor} completed the erasure request of {object}', '{actor} đã hoàn tất yêu cầu xóa dữ liệu của {object}'] : ['{actor} completed the access request of {object}', '{actor} đã hoàn tất yêu cầu truy cập dữ liệu của {object}']), tone: 'ok', icon: 'check-circle' },
+  'dsar.request_refused': { s: (e) => (e.details?.refusal === 'policy_in_force' ? ['Erasure for {object} refused: a policy is in force', 'Từ chối xóa dữ liệu của {object}: hợp đồng còn hiệu lực'] : ['{actor} refused a data request of {object}', '{actor} đã từ chối yêu cầu dữ liệu của {object}']), tone: 'warn', icon: 'x-circle' },
   'dq.assigned': { s: ['{actor} assigned a data-quality issue', '{actor} đã phân công một vấn đề dữ liệu'], icon: 'user-check' },
   'dq.resolved': { s: (e) => (e.details?.outcome === 'dismissed' ? ['{actor} dismissed a data-quality issue', '{actor} đã bỏ qua một vấn đề dữ liệu'] : ['{actor} resolved a data-quality issue', '{actor} đã xử lý một vấn đề dữ liệu']), tone: 'ok', icon: 'database' },
   'data.ingested': { s: ['{actor} imported {records} records from {source}', '{actor} đã nhập {records} bản ghi từ {source}'], icon: 'upload' },
@@ -96,6 +103,7 @@ const objectNames = {
   claim: ['claim', 'hồ sơ bồi thường'], quote: ['a quote', 'một báo giá'], order: ['an order', 'một đơn hàng'], handoff: ['a telesales handoff', 'một yêu cầu telesales'],
   dq_issue: ['a data-quality issue', 'một vấn đề dữ liệu'], job: ['a scheduled job', 'một tác vụ'], batch: ['a data import', 'một lần nhập dữ liệu'], leads: ['lead scores', 'điểm khách hàng'],
   user: ['a user', 'một người dùng'], partner: ['a partner', 'một đối tác'], profile: ['a customer', 'một khách hàng'], ruleset: ['a rule set', 'một bộ quy tắc'],
+  dsar: ['the data request register', 'danh sách yêu cầu dữ liệu cá nhân'],
 };
 
 /** Person who acted, as shown to business users. */

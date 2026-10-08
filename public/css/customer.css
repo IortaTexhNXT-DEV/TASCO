@@ -804,3 +804,17 @@ body.customer .c-input:focus { border-color: var(--primary); box-shadow: var(--f
 body.customer .c-greet h1, body.customer .c-greet-hi { color: var(--brand-navy); }
 body.customer .c-splash h1 { color: #ffffff; }
 body.customer .c-qrfull-title { color: #101828; }
+
+/* ---------- Quick renewal (3 taps: open, tick, confirm) ---------- */
+.c-quick-alt { min-height: 44px; color: var(--link); }
+.c-quick-hint { display: flex; align-items: flex-start; gap: 6px; margin: 2px 0 0; font-size: 13px; color: var(--text-muted); }
+.c-quick-hint svg { flex: 0 0 auto; margin-top: 2px; color: var(--link); }
+.c-qr-review { display: flex; flex-direction: column; gap: 12px; }
+.c-qr-review .c-qform-sub { margin: 0; }
+.c-qr-review .c-qr-kv { grid-template-columns: auto minmax(0, 1fr); margin: 4px 0 0; align-items: center; }
+.c-qr-review .c-qr-kv dt { white-space: nowrap; }
+.c-qr-review .c-qr-kv dd { display: flex; justify-content: flex-end; text-align: right; }
+.c-qr-review .c-lines { margin: 0; }
+.c-quick-custom { align-self: center; justify-content: center; width: 100%; }
+.c-skel-block { height: 260px; }
+.c-result-icon { width: 72px; height: 72px; border-radius: 50%; }
