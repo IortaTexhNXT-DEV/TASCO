@@ -123,7 +123,7 @@ function createCustomerService({ store, rules, audit, events, clock, config, gat
         benefits: benefitsFor(benefitRules, factsFor(p, clock.today())),
         consent: p.consent,
         // Additive: 3-step quick renewal offered by the server when the case allows it (reasons in Vietnamese).
-        quickRenewal: { eligible: quick.eligible, reasons: quick.reasons, products: quick.products, termYears: quick.termYears },
+        quickRenewal: { eligible: quick.eligible, reasons: quick.reasons, codes: quick.reasonCodes, products: quick.products, termYears: quick.termYears },
       };
     },
 
@@ -161,9 +161,12 @@ function createCustomerService({ store, rules, audit, events, clock, config, gat
         sources.find({ where: { plate_key: profileId }, limit: 100 }),
         sessions.find({ where: { profile_id: profileId }, limit: 100 }),
       ]);
+      // Additive: the data-subject requests made by this person (register entries, without staff notes).
+      const requestsL = (await col('dsar_requests').find({ where: { profile_id: profileId }, orderBy: ['received_at', 'desc'], limit: 100 }))
+        .map(({ id, type, channel, status, receivedAt, dueAt, completedAt, outcome, refusalReason }) => ({ id, type, channel, status, receivedAt, dueAt, completedAt, outcome, refusalReason }));
       await audit.record({ actor: actor.id, action: 'dsar.access_exported', entityType: 'profile', entityId: profileId });
       const strip = ({ _hidden, ...r }) => r;  
-      return { generatedAt: clock.now().toISOString(), profile: p, lead, policies: pols, quotes: quotesL, orders: ordersL, claims: claimsL, telesalesTasks: handoffsL, messages: msgs, sourceRecords: recs.map(strip), voiceSessions: calls };
+      return { generatedAt: clock.now().toISOString(), profile: p, lead, policies: pols, quotes: quotesL, orders: ordersL, claims: claimsL, telesalesTasks: handoffsL, messages: msgs, sourceRecords: recs.map(strip), voiceSessions: calls, dataRequests: requestsL };
     },
 
     /**

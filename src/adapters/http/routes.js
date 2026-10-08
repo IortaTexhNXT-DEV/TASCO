@@ -5,6 +5,7 @@ const { normalizePlate, normalizePhone } = require('../../domain/identity');
 const { evaluateLead } = require('../../domain/leads');
 const { createRuleSimulation } = require('../../application/ruleSimulation');
 const { AUDIT_CATEGORIES } = require('../../application/auditService');
+const { DSAR_TYPES, DSAR_CHANNELS } = require('../../application/dsarService');
 
 /**
  * API route table (API-first). Each route declares:
@@ -626,10 +627,43 @@ function buildRoutes() {
         if (params.kind === 'relay') return c.services.ops.recordRun('relay', principal.id, async () => ({ processed: await c.events.drain() }));
         throw errors.notFound('Job kind');
       } },
-    { method: 'POST', path: '/api/dsar/:id/export', auth: 'staff', perm: 'dsar:manage', tag: 'Privacy', summary: 'Data subject access export',
+    // Data-subject request register (access / erasure). Every route needs dsar:manage (compliance) and is audited.
+    { method: 'GET', path: '/api/dsar', auth: 'staff', perm: 'dsar:manage', tag: 'Privacy', summary: 'Data-subject request register with SLA state and KPI summary (masked name and plate only)',
+      query: { status: { type: 'string', enum: ['received', 'in_progress', 'completed', 'refused'] }, type: { type: 'string', enum: DSAR_TYPES }, overdue: { type: 'boolean' }, profileId: S.id, limit: S.limit, offset: S.offset },
+      handler: async ({ c, principal, query }) => {
+        const r = await c.services.dsar.list(query);
+        await c.services.audit.record({ actor: principal.id, action: 'dsar.register_viewed', entityType: 'dsar', entityId: null, details: { filters: query, rows: r.items.length } });
+        return r;
+      } },
+    { method: 'POST', path: '/api/dsar', auth: 'staff', perm: 'dsar:manage', tag: 'Privacy', summary: 'Log a data-subject request (customer by profile id, plate or phone); due date from service_levels.dsarResponseHours',
+      body: {
+        profileId: S.id, plate: { type: 'string', max: 20 }, phone: { type: 'string', max: 20 },
+        type: { type: 'string', enum: DSAR_TYPES, required: true }, channel: { type: 'string', enum: DSAR_CHANNELS, required: true },
+        receivedAt: { type: 'string', max: 40 }, verifiedIdentity: { type: 'boolean' }, note: S.text(1000),
+      },
+      handler: async ({ c, principal, body }) => {
+        const r = await c.services.dsar.log(body, principal, { blindKey: c.config.blindIndexKey });
+        return (await c.services.dsar.list({ profileId: r.profileId })).items.find((x) => x.id === r.id) || r;
+      } },
+    { method: 'GET', path: '/api/dsar/:id', auth: 'staff', perm: 'dsar:manage', tag: 'Privacy', summary: 'Data-subject request detail: timeline and a summary of the data held (counts only)',
+      handler: async ({ c, principal, params }) => c.services.dsar.get(params.id, principal) },
+    { method: 'POST', path: '/api/dsar/:id/start', auth: 'staff', perm: 'dsar:manage', tag: 'Privacy', summary: 'Start handling a data-subject request (optionally record that identity was verified)',
+      body: { verifiedIdentity: { type: 'boolean' } },
+      handler: async ({ c, principal, params, body }) => c.services.dsar.start(params.id, body, principal) },
+    { method: 'POST', path: '/api/dsar/:id/complete-export', auth: 'staff', perm: 'dsar:manage', tag: 'Privacy', summary: 'Fulfil an access request: export the data (JSON for download) and mark the request completed',
+      body: { verifiedIdentity: { type: 'boolean' } },
+      handler: async ({ c, principal, params, body }) => c.services.dsar.completeExport(params.id, body, principal) },
+    { method: 'POST', path: '/api/dsar/:id/refuse', auth: 'staff', perm: 'dsar:manage', tag: 'Privacy', summary: 'Refuse a data-subject request with a reason',
+      body: { reason: { type: 'string', max: 500, required: true } },
+      handler: async ({ c, principal, params, body }) => c.services.dsar.refuse(params.id, body, principal) },
+    { method: 'POST', path: '/api/dsar/:id/export', auth: 'staff', perm: 'dsar:manage', tag: 'Privacy', summary: 'Data subject access export by customer id (direct; kept for compatibility — prefer the request register)',
       handler: async ({ c, principal, params }) => c.services.customers.exportData(params.id, principal) },
-    { method: 'POST', path: '/api/dsar/:id/erase', auth: 'staff', perm: 'dsar:manage', tag: 'Privacy', summary: 'Data subject erasure (anonymise)',
-      handler: async ({ c, principal, params }) => c.services.customers.erase(params.id, principal) },
+    { method: 'POST', path: '/api/dsar/:id/erase', auth: 'staff', perm: 'dsar:manage', tag: 'Privacy',
+      summary: 'Erase personal data (anonymise). For a logged request (DSR-…): needs a reason and the plate typed to confirm, and is recorded as refused while a policy is in force. For a customer id: direct erasure (compatibility)',
+      body: { reason: { type: 'string', max: 500 }, confirmPlate: { type: 'string', max: 20 }, verifiedIdentity: { type: 'boolean' } },
+      handler: async ({ c, principal, params, body }) => (/^DSR-/.test(params.id)
+        ? c.services.dsar.erase(params.id, body || {}, principal)
+        : c.services.customers.erase(params.id, principal)) },
 
     // ---------- Customer (VETC app / Zalo mini app) ----------
     { method: 'POST', path: '/api/customer/session', auth: 'public', tag: 'Customer', summary: 'Exchange a signed renewal link (or VETC SSO token) for a customer session', loginLimited: true,
@@ -642,8 +676,8 @@ function buildRoutes() {
         const channel = body.channel || 'vetc_app';
         return { token: c.services.customers.issueCustomerToken(id, channel), profileId: id, channel };
       } },
-    { method: 'GET', path: '/api/customer/home', auth: 'customer', tag: 'Customer', summary: 'My vehicle, cover and benefits',
-      handler: async ({ c, principal }) => c.services.customers.home(principal.customerId) },
+    { method: 'GET', path: '/api/customer/home', auth: 'customer', tag: 'Customer', summary: 'My vehicle, cover, benefits and quick-renewal eligibility',
+      handler: async ({ c, principal }) => c.services.customers.home(principal.customerId, { channel: principal.channel || 'vetc_app' }) },
     { method: 'POST', path: '/api/customer/expiry', auth: 'customer', tag: 'Customer', summary: 'Confirm my current expiry (fixes data, earns points)',
       body: { expiryDate: { type: 'date', required: true }, insurer: { type: 'string', max: 60 } },
       handler: async ({ c, principal, body }) => { const r = await c.services.customers.declareExpiry(principal.customerId, body, principal); await c.events.drain(); return r; } },
@@ -663,9 +697,20 @@ function buildRoutes() {
         const after = await c.store.collection('profiles').get(principal.customerId);
         return { ok: true, category: after.vehicle.category, seats: after.vehicle.seats ?? body.seats, usage: after.vehicle.usage ?? body.usage };
       } },
-    { method: 'POST', path: '/api/customer/quotes', auth: 'customer', tag: 'Customer', summary: 'Quote for my vehicle',
-      body: { products: PRODUCT_LINES, termYears: { type: 'integer', min: 1, max: 3 }, journey: { type: 'string', max: 40 } },
-      handler: async ({ c, principal, body }) => c.services.sales.quote({ ...body, profileId: principal.customerId, channel: principal.channel || 'vetc_app' }, principal) },
+    { method: 'POST', path: '/api/customer/quotes', auth: 'customer', tag: 'Customer', summary: 'Quote for my vehicle (flow "quick": the quick-renewal cover decided by the server)',
+      body: { products: { ...PRODUCT_LINES, required: false }, termYears: { type: 'integer', min: 1, max: 3 }, journey: { type: 'string', max: 40 }, flow: { type: 'string', enum: ['quick', 'standard'] } },
+      handler: async ({ c, principal, body }) => {
+        const channel = principal.channel || 'vetc_app';
+        if (body.flow === 'quick') {
+          // The quick path is decided by the server: re-check eligibility and quote exactly the cover it offers.
+          const q = await c.services.customers.quickRenewal(principal.customerId, { channel });
+          if (!q.eligible) throw errors.rule('Quick renewal is not available for this vehicle — use the standard renewal', { reasons: q.reasons });
+          const lead = await c.store.collection('leads').get(principal.customerId);
+          return c.services.sales.quote({ products: q.products, termYears: q.termYears, journey: lead?.journey || 'renewal', flow: 'quick', profileId: principal.customerId, channel }, principal);
+        }
+        if (!body.products?.length) throw errors.validation('products is required');
+        return c.services.sales.quote({ ...body, flow: body.flow || null, profileId: principal.customerId, channel }, principal);
+      } },
     { method: 'POST', path: '/api/customer/quotes/:id/rerate', auth: 'customer', tag: 'Customer', summary: 'Confirm the final TASCO price of an indicative quote',
       handler: async ({ c, principal, params }) => {
         const q = await c.services.sales.getQuote(params.id);
@@ -692,7 +737,13 @@ function buildRoutes() {
     { method: 'GET', path: '/api/customer/claims', auth: 'customer', tag: 'Customer', summary: 'My claims',
       handler: async ({ c, principal }) => c.services.claims.list({ profileId: principal.customerId }) },
     { method: 'GET', path: '/api/customer/data-export', auth: 'customer', tag: 'Customer', summary: 'Download my data (right of access)',
-      handler: async ({ c, principal }) => c.services.customers.exportData(principal.customerId, principal) },
+      handler: async ({ c, principal }) => {
+        const data = await c.services.customers.exportData(principal.customerId, principal);
+        // Recorded in the request register as a completed access request received through the app.
+        const r = await c.services.dsar.recordSelfServiceExport(principal.customerId, principal);
+        if (r) data.dataRequests = [{ id: r.id, type: r.type, channel: r.channel, status: r.status, receivedAt: r.receivedAt, dueAt: r.dueAt, completedAt: r.completedAt, outcome: r.outcome, refusalReason: null }, ...(data.dataRequests || [])];
+        return data;
+      } },
   ];
 }
 

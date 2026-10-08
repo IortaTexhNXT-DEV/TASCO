@@ -66,7 +66,7 @@ function buildOpenApi(routes, { version, serverUrl }) {
     info: {
       title: 'TASCO Growth Platform API',
       version,
-      description: 'Motor insurance growth platform for TASCO Insurance × VETC: data enrichment, lead scoring, journeys, voice bot, sales, partners, claims FNOL, rules governance. Built by iorta TechNXT.',
+      description: 'Motor insurance growth platform for TASCO Insurance (sold in the VETC app, Zalo mini app and TASCO channels): data enrichment, lead scoring, journeys, voice bot, sales, partners, claims FNOL, rules governance. Built by iorta TechNXT.',
       contact: { name: 'iorta TechNXT', url: 'https://www.iortatechnxt.com' },
     },
     servers: [{ url: serverUrl }],

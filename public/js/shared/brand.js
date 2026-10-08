@@ -7,6 +7,10 @@ import { h } from './dom.js';
  * official TASCO Insurance logo and must be replaced by the asset TASCO marketing supplies (do not copy the
  * logo image from the TASCO website). Styles: .wordmark in public/css/components.css.
  *
+ * TASCO Insurance stands alone: no co-brand ("× VETC" or any partner mark) is shown next to the wordmark in the
+ * customer app, the certificate, the verification page or the console. Host names appear only as facts
+ * (the "Ví VETC" payment method, "mở lại từ ứng dụng VETC").
+ *
  * @param {{ size?: 'sm'|'md'|'lg'|'xl', variant?: 'color'|'white'|'navy', label?: string|null, tag?: string, attrs?: object }} [o]
  *   variant 'white' is for navy and teal backgrounds; 'navy' keeps the light-theme colours in dark mode.
  *   label: accessible name (default "TASCO Insurance"); pass null when a surrounding link already names it.

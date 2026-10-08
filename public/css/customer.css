@@ -1,5 +1,5 @@
 /*
- * TASCO Insurance × VETC — customer app (mobile-first, 360–430px) and the public certificate
+ * TASCO Insurance — customer app (mobile-first, 360–430px) and the public certificate
  * verification page. Built on tokens.css; every class is prefixed c- (app) or v- (verify) so the
  * staff console component library can evolve independently.
  */
@@ -47,8 +47,6 @@ body.c-locked { overflow: hidden; }
 .c-appbar-end { margin-left: auto; }
 .c-brand { display: inline-flex; align-items: center; gap: 8px; min-width: 0; flex: 1; color: var(--text-muted); font-size: 13px; font-weight: 600; }
 .c-brand img { height: 22px; width: auto; display: block; }
-.c-brand-x { color: var(--text-subtle); font-weight: 400; }
-.c-vetc { display: inline-flex; align-items: center; height: 22px; padding: 0 7px; border-radius: 6px; background: var(--brand-navy); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; }
 .c-iconbtn { width: 44px; height: 44px; flex: 0 0 44px; display: inline-grid; place-items: center; border-radius: 50%; border: 0; background: transparent; color: inherit; cursor: pointer; text-decoration: none; }
 .c-iconbtn:hover { background: var(--surface-3); }
 .c-iconbtn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
@@ -156,7 +154,6 @@ body.c-locked { overflow: hidden; }
 .c-hero-brand { display: inline-flex; align-items: center; gap: 8px; flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, 0.85); letter-spacing: 0.01em; }
 .c-hero-logo { display: inline-flex; background: #fff; border-radius: 8px; padding: 4px 8px; }
 .c-hero-logo img { height: 18px; width: auto; display: block; }
-.c-hero .c-vetc { background: rgba(255, 255, 255, 0.16); }
 .c-hero .c-iconbtn { color: #fff; }
 .c-hero .c-iconbtn:hover { background: rgba(255, 255, 255, 0.12); }
 .c-greet { margin: 12px 0 0; }
@@ -656,8 +653,6 @@ body.customer h1, body.customer h2, body.customer h3, .c-page-title, .c-card-tit
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .c-appbar { background: var(--surface); } }
 :root[data-theme="dark"] .c-appbar { background: var(--surface); }
 .c-brand { gap: 10px; color: var(--heading); }
-.c-brand .c-brand-x { color: var(--text-subtle); font-size: 14px; }
-.c-vetc { background: var(--brand-navy); font-family: var(--font-brand); }
 .c-appbar-title { font-weight: 500; color: var(--heading); }
 
 /* Buttons: 52px, 8px radius, action teal */
@@ -783,8 +778,6 @@ body.customer .c-input:focus { border-color: var(--primary); box-shadow: var(--f
 .c-splash::before { display: none; }
 .c-splash > .c-splash-band { position: absolute; z-index: -1; right: -30%; bottom: -6%; width: 90%; height: 46%; background: linear-gradient(135deg, rgba(108, 199, 197, 0.75), rgba(108, 199, 197, 0.35)); clip-path: polygon(40% 0, 100% 0, 100% 100%, 0 100%); }
 .c-splash > .c-hero-brand { display: flex; align-items: center; gap: 12px; color: #fff; }
-.c-splash .c-brand-x { color: rgba(255, 255, 255, 0.8); }
-.c-splash .c-vetc { background: rgba(255, 255, 255, 0.18); }
 .c-splash h1 { font-weight: 600; }
 .c-cert-head { background: var(--c-navy-grad); }
 .c-cert-head .wordmark { --wm-size: 16px; }

@@ -27,6 +27,7 @@ const { createCatalogueService } = require('../application/catalogueService');
 const { createPartnerService } = require('../application/partnerService');
 const { createClaimsService } = require('../application/claimsService');
 const { createCustomerService } = require('../application/customerService');
+const { createDsarService } = require('../application/dsarService');
 const { createIdentityService } = require('../application/identityService');
 const { createAccessPolicy } = require('../application/accessPolicy');
 const { createInsightsService } = require('../application/insightsService');
@@ -100,6 +101,7 @@ async function createContainer(config, { logSink, store: injectedStore } = {}) {
   const voice = createVoiceService(deps);
   const rating = createRatingService(deps);
   const ops = createOpsService(deps);
+  const customers = createCustomerService(deps);
   const services = {
     rules,
     audit,
@@ -111,7 +113,8 @@ async function createContainer(config, { logSink, store: injectedStore } = {}) {
     rating,
     partners: createPartnerService(deps),
     claims: createClaimsService(deps),
-    customers: createCustomerService(deps),
+    customers,
+    dsar: createDsarService({ ...deps, customers }),
     identity: createIdentityService(deps),
     access: createAccessPolicy(deps),
     insights: createInsightsService(deps),

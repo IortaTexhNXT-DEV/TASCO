@@ -2,7 +2,7 @@
 
 const crypto = require('crypto');
 const { errors } = require('../shared/errors');
-const { maskName, fmtDate } = require('../shared/util');
+const { maskName } = require('../shared/util');
 const { normalizePlate, normalizePhone } = require('../domain/identity');
 const { blindIndex } = require('../shared/crypto');
 const { userNames } = require('./auditService');
@@ -27,7 +27,7 @@ const HOUR_MS = 3600000;
 const DAY_MS = 86400000;
 
 /** Business-language refusal for a policy in force (Vietnamese: the register is an operational record in Vietnam). */
-const policyInForceReason = (endDate) => `Hợp đồng bảo hiểm còn hiệu lực${endDate ? ` đến ${fmtDate(new Date(`${endDate}T00:00:00Z`)).split('-').reverse().join('/')}` : ''} — dữ liệu cá nhân phải được lưu giữ đến khi hợp đồng hết hạn theo nghĩa vụ pháp lý.`;
+const policyInForceReason = (endDate) => `Hợp đồng bảo hiểm còn hiệu lực${endDate ? ` đến ${String(endDate).slice(0, 10).split('-').reverse().join('/')}` : ''} — dữ liệu cá nhân phải được lưu giữ đến khi hợp đồng hết hạn theo nghĩa vụ pháp lý.`;
 
 function createDsarService({ store, rules, audit, clock, customers }) {
   const requests = store.collection('dsar_requests');
@@ -41,6 +41,16 @@ function createDsarService({ store, rules, audit, clock, customers }) {
 
   /** Readable reference, e.g. DSR-261008-4F2A (date received + random suffix). */
   const newId = (at) => `DSR-${at.slice(2, 10).replace(/-/g, '')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+
+  /** Insert with a fresh reference on the (rare) collision of the random suffix. */
+  async function insertUnique(r) {
+    for (let i = 0; ; i++) {
+      try { return await requests.insert(r); } catch (e) {
+        if (e.code !== 'CONFLICT' || i > 5) throw e;
+        r.id = newId(r.receivedAt);
+      }
+    }
+  }
 
   async function load(id) {
     const r = await requests.get(id);
@@ -140,12 +150,12 @@ function createDsarService({ store, rules, audit, clock, customers }) {
       const r = {
         id: newId(receivedAt), profileId: p.id, plate: p.plate, customerName: maskName(p.name), anonymised: !!p.anonymised,
         type: input.type, channel: input.channel, receivedAt, dueAt: new Date(receivedMs + hours * HOUR_MS).toISOString(), responseHours: hours,
-        status: input.completed ? 'completed' : 'received', note: input.note || null, outcome: null, refusalReason: null,
+        status: 'received', note: input.note || null, outcome: null, refusalReason: null,
         verifiedIdentity: !!input.verifiedIdentity, identityVerifiedAt: input.verifiedIdentity ? now : null, identityVerifiedBy: input.verifiedIdentity ? actor.id : null,
         createdBy: actor.id, handledBy: null, completedAt: null, createdAt: now,
         history: [{ status: 'received', at: receivedAt, by: actor.id }, ...(input.verifiedIdentity ? [{ status: 'identity_verified', at: now, by: actor.id }] : [])],
       };
-      await requests.insert(r);
+      await insertUnique(r);
       await audit.record({ actor: actor.id, action: 'dsar.request_logged', entityType: 'profile', entityId: p.id, details: { requestId: r.id, type: r.type, channel: r.channel } });
       return r;
     },
@@ -166,7 +176,7 @@ function createDsarService({ store, rules, audit, clock, customers }) {
         createdBy: actor.id, handledBy: actor.id, completedAt: now, createdAt: now, selfService: true,
         history: ['received', 'identity_verified', 'completed'].map((status) => ({ status, at: now, by: actor.id })),
       };
-      await requests.insert(r);
+      await insertUnique(r);
       await audit.record({ actor: actor.id, action: 'dsar.request_completed', entityType: 'profile', entityId: profileId, details: { requestId: r.id, type: 'access', channel: 'app', outcome: 'exported', selfService: true } });
       return r;
     },
@@ -205,10 +215,8 @@ function createDsarService({ store, rules, audit, clock, customers }) {
       const r = await load(id);
       assertOpen(r);
       const now = clock.now().toISOString();
-      const patch = { status: 'in_progress', handledBy: actor.id, startedAt: r.startedAt || now };
-      if (verifiedIdentity && !r.verifiedIdentity) Object.assign(patch, { verifiedIdentity: true, identityVerifiedAt: now, identityVerifiedBy: actor.id });
       let saved = r;
-      if (patch.verifiedIdentity) saved = await save(saved, { verifiedIdentity: true, identityVerifiedAt: now, identityVerifiedBy: actor.id }, { status: 'identity_verified' }, actor, 'dsar.identity_verified');
+      if (verifiedIdentity && !r.verifiedIdentity) saved = await save(saved, { verifiedIdentity: true, identityVerifiedAt: now, identityVerifiedBy: actor.id }, { status: 'identity_verified' }, actor, 'dsar.identity_verified');
       if (r.status === 'received') saved = await save(saved, { status: 'in_progress', handledBy: actor.id, startedAt: now }, { status: 'in_progress' }, actor, 'dsar.request_started');
       return (await views([saved]))[0];
     },
@@ -267,12 +275,6 @@ function createDsarService({ store, rules, audit, clock, customers }) {
       const saved = await save(r, { status: 'refused', refusalCode: 'manual', refusalReason: String(reason).trim(), handledBy: actor.id, completedAt: now },
         { status: 'refused', note: String(reason).trim() }, actor, 'dsar.request_refused', { refusal: 'manual' });
       return (await views([saved]))[0];
-    },
-
-    /** Requests about one data subject (included in their own access export). */
-    async forProfile(profileId) {
-      return (await requests.find({ where: { profile_id: profileId }, orderBy: ['received_at', 'desc'], limit: 100 }))
-        .map(({ id, type, channel, status, receivedAt, dueAt, completedAt, outcome, refusalReason }) => ({ id, type, channel, status, receivedAt, dueAt, completedAt, outcome, refusalReason }));
     },
   };
   return service;

@@ -6,7 +6,8 @@ import { icon } from '../shared/icons.js';
 import { wordmark } from '../shared/brand.js';
 
 /**
- * Customer app — TASCO Insurance × VETC. Opens inside the VETC super-app (or Zalo mini app) WebView
+ * Customer app — TASCO Insurance (TASCO brand only; hosts such as the VETC app are named only as facts: the payment
+ * method "Ví VETC" and "mở lại từ ứng dụng VETC"). Opens inside the VETC super-app (or Zalo mini app) WebView
  * from a signed renewal link. Vietnamese only, mobile-first (360–430px).
  *
  * Routes (hash): home · policies · claims · claims/new · account · buy[?quote=ID] · confirm
@@ -39,6 +40,7 @@ function setHotline(meta) {
  * Read from ?channel= (allowlist only), kept in sessionStorage, sent with the session request. Wording follows it.
  */
 const CHANNELS = ['vetc_app', 'zalo_mini_app', 'tasco_app', 'tasco_web'];
+/** partner: the distributing host (wording such as "Phân phối qua …" only — never rendered as a brand mark). */
 const HOSTS = {
   vetc_app: { open: 'ứng dụng VETC', via: 'ứng dụng VETC', partner: 'VETC', tascoPay: false },
   zalo_mini_app: { open: 'Zalo Mini App VETC', via: 'Zalo Mini App VETC', partner: 'VETC', tascoPay: false },
@@ -234,7 +236,7 @@ async function saveCertificate(p, plate) {
     g.fillStyle = '#ffffff'; roundRect(g, 64, 64, 260, 92, 18); g.fill();
     if (logo) { const lh = 60; const lw = (logo.width / logo.height) * lh; g.drawImage(logo, 64 + (260 - lw) / 2, 64 + 16, lw, lh); }
     g.fillStyle = '#ffffff'; g.font = font(700, 46); g.fillText('Giấy chứng nhận bảo hiểm', 64, 236);
-    g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = font(500, 30); g.fillText(`Bản điện tử · TASCO Insurance${host().partner ? ` × ${host().partner}` : ''}`, 64, 280);
+    g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = font(500, 30); g.fillText('Bản điện tử · TASCO Insurance', 64, 280);
     g.fillStyle = '#101828'; g.font = font(700, 40);
     let y = 380;
     for (const line of wrapText(g, productName(p), W - 128)) { g.fillText(line, 64, y); y += 52; }
@@ -279,10 +281,8 @@ function tabbar(current) {
     TABS.map(([r, ico, text]) => h('a', { class: 'c-tab', href: `#/${r}`, 'aria-current': current === r ? 'page' : null },
       h('span', { class: 'c-tab-icon' }, ic(ico, 22, { strokeWidth: current === r ? 2.1 : 1.75 })), h('span', { class: 'c-tab-label' }, text))));
 }
-/** Wordmark (stand-in TASCO logo, see shared/brand.js) and, inside VETC hosts, the "× VETC" co-brand. */
-const brandMark = (variant = 'color') => h('span', { class: 'c-brand' },
-  wordmark({ size: 'sm', variant }),
-  host().partner ? [h('span', { class: 'c-brand-x', 'aria-hidden': 'true' }, '×'), h('span', { class: 'c-vetc', 'aria-label': host().partner }, host().partner)] : null);
+/** TASCO INSURANCE wordmark only (stand-in TASCO logo, see shared/brand.js) — no co-brand in any host. */
+const brandMark = (variant = 'color') => h('span', { class: 'c-brand' }, wordmark({ size: 'sm', variant }));
 
 /** Support options for the floating button sheet and the Account tab (rows whose value is not configured are hidden). */
 function supportLinks() {
@@ -884,7 +884,7 @@ async function viewBuy(query) {
 function certCard(p, plate) {
   return h('article', { class: 'c-cert', 'aria-label': `Giấy chứng nhận ${p.certNo}` },
     h('div', { class: 'c-cert-head' }, wordmark({ size: 'sm', variant: 'white', label: null }),
-      h('div', { class: 'c-cert-head-text' }, h('strong', {}, 'Giấy chứng nhận điện tử'), host().partner ? `TASCO Insurance × ${host().partner}` : 'TASCO Insurance')),
+      h('div', { class: 'c-cert-head-text' }, h('strong', {}, 'Giấy chứng nhận điện tử'), 'TASCO Insurance')),
     h('div', { class: 'c-cert-body' },
       h('p', { class: 'c-cert-name' }, productName(p)),
       h('dl', { class: 'c-cert-fields' },
@@ -1266,8 +1266,7 @@ async function viewEntry() {
   const H = host();
   return h('div', { class: 'c-app' }, h('main', { class: 'c-splash', id: 'app-main' },
     h('span', { class: 'c-splash-band', 'aria-hidden': 'true' }),
-    h('div', { class: 'c-hero-brand' }, wordmark({ size: 'lg', variant: 'white' }),
-      H.partner ? [h('span', { class: 'c-brand-x', 'aria-hidden': 'true' }, '×'), h('span', { class: 'c-vetc' }, H.partner)] : null),
+    h('div', { class: 'c-hero-brand' }, wordmark({ size: 'lg', variant: 'white' })),
     h('div', { class: 'c-splash-mid' },
       h('h1', { tabindex: '-1' }, H.partner ? `Bảo hiểm xe ngay trong ${H.open}` : 'Bảo hiểm xe trực tuyến cùng TASCO'),
       h('p', {}, state.entryError || `Mở từ ${H.open} hoặc liên kết gia hạn được gửi cho bạn để tiếp tục.`),
@@ -1324,7 +1323,7 @@ async function render() {
     node = tabPage(path.split('/')[0], [emptyState('alert-triangle', 'Không tải được dữ liệu', viError(ex), h('button', { class: 'c-btn primary', type: 'button', onclick: () => render() }, 'Thử lại'))]);
   }
   if (seq !== renderSeq) return undefined;
-  document.title = `${state.token ? TITLES[path] || 'Trang chủ' : 'Bảo hiểm xe'} · ${host().partner ? `TASCO × ${host().partner}` : 'Bảo hiểm TASCO'}`;
+  document.title = `${state.token ? TITLES[path] || 'Trang chủ' : 'Bảo hiểm xe'} · Bảo hiểm TASCO`;
   mount(root, node);
   window.scrollTo(0, 0);
   if (rendered) (root.querySelector('h1[tabindex="-1"]') || root.querySelector('main'))?.focus({ preventScroll: true });
