@@ -9,6 +9,7 @@ reviewed_by: TASCO Insurance, Product Owner
 approved_by: TASCO Insurance, Programme Sponsor
 change_history: Initial issue for submission
 acronyms:
+  - [AI, Artificial intelligence]
   - [API, Application Programming Interface]
   - [ASVS, Application Security Verification Standard]
   - [B2B, Business to business]
@@ -25,6 +26,7 @@ acronyms:
   - [OWASP, Open Worldwide Application Security Project]
   - [QA, Quality assurance]
   - [QR, Quick response (code)]
+  - [SHA, Secure Hash Algorithm]
   - [SMS, Short message service]
   - [SSO, Single sign-on]
   - [TNDS, Compulsory motor third-party liability insurance (Bảo hiểm TNDS bắt buộc)]
@@ -36,6 +38,7 @@ signoff:
   - ["Physical damage and personal accident rates replaced with TASCO filed rates", "TASCO Product and Actuarial", Open]
   - ["Statutory commission caps confirmed (to be confirmed by TASCO legal)", "TASCO Finance and Legal", Open]
   - ["Retention periods and legal-hold rules confirmed (to be confirmed by TASCO legal)", "TASCO Legal", Open]
+  - ["Response time for data-subject requests, set at 72 hours, confirmed against Decree 13/2023/ND-CP and the Personal Data Protection Law 91/2025/QH15 (to be confirmed by TASCO legal)", "TASCO Legal and Compliance", Open]
   - ["Loyalty points and referral programme approved or rejected", "TASCO Legal", Open]
   - ["MoSCoW priorities for MVP scope confirmed", "TASCO Product Owner", Open]
 ---
@@ -44,11 +47,11 @@ signoff:
 
 ## Purpose
 
-This specification states what the TASCO Growth Platform must do. Each functional requirement has a stable identifier, the business rules that govern it, a priority, the challenge track it serves and its build status on 7 October 2026. TGP-BUS-04 User Stories and Acceptance Criteria states how each requirement is accepted, and TGP-BUS-05 Requirements Traceability Matrix links each one to stories, tests and components.
+This specification states what the TASCO Growth Platform must do. Each functional requirement has a stable identifier, the business rules that govern it, a priority, the challenge track it serves and its build status. TGP-BUS-04 User Stories and Acceptance Criteria states how each requirement is accepted, and TGP-BUS-05 Requirements Traceability Matrix links each one to stories, tests and components.
 
 ## Scope
 
-The specification covers 117 requirements in 16 capability areas: data, lead intelligence, journeys, the voice assistant, telesales, sales and issuance, products and rating, benefits, partners and fleet, claims first notice, customer self-service and privacy, rules governance, identity and access, audit, operations and user interfaces, and the TASCO core integration. Non-functional requirements are in TGP-BUS-03.
+The specification covers 119 requirements in 16 capability areas: data, lead intelligence, journeys, the voice assistant, telesales, sales and issuance, products and rating, benefits, partners and fleet, claims first notice, customer self-service and privacy, rules governance, identity and access, audit, operations and user interfaces, and the TASCO core integration. Non-functional requirements are in TGP-BUS-03.
 
 ## Audience
 
@@ -109,7 +112,7 @@ The platform orchestrates; it does not take over what TASCO core or VETC own. TA
 | Auditor | Audit search and verification |
 | Support engineer | Integration status, jobs, reconciliation |
 | Admin | Users, roles and regions; cannot author or approve rules or see customer personal data |
-| Customer | Customer app inside the VETC app |
+| Customer | Customer app inside the VETC app; later also TASCO's app and website and a Zalo Mini App (FR-117) |
 | Partner system | Partner API, authenticated by key |
 
 ## Capability areas
@@ -126,7 +129,7 @@ The platform orchestrates; it does not take over what TASCO core or VETC own. TA
 | H | Value and benefits | FR-058 to FR-062 |
 | I | Partners and fleet | FR-063 to FR-070 |
 | J | Claims first notice | FR-071 to FR-073 |
-| K | Customer self-service and privacy | FR-074 to FR-081 |
+| K | Customer self-service and privacy | FR-074 to FR-081, FR-116 to FR-119 |
 | L | Rules governance | FR-082 to FR-088 |
 | M | Identity and access | FR-089 to FR-096 |
 | N | Audit | FR-097 to FR-099 |
@@ -398,16 +401,18 @@ sequenceDiagram
 
 | ID | Requirement | Key rules | Pri | Track | Status |
 |---|---|---|---|---|---|
-| FR-074 | Customer session. The customer app (VETC app web view or Zalo mini app) exchanges a signed renewal link (HMAC, no guessable IDs) or a VETC single sign-on token for a one-hour session limited to one vehicle. Links expire after 30 days by default. Sign-in is rate-limited | Customer can see only their own vehicle | M | T3 | Built (signed link); VETC SSO in the scale phase |
+| FR-074 | Customer session. The customer app, in whichever host it runs (FR-117), exchanges a signed renewal link (HMAC, no guessable IDs) or a VETC single sign-on token for a one-hour session limited to one vehicle. Links expire after 30 days by default. Sign-in is rate-limited | Customer can see only their own vehicle | M | T3 | Built (signed link); VETC SSO in the scale phase |
 | FR-075 | Cover status home. Show vehicle, cover (expiry, confidence, insurer, verified, days to expiry, and "please confirm" when confidence is below 0.75), regulated premium, TASCO policies with certificate links, top approved benefits and consent | Benefits rule set | M | T3, T4 | Built |
 | FR-076 | Confirm my expiry. The customer declares the expiry date and insurer; the record is updated at confidence 0.75 and recomputed | Customer-declared confidence 0.75 | M | T2 | Built |
-| FR-077 | Purchase with add-ons. The customer gets a quote (TNDS, optionally personal accident or physical damage cover, term one to three years) and pays with an idempotency key, from the VETC wallet or through TASCO's payment gateway depending on the host (FR-117). Quotes sent by telesales appear for confirmation. Physical damage needs a recorded inspection first. An indicative quote must be re-rated before payment. The e-certificate with QR is shown at once | VETC app channel | M | T3 | Built |
+| FR-077 | Purchase with add-ons. The customer gets a quote (TNDS, optionally personal accident or physical damage cover, term one to three years) and pays with an idempotency key, from the VETC wallet or through TASCO's payment gateway depending on the host (FR-117). Renewal has two paths: quick renewal in three steps when the case allows it (FR-119), and the full six-step flow, which is always available as "Tùy chỉnh gói bảo hiểm". Quotes sent by telesales appear for confirmation. Physical damage needs a recorded inspection first. An indicative quote must be re-rated before payment. The e-certificate with QR is shown at once | Product channels by host | M | T3 | Built |
 | FR-078 | Consent centre. The customer switches marketing and call consent on or off. Changes are audited, survive data reloads and trigger recompute | Consent required per purpose | M | PL | Built |
 | FR-079 | Download my data. The customer downloads all data held about their vehicle: profile, lead, policies, quotes, orders, claims, telesales tasks, messages, source records and assistant sessions | Right of access | M | PL | Built |
-| FR-080 | Data-subject requests by staff. A compliance officer exports a data subject's data and erases it by anonymisation. Erasure is refused while a policy is in force. Messages, transcripts, assistant signals, handoffs and claim text are scrubbed, source personal data is removed and the subject's sessions end | Retention rule set | M | PL | Built |
+| FR-080 | Export and erasure by staff. A compliance officer exports a data subject's data and erases it by anonymisation, normally from a logged request in the data-request register (FR-118). Erasure is refused while a policy is in force. Messages, transcripts, assistant signals, handoffs and claim text are scrubbed, source personal data is removed and the subject's sessions end | Retention rule set | M | PL | Built |
 | FR-081 | Masking by permission. Customer 360 masks name and phone unless the viewer may see personal data. Every profile view is audited with a visibility flag | Role permissions | M | PL | Built |
 | FR-116 | Confirm vehicle use and seats. Before quoting, the customer confirms whether the vehicle is used for commercial transport and how many seats it has, as on e.baohiemtasco.vn. The answer is stored as customer evidence (source trust 0.9), the vehicle category is recalculated and the TNDS price follows | Data enrichment rule set | M | T3, PL | Built |
 | FR-117 | Same journeys in every host app. The customer journeys run inside the VETC app, a Zalo Mini App, TASCO's own app and the TASCO website. The session records the host; quotes and orders are attributed to it; payment uses the VETC wallet in VETC and Zalo hosts and TASCO's payment gateway in TASCO hosts. Products list the hosts they may be sold in | Product channels in the products rule set | M | T3, PL | Built (TASCO payment gateway on a sandbox connector) |
+| FR-118 | Data-subject request register. Compliance logs every access or erasure request with the customer (found by plate, phone or profile), the channel (hotline, email, app, branch or letter) and the time received. The due time is the received time plus the response time in the service levels rule set (72 hours, to be confirmed by TASCO legal). Statuses: received, in progress, completed, refused. Identity must be recorded as verified before any export or erasure. Export downloads a file named TASCO-data-plate-date.json. Erasure needs a reason and the typed plate, and is refused, with the reason recorded, while a policy is in force. A refusal always carries a reason. The "Data requests" screen in the Governance group shows open requests, those due within 24 hours, overdue requests and those completed in the last 30 days, and a timeline for each request. The customer's own download in the app (FR-079) is recorded as a completed access request on channel app. Every action is audited | Service levels rule set; permission to manage data requests (compliance officer only) | M | PL | Built |
+| FR-119 | Quick renewal. The server decides, case by case, whether the customer app offers quick renewal ("Gia hạn nhanh"): open, tick the declaration, then "Xác nhận thanh toán". The declaration stays an explicit step. Otherwise, or whenever the customer prefers, the full flow applies: "Gia hạn ngay", "Xem phí bảo hiểm", "Tiếp tục", declaration, "Thanh toán", "Xác nhận thanh toán". A customer qualifies when the journey is renewal or they are renewing a TASCO TNDS policy; the vehicle is not already renewed; vehicle use and seats are confirmed by TASCO core, a matching TASCO policy or the customer within 365 days (FR-116); the cover is TNDS with no physical damage; the product is sold in the host; the price will not be indicative; and, in VETC hosts, the wallet covers the premium. The home screen states whether the customer qualifies and, if not, why, in plain Vietnamese. The server sets the cover; the app cannot change it | Quick renewal settings in the service levels rule set | S | T3 | Built |
 
 ## L. Rules governance
 
@@ -430,7 +435,7 @@ The rules studio presents each rule set as a form in business language, with an 
 | FR-089 | Staff sign-in with lockout. Username and password. After five failures (password or code) the account is locked for 15 minutes (configurable). Timing is equalised for unknown users. Every attempt is audited | Lockout settings | M | PL | Built |
 | FR-090 | Two-factor authentication. Required for enrolled users and mandatory for admin, rule approver, compliance officer and data steward. These users self-enrol at first sign-in by QR, shown only to them; administrators never see the secret. Codes cannot be reused | Mandatory MFA roles | M | PL | Built |
 | FR-091 | Sessions. Access tokens last 30 minutes by default and carry roles, region and sign-in method. Sign-out revokes the token; a password change or a change of role, status or region revokes all of the user's tokens | None | M | PL | Partial: sign-out revocation is per server (E-15) |
-| FR-092 | Role-based access. 15 roles mapped to permissions, deny by default. Forbidden role pairs (for example admin with rule approver, rule author with rule approver) enforce separation of duties. The admin cannot author or approve rules or see customer personal data | Security configuration | M | PL | Built |
+| FR-092 | Role-based access. 15 roles (13 staff roles, the customer and the partner system) mapped to permissions, deny by default. Forbidden role pairs (for example admin with rule approver, rule author with rule approver) enforce separation of duties. The admin cannot author or approve rules or see customer personal data | Security configuration | M | PL | Built |
 | FR-093 | Attribute-based access. Checked after roles: agents see only their own or unassigned handoffs; telesales see profiles in their region; customers see only their vehicle. Adding an unrelated role never widens access | Attribute access policies | M | PL | Built |
 | FR-094 | User administration. An admin creates users (password policy, roles, region), changes roles, region or status, lists users, clears a lockout or forces two-factor re-enrolment. New users change their password at first sign-in. An admin cannot reset their own account or change their own roles or status | None | M | PL | Built |
 | FR-095 | Partner and customer authentication. Partners authenticate with an API key and act as the partner role. Customer sessions are limited to one profile | None | M | PL | Built |
@@ -456,8 +461,8 @@ The rules studio presents each rule set as a form in business language, with an 
 | FR-105 | Retention. Apply retention by data type: source records deleted after 365 days, assistant sessions after 180 days, profiles anonymised after 1,825 days of inactivity, and messages, orders, certificates and audit archived after their stated periods. A legal hold overrides deletion | Data retention rule set | M | PL | Partial (E-09) |
 | FR-106 | Health, metrics and API description. Liveness and readiness checks (readiness checks the database), operational metrics and an OpenAPI 3 description generated from the route table | None | M | PL | Built |
 | FR-107 | Demo and UAT environment. Demo users (one per role), five demo partners and a synthetic VETC base that reproduces the brief's data problems (about one in ten verified). Demo mode is off by default and is required for demo seeding and the demo authenticator. UAT-only switches manage demo accounts. Production refuses to start without a database | Demo mode off by default | S | PL | Built |
-| FR-108 | Staff console. Sign-in with two-factor authentication; grouped sidebar, global search, notifications and user menu; role-based home; lead queue with explainable score and action; Customer 360 (lineage, journey, messages, policies, benefits, Sell tab); voice assistant console; telesales inbox; journeys and event simulator; rules studio and approvals; partners; claims; data quality; audit; users; operations; contextual help | Business-language labels | M | All | Built; redesign in progress |
-| FR-109 | Customer app. Bottom tab bar (Home, Buy and renew, Claims, Account); cover status card; confirm expiry; purchase with add-ons; VETC wallet payment; e-certificate with QR; benefits; consent centre; accident reporting; download my data. Public certificate verification page | Vietnamese for customers | M | T3, T4 | Built |
+| FR-108 | Staff console. Sign-in with two-factor authentication; grouped sidebar, global search, notifications and user menu; role-based home; lead queue with explainable score and action; Customer 360 (lineage, journey, messages, policies, benefits, Sell tab); voice assistant console; telesales inbox; journeys and event simulator; rules studio and approvals; partners; claims; data quality; audit; data requests; users; operations; contextual help | Business-language labels | M | All | Built |
+| FR-109 | Customer app. Bottom tab bar (Home, Buy and renew, Claims, Account); cover status card; confirm expiry; confirm vehicle use and seats; quick renewal or the full purchase flow with add-ons; payment by VETC wallet or TASCO's payment gateway, depending on the host; e-certificate with QR; benefits; consent centre; accident reporting; download my data. Public certificate verification page | Vietnamese for customers | M | T3, T4 | Built |
 | FR-110 | Language and themes. Vietnamese and English in the staff console, Vietnamese in the customer app; light and dark themes; dates dd/mm/yyyy | None | M | PL | Built |
 
 ## P. TASCO core integration
@@ -472,11 +477,11 @@ The rules studio presents each rule set as a form in business language, with an 
 
 # Screen design and prototype
 
-The staff console and the customer app are being redesigned with business-language labels throughout. The redesign keeps every function listed above. Screenshots of the redesigned screens are in TGP-MAN-01 Staff Console User Manual and TGP-MAN-02 Customer App Guide; navigation is described in TGP-UX-03 Information Architecture and Navigation.
+The staff console and the customer app use business-language labels throughout. Screenshots are in TGP-MAN-01 Staff Console User Manual and TGP-MAN-02 Customer App Guide; navigation is described in TGP-UX-03 Information Architecture and Navigation.
 
 ## Staff console
 
-The console has a grouped sidebar, a global search by plate or phone, notifications (rule changes awaiting approval, new hot leads, claims near their acknowledgement time, open data issues) and a user menu for language, theme, password and sign-out.
+The console has a grouped sidebar, a global search by plate or phone, notifications (rule changes awaiting approval, new hot leads, claims near their acknowledgement time, open data issues, data requests due within 24 hours or overdue) and a user menu for language, theme, password and sign-out.
 
 | Screen | Main users | Purpose | Requirements |
 |---|---|---|---|
@@ -491,16 +496,17 @@ The console has a grouped sidebar, a global search by plate or phone, notificati
 | Claims | Claims handlers | Accident-report queue and status changes | FR-072 |
 | Data quality | Data stewards | Issue queue and resolution | FR-007 |
 | Audit | Compliance, auditors | Search and chain verification | FR-097 to FR-099 |
+| Data requests | Compliance | Log, verify identity, export, erase or refuse; due times and timeline | FR-080, FR-118 |
 | Users and Operations | Admin, support engineer | Users, integration status, jobs | FR-094, FR-103, FR-104, FR-114 |
 
-Workflow actions use verbs: Claim, Send to customer, Record inspection, Submit for approval, Approve, Reject, Roll back.
+Workflow actions use verbs: Claim, Send to customer, Record inspection, Submit for approval, Approve, Reject, Roll back, Export data, Erase.
 
 ## Customer app
 
 | Tab or page | Purpose | Requirements |
 |---|---|---|
-| Home | Quotes waiting for confirmation, cover status, confirm expiry, benefits, my policies | FR-075, FR-076 |
-| Buy and renew | TNDS with optional add-ons, review, pay with the VETC wallet, e-certificate | FR-077 |
+| Home | Quotes waiting for confirmation, cover status, confirm expiry, "Gia hạn nhanh" when the customer qualifies, benefits, my policies | FR-075, FR-076, FR-119 |
+| Buy and renew | Confirm vehicle use and seats, TNDS with optional add-ons, review, pay with the VETC wallet or TASCO's payment gateway, e-certificate | FR-077, FR-116, FR-117 |
 | Claims | Report an accident, track my claims | FR-071, FR-073 |
 | Account | Consent centre, download my data, sign out | FR-078, FR-079 |
 | Certificate verification (public) | QR check with masked plate and no personal data | FR-050 |
@@ -511,7 +517,7 @@ Workflow actions use verbs: Claim, Send to customer, Record inspection, Submit f
 
 | Rule set | Requirements |
 |---|---|
-| Data enrichment | FR-004 to FR-007 |
+| Data enrichment | FR-004 to FR-007, FR-116 |
 | Lead scoring | FR-014 |
 | Next best action | FR-015, FR-070 |
 | Journeys | FR-013, FR-020, FR-021, FR-028, FR-044, FR-070 |
@@ -521,14 +527,14 @@ Workflow actions use verbs: Claim, Send to customer, Record inspection, Submit f
 | Message content | FR-025, FR-027, FR-046, FR-071 |
 | Voice assistant script | FR-031 to FR-035 |
 | Benefits | FR-016, FR-058 to FR-062 |
-| Product catalogue | FR-045, FR-046, FR-057, FR-113 |
+| Product catalogue | FR-045, FR-046, FR-057, FR-113, FR-117 |
 | TNDS car and motorbike tariffs | FR-053, FR-112 |
 | Physical damage and seat accident rating | FR-054, FR-055 |
 | Commission | FR-068 |
 | Referral | FR-060 |
 | Data retention | FR-080, FR-105 |
 | Channel costs | FR-100 |
-| Service levels | FR-009, FR-036, FR-046, FR-071, FR-076 |
+| Service levels | FR-009, FR-036, FR-046, FR-071, FR-076, FR-118, FR-119 |
 | Attribute access policies | FR-017, FR-041, FR-093 |
 | Roles and separation of duties (security configuration, changed through code review) | FR-086, FR-092 |
 

@@ -3,7 +3,7 @@ id: TGP-OPS-01
 title: Runbook and Support Guide
 subtitle: TASCO Motor Insurance Growth Platform
 version: "1.0"
-date: 07/10/2026
+date: 08/10/2026
 prepared_by: iorta TechNXT, Service Operations
 reviewed_by: TASCO Insurance, IT Production Support
 approved_by: TASCO Insurance, Head of IT
@@ -24,7 +24,6 @@ acronyms:
   - [DNS, Domain Name System]
   - [DPO, Data Protection Officer]
   - [DR, Disaster Recovery]
-  - [DSAR, Data Subject Access Request]
   - [FCM, Firebase Cloud Messaging]
   - [HR, Human Resources]
   - [ICT, Indochina Time (UTC+7)]
@@ -57,7 +56,8 @@ acronyms:
 signoff:
   - ["Named partner escalation contacts (VETC, TASCO core IT, Zalo, SMS provider, voice vendor, hosting) entered from the interface agreements before G3", TASCO IT Production Support, Open]
   - ["Customer-facing incident templates (in-app banner, ZNS service message, CS scripts) approved by TASCO Compliance", TASCO Compliance, Open]
-  - [DSAR response deadlines under the PDP rules to be confirmed by TASCO legal, TASCO Legal, Open]
+  - ["Data-request response time of 72 hours (service levels rule set) to be confirmed by TASCO legal under Decree 13/2023/ND-CP and PDP Law 91/2025/QH15", TASCO Legal, Open]
+  - [Named data-request handlers (compliance officers) and the DPO escalation contact confirmed, TASCO Compliance, Open]
   - [Who may approve a switch to local rating during a prolonged TASCO core outage, TASCO Business Owner, Open]
 ---
 
@@ -112,7 +112,7 @@ sequenceDiagram
 
 | Tier | Who | Hours | Scope | Tools |
 |---|---|---|---|---|
-| L1 service desk | TASCO IT service desk (staff and partners); VETC customer service (customers) | 08:00 to 20:00, 7 days; Sev 1 out of hours through the on-call phone | Intake, severity, known-error answers, capture of request ID, time, user and route | ITSM tool, section 7 of this guide, read-only dashboards |
+| L1 service desk | TASCO IT service desk (staff and partners); VETC customer service (customers) | 08:00 to 20:00, 7 days; Sev 1 out of hours through the on-call phone | Intake, severity, known-error answers, capture of request ID, time, user and route | ITSM tool, the known-error answers in this guide, read-only dashboards |
 | L2 production support | TASCO IT production support engineers (role `support_engineer`) | 24 × 7 on-call rota | Procedures RB and SOP, job reruns, circuit and backlog checks, configuration changes through CAB, escalation | Operations API, dashboards, log search, namespace-scoped `kubectl`, read-only database replica |
 | L3 engineering | iorta TechNXT | Business hours; 24 × 7 for Sev 1 during hypercare and under the managed service | Code and data defects, hotfixes, data fixes under change control, root-cause analysis | Repository, CI/CD, break-glass database access with approval |
 | Vendors and partners | VETC IT, TASCO core IT, Zalo, SMS provider, voice vendor, cloud and database provider | Per contract | Faults in their systems | Their portals and status pages |
@@ -138,7 +138,7 @@ Business hours are 08:00 to 17:30 Vietnam time, Monday to Friday, excluding publ
 | Paging | Alertmanager to PagerDuty, Opsgenie or the TASCO equivalent for `severity: page`; Teams or Zalo channel for `severity: ticket` |
 | Handover | Open incidents, silences with expiry, pending changes, jobs to watch (journeys at 08:15, reconciliation at 02:00, catalogue sync at 01:00) |
 | Escalation | Primary (15 minutes), secondary (15 minutes), L2 lead, then the TASCO Head of IT for a Sev 1 open more than 1 hour |
-| Toolkit | VPN, `kubectl` context, dashboards, log search, ITSM, this guide, partner contact list (section 9) |
+| Toolkit | VPN, `kubectl` context, dashboards, log search, ITSM, this guide, escalation contact list in this guide |
 
 # System quick reference
 
@@ -156,7 +156,10 @@ Business hours are 08:00 to 17:30 Vietnam time, Monday to Friday, excluding publ
 | Circuit breakers | 5 consecutive failed calls open the circuit for 30 s, then one probe (half-open). Defaults: 5 s timeout, 2 retries with jittered backoff. `voice-ai`: 30 s, no retries. TASCO core rating and catalogue: `TASCO_CORE_TIMEOUT_MS` (5 s) per call, 2 retries with 200 ms backoff; core business errors never open the circuit |
 | Rating | `RATING_SOURCE`: `core` (production default; no quote when core is down), `core_with_fallback` (indicative quote, payable only after re-rating), `rules` (sandbox only; refused in production without `ALLOW_LOCAL_RATING`) |
 | Outbox | `domain_events`: pending, processing, done; back to pending on handler failure; `dead_letter` after 5 attempts |
-| Key settings | `DATABASE_URL`, `DB_POOL_MAX` (10), `JWT_SECRET`, `JWT_TTL_SECONDS` (1800), `DATA_KEYS`, `DATA_KEY_ACTIVE`, `BLIND_INDEX_KEY`, `MFA_REQUIRED_ROLES`, `CORS_ORIGINS`, `RATE_LIMIT_*`, `LOCKOUT_*`, `BODY_LIMIT_BYTES`, `TRUST_PROXY`, `TRUST_PROXY_HOPS` (1), `DEMO_MODE` (false), `MIGRATE_ON_START` (false in Kubernetes), `METRICS_TOKEN`, `LINK_TTL_DAYS` (30), `RATING_SOURCE`, `TASCO_CORE_BASE_URL`, `TASCO_CORE_TOKEN_URL`, `TASCO_CORE_CLIENT_ID`, `TASCO_CORE_CLIENT_SECRET`, `TASCO_CORE_SCOPE`, `TASCO_CORE_TIMEOUT_MS`. Secrets can be given as `<NAME>_FILE`. UAT only: `DEMO_PASSWORD`, `DEMO_TOTP_SEED`, `DEMO_ACCOUNT_SYNC` |
+| Key settings | `DATABASE_URL`, `DB_POOL_MAX` (10), `JWT_SECRET`, `JWT_TTL_SECONDS` (1800), `DATA_KEYS`, `DATA_KEY_ACTIVE`, `BLIND_INDEX_KEY`, `MFA_REQUIRED_ROLES`, `CORS_ORIGINS`, `RATE_LIMIT_*`, `LOCKOUT_*`, `BODY_LIMIT_BYTES`, `TRUST_PROXY`, `TRUST_PROXY_HOPS` (1), `DEMO_MODE` (false), `MIGRATE_ON_START` (false in Kubernetes), `METRICS_TOKEN`, `LINK_TTL_DAYS` (30), `RATING_SOURCE`, `ALLOW_LOCAL_RATING` (false), `TASCO_CORE_BASE_URL`, `TASCO_CORE_TOKEN_URL`, `TASCO_CORE_CLIENT_ID`, `TASCO_CORE_CLIENT_SECRET`, `TASCO_CORE_SCOPE`, `TASCO_CORE_TIMEOUT_MS`. Secrets can be given as `<NAME>_FILE`. UAT only: `DEMO_PASSWORD`, `DEMO_TOTP_SEED`, `DEMO_ACCOUNT_SYNC` |
+| Customer contacts | Shown on the customer app support sheet. `SUPPORT_HOTLINE` (1900 1562), `SUPPORT_EMAIL` (info@baohiemtasco.vn), `SUPPORT_WEBSITE` (https://baohiemtasco.vn), `SUPPORT_ZALO_NAME` (Bảo hiểm Tasco), `SUPPORT_ZALO_URL` (empty: customers search for the Official Account by name), `SUPPORT_FACEBOOK_URL`, `SUPPORT_MESSENGER_URL`. The defaults are TASCO's official contacts; an empty value hides that action. A change is a normal change (TGP-OPS-06) |
+| Service levels | Rule set `service_levels` (maker-checker): `dsarResponseHours` (72) sets the data-request due time; `quickRenewal` sets when the customer app offers quick renewal |
+| Database migrations | `001_init.sql`, `002_integrity_hardening.sql`, `003_dsar_requests.sql` (data-request register, table `dsar_requests`), applied in order by the migration job |
 
 ## Logs
 
@@ -172,7 +175,7 @@ The service writes one JSON object per line to stdout. Personal data keys are re
 | `catalogue sync proposed products rule set` | info | `ruleSetId`, `catalogueVersion`, counts | Sync created a proposal |
 | `event handler failed` | error | `type`, `handler`, `eventId`, `err` | Outbox subscriber failure (retried) |
 | `outbox relay failed` | error | `err` | Relay loop error, usually the database |
-| `job failed`, `job finished` | error, info | `kind`, `result` | Jobs |
+| `job failed`, `job finished` | error, info | `job`, `result` or `err` | Command-line jobs |
 | `journey run complete` | info | `due`, `done`, `skipped`, `cancelled`, `deferred`, by channel and journey | Daily journeys |
 | `order completed` | info | `orderId`, `channel` | Sale |
 | `rule set activated` | info | `kind`, `id` | Rule change live |
@@ -200,7 +203,7 @@ kubectl -n tasco-growth logs deploy/tasco-growth-api --since=15m | jq -c 'select
 kubectl -n tasco-growth logs deploy/tasco-growth-api --since=1h | jq -c 'select(.level=="error") | {ts,msg,requestId,err:.err.message}'
 ```
 
-The hash-chained audit trail in the database holds security and business events such as `auth.login_failed`, `auth.login_locked`, `user.reset`, `rules.approved`, `quote.sent_to_customer`, `quote.rerated`, `catalogue.sync_proposed`, `order.issuance_failed`, `consent.withdrawn` and `dsar.erased`. Query it with `GET /api/audit?action=…&actor=…&entityId=…` (`audit:read`).
+The hash-chained audit trail in the database holds security and business events such as `auth.login_failed`, `auth.login_locked`, `user.reset`, `rules.approved`, `quote.sent_to_customer`, `quote.rerated`, `catalogue.sync_proposed`, `order.issuance_failed`, `consent.withdrawn`, `dsar.request_logged`, `dsar.request_completed`, `dsar.request_refused` and `dsar.erased`. Query it with `GET /api/audit?action=…&actor=…&entityId=…` (`audit:read`).
 
 # Incident procedures
 
@@ -506,17 +509,39 @@ The TASCO core client secret is rotated the same way: TASCO core IT issues the n
 | Suspend a partner | Set the partner's status to suspended; all its keys stop working |
 | Suspected leak | Revoke at once (Sev 2 security); review the partner's policy reads and orders since the exposure |
 
-## SOP-05 Data subject requests
+## SOP-05 Data requests (access and erasure)
 
-| Step | Detail |
+Customers may ask to see or erase the personal data TASCO holds about them. Every request is logged in the data-request register in the staff console (Governance, "Data requests"; "Yêu cầu dữ liệu cá nhân" in Vietnamese), which starts the response clock, keeps a timeline and writes every action to the audit trail. Only the compliance officer role holds the permission `dsar:manage`, with MFA.
+
+| Item | Arrangement |
 |---|---|
-| Intake | TASCO hotline or email, or VETC customer service, opens a DSAR ticket. Verify identity per the TASCO procedure before any processing. Deadlines under the PDP Law and Decree 13/2023/ND-CP are to be confirmed by TASCO legal; internal target: acknowledge within one business day, complete access within 72 hours |
-| Locate | The data subject is identified by vehicle: the profile ID is the canonical plate (for example `30A12345`) |
-| Access | A compliance officer (MFA) exports the data: profile, lead, policies, messages, source records, voice sessions, quotes, orders, claims and telesales tasks. Deliver as an encrypted archive. Customers can also download their data in the app |
-| Erasure | If a policy is active, the request is refused with the legal basis (records kept until expiry plus the statutory period); diarise erasure for after expiry. On success: name and phones cleared, profile set to do-not-contact, lead deleted, messages and transcripts blanked, source personal data cleared, handoff and claim personal data cleared, sessions revoked (KI-29 fixed). Policies and orders are kept under the legal obligation, linked by plate only |
-| Objection or consent withdrawal | The customer uses the consent centre or tells the voice bot ("đừng gọi nữa"). Staff cannot edit consent; through customer service, record it in the ticket and have the customer use the app, or L3 applies it as a data fix |
-| Other systems | Forward the request to VETC (app, wallet) and TASCO core, which hold their own records |
-| Close | Attach the audit entries `dsar.access_exported` or `dsar.erased` |
+| Who handles | TASCO compliance officers (named in the sign-off list), with the DPO accountable. Intake staff (TASCO hotline 1900 1562, info@baohiemtasco.vn, branches, letters, VETC customer service) pass the request to Compliance the same business day; they do not export or erase data themselves |
+| Response time | 72 hours from receipt (`dsarResponseHours` in the `service_levels` rule set), to be confirmed by TASCO legal under Decree 13/2023/ND-CP and PDP Law 91/2025/QH15. The due time is set when the request is logged and uses the date and time the request was received, not the time it was logged. A change to the response time is a rule change through maker-checker |
+| Self-service | A customer who downloads their own data in the app is recorded automatically as a completed access request with channel app. No action is needed |
+| Queue | The register shows open, due within 24 hours, overdue and completed in the last 30 days, with filters by status and type |
+
+| Step | Action | Owner |
+|---|---|---|
+| 1 Log | "Log request": find the customer by plate or phone; choose the type (access or erasure) and channel (hotline, email, app, branch or letter); enter the received date and time; add a note with the ticket number. The reference has the form `DSR-YYMMDD-XXXX` | Compliance officer, same business day |
+| 2 Verify identity | Verify the requester against the TASCO identity procedure before any data leaves the company or is erased. Record it with "Start handling" (identity verified). Export and erasure are refused by the system until identity is recorded | Compliance officer |
+| 3a Access | "Export data" downloads `TASCO-data-<plate>-<date>.json` (profile, lead, policies, quotes, orders, claims, messages, source records, voice sessions and tasks) and completes the request. Send it to the customer through an encrypted channel agreed with the DPO | Compliance officer |
+| 3b Erasure | "Erase personal data" needs a reason and the plate typed again. Personal data is anonymised: name and phones cleared, profile set to do-not-contact, lead deleted, messages and transcripts blanked, source, handoff and claim personal data cleared, sessions revoked. Policies and orders are kept under the legal obligation, linked by plate only. While a policy is in force the system refuses the erasure with the legal reason and the end date; diarise a new request for after expiry | Compliance officer |
+| 3c Refuse | "Refuse" with a reason of at least five characters, for example identity could not be verified | Compliance officer with the DPO |
+| 4 Other systems | Forward the request to VETC (app, wallet) and TASCO core, which hold their own records, and note their references on the request | Compliance officer |
+| 5 Reply | Tell the customer the outcome through the channel they used, with the approved template | Compliance officer |
+
+Escalation when a request is late:
+
+| Condition | Action |
+|---|---|
+| Due within 24 hours and not started | Compliance lead assigns a handler at the daily health check; the request shows "Due soon" |
+| Overdue (past the 72-hour due time) | Ticket at Sev 3 to the compliance lead and the DPO the same day; the DPO decides whether the customer must be told of the delay and why |
+| Overdue by more than 24 hours, or more than 3 overdue at once | Sev 2; DPO informs TASCO Legal; root cause recorded (staffing, identity checks, other systems) |
+| Export or erasure fails with an error | L2 ticket with the request ID; L3 under change control. Do not erase data by hand in the database |
+
+Audit evidence: the register and each request's timeline (received, identity verified, in progress, completed or refused, with names and times), and the audit entries `dsar.request_logged`, `dsar.identity_verified`, `dsar.request_started`, `dsar.request_completed`, `dsar.request_refused`, `dsar.request_viewed` and `dsar.register_viewed`, plus `dsar.access_exported` or `dsar.erased` from the fulfilment itself. The register can be exported to CSV for the DPO's monthly report and for the regulator on request. The register lists a masked name and the plate only.
+
+Objection or consent withdrawal is not a data request: the customer uses the consent centre in the app or tells the voice bot ("đừng gọi nữa"). Staff cannot edit consent; through customer service, record it in the ticket and have the customer use the app, or L3 applies it as a data fix.
 
 ## SOP-06 Data correction by the data steward
 
@@ -572,6 +597,7 @@ Resume in reverse order and re-queue skipped touchpoints if appropriate (RB-07).
 | 08:00 | Last night's reconciliation and retention succeeded with no mismatches (any failed or compensated order goes to RB-11) | Yes or no |
 | 09:00 | Journey run at 08:15 complete; deferred close to 0; skip reasons normal; relay job succeeding | Yes or no |
 | 09:00 | Audit chain verification ok | Yes or no |
+| 09:00 | Data requests: none overdue; requests due within 24 hours have a handler (SOP-05) | Yes or no |
 | 12:00 and 17:00 | Quotes and orders in line with the same weekday last week; no open indicative quotes older than one hour (fallback mode) | Yes or no |
 | Weekly | Access review changes; secret ages (including the TASCO core client secret); certificate expiries; backup restore result (TGP-OPS-03) | Yes or no |
 
@@ -593,6 +619,8 @@ Resume in reverse order and re-queue skipped touchpoints if appropriate (RB-07).
 | Agent asks how to take payment | Staff never take payment | Explain the assisted sale: send the quote; the customer pays in the VETC app |
 | Certificate shows not valid after a renewal | Cover starts the day after the old policy ends | Explain the start date |
 | Agent cannot open a customer | Regional restriction | Expected; the supervisor reassigns |
+| Customer asks to see or delete their data | Data request | Record the request, the channel and the time received; pass it to Compliance the same business day (SOP-05). Customers can also download their own data in the app |
+| Customer does not see quick renewal ("Gia hạn nhanh") | Not eligible this time, for example vehicle details not confirmed in the last 365 days, add-ons or physical damage cover, an indicative price, or a wallet balance below the premium | Expected; the customer renews through the full flow ("Gia hạn ngay" or "Tùy chỉnh gói bảo hiểm") |
 | Error message with a request ID | Unexpected error | Ticket to L2 with the request ID |
 
 # Incident communication
@@ -623,4 +651,4 @@ Named contacts are entered before G3 from the interface agreements and vendor co
 | SMS brandname provider | NOC | Provider contract | 24 × 7 |
 | Voice vendor | NOC | Vendor contract | 24 × 7 during campaign hours |
 | Cloud and database provider | Support | Hosting contract | 24 × 7 |
-| TASCO CISO and DPO | Security and privacy incidents | TASCO security directory | 24 × 7 for Sev 1 |
+| TASCO CISO and DPO | Security and privacy incidents; overdue data requests | TASCO security directory | 24 × 7 for Sev 1 |

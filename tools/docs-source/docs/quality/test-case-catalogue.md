@@ -74,14 +74,14 @@ signoff:
 
 This catalogue lists the test cases for the TASCO Growth Platform, grouped by module. Each case states the scenario, the preconditions and steps, the expected result, the test type and priority, and where it is automated. The record of execution, with the actual result and status of every case, is the workbook TASCO-Test-Cases-and-Results.xlsx (sheets *Test Cases* and *Automated Run*).
 
-The catalogue covers TC-001 to TC-183 and the additional sales case TC-080a, and matches the workbook case for case. TC-165 to TC-180 cover the TASCO core rating and product catalogue integration; TC-181 to TC-183 cover the customer hosts and vehicle confirmation. The 124 user-story scenarios automated in the functional suite are recorded separately in the workbook sheet *Functional Test Cases*.
+The catalogue covers TC-001 to TC-205 and the additional sales case TC-080a, 206 cases in all, and matches the workbook case for case. TC-165 to TC-180 cover the TASCO core rating and product catalogue integration; TC-181 to TC-183 cover the customer hosts and vehicle confirmation; TC-184 to TC-205 cover the data requests register and quick renewal. The 124 user-story scenarios automated in the functional suite are recorded separately in the workbook sheet *Functional Test Cases*.
 
 The audience is the iorta TechNXT and TASCO test teams, developers, and TASCO IT reviewers who sign off the gates.
 
 Related documents:
 
 - TGP-QA-01 Test Strategy (test levels, environments, defect severity and the known issues register KI-01 to KI-33).
-- TGP-QA-03 Performance and Capacity Test Plan (scenarios PERF-S1 to PERF-S13).
+- TGP-QA-03 Performance and Capacity Test Plan (scenarios PERF-S1 to PERF-S14).
 - TGP-QA-04 User Acceptance Test Plan (business scenarios that reference these cases).
 - TGP-BUS-04 User Stories and Acceptance Criteria and TGP-BUS-05 Requirements Traceability Matrix.
 - TGP-OPS-01 Runbook and Support Guide (RB and SOP procedures referenced in expected results).
@@ -93,7 +93,7 @@ Related documents:
 | Scenario | What the case proves, in one line |
 | Preconditions and steps | Starting state, then the action taken |
 | Expected result | The observable outcome; error codes come from the body `{ error: { code, message, details, requestId } }` |
-| Type/Priority | Type: Unit, Int (integration), API, Sec (security), PG (needs PostgreSQL), SIT, UAT, NFT. Priority: P1 must pass for any release, P2 must pass for go-live, P3 should pass |
+| Type/Priority | Type: Unit, Int (integration), API, Sec (security), PG (needs PostgreSQL), SIT, UAT, NFT, UI (manual check of a screen). Priority: P1 must pass for any release, P2 must pass for go-live, P3 should pass |
 | Automation | Test file under `test/` (for example `api` is `test/api/api.test.js`, `unit/identity` is `test/unit/identity.test.js`), or Manual |
 
 Preconditions use the demo users created by `src/bootstrap/seed.js` (for example `admin`, `agent.hn`, `author`, `approver`). They exist only where demo mode is on (local, development and the hosted UAT). `admin`, `approver`, `compliance` and `steward` need a TOTP code. Times are Vietnam time (ICT, UTC+7) unless stated.
@@ -131,7 +131,7 @@ Where an open known issue blocks a case, the expected result describes the corre
 
 | ID | Scenario | Preconditions and steps | Expected result | Type/Priority | Automation |
 |---|---|---|---|---|---|
-| TC-021 | Route and role authorisation matrix | Tokens for 13 staff roles, a customer and a partner. Call all 97 routes with each principal | Missing permission: 403 `FORBIDDEN`. No token: 401. Public routes open | API · P1 | `api` |
+| TC-021 | Route and role authorisation matrix | Tokens for 13 staff roles, a customer and a partner. Call all 103 routes with each principal | Missing permission: 403 `FORBIDDEN`. No token: 401. Public routes open | API · P1 | `api` |
 | TC-022 | Administrator has no business data | `admin`. Open a customer; create a rule; approve a rule | 403 for all three | API · P1 | `api` |
 | TC-023 | Agents see their own region's leads | `agent.hn`. Request leads for TP. Hồ Chí Minh | Every lead returned is in Hà Nội; the region filter is overridden | API · P1 | `api` |
 | TC-024 | Regional restriction on Customer 360 | `agent.hn`. Open a TP. Hồ Chí Minh profile | 403 "Policy regional_data denies read on this profile" | Sec · P1 | `security` |
@@ -299,7 +299,7 @@ Where an open known issue blocks a case, the expected result describes the corre
 | TC-130 | `Idempotency-Key` required | Customer pays without the header; with `abc` | 400 "Idempotency-Key header (8–100 chars) is required" | API · P1 | `api` |
 | TC-131 | Health probes | PostgreSQL. Live; ready; stop the database; ready | Live 200. Ready 200 with store `postgres`. Database down: ready 503, live 200 | PG · P1 | `api` (live, ready); database-down step Manual (PREPROD) |
 | TC-132 | Metrics protected and complete | Metrics token set. Read `/metrics` without, then with, the token | Without: 401. With: request, latency, quote, order, integration, event and memory series | API · P2 | `api` |
-| TC-133 | OpenAPI contract complete | `GET /api/openapi.json` | OpenAPI 3.1.0; one operation per route (80); security per audience; key required on both order routes; strict bodies; equals the committed copy | API · P1 | `api` |
+| TC-133 | OpenAPI contract complete | `GET /api/openapi.json` | OpenAPI 3.1.0; one operation per route (103 operations on 92 paths); security per audience; key required on both order routes; strict bodies; equals the committed copy | API · P1 | `api` |
 | TC-134 | Demo seed refused outside demo mode | Demo mode off, PostgreSQL. Run the seed job | Exits non-zero; no users created (KI-01 fixed) | Sec · P1 | Manual (release checklist) |
 | TC-135 | Voice campaign respects contact policy | Hot leads with call consent; one already called twice. Campaign at 21:00, then at 10:00 | 21:00: none called. 10:00: twice-called lead skipped for the weekly cap; each call recorded (KI-09 fixed) | Int · P1 | `integration/governance`, `api` |
 
@@ -385,6 +385,35 @@ TASCO core is the master for products and rating. The rating source is set by `R
 | TC-182 | Same journeys in every host app | Open sessions with channel `tasco_web`, `zalo_mini_app`, none and an unknown host. Quote and pay in the TASCO web session | Unknown host refused with 400; no channel defaults to the VETC app. Quotes and orders carry the host channel. The TASCO web order is paid through the TASCO payment gateway (reference starting TP-) | API · P1 | `api/api` |
 | TC-183 | Host wording in the customer app | Open the app with `?channel=tasco_web` and with no channel; go to the payment step | TASCO hosts show "Thanh toán qua cổng TASCO"; VETC hosts show the VETC wallet. Splash and error text name the right host | UI · P2 | Manual |
 
+## Data requests and quick renewal
+
+The data requests register (FR-118) records every access and erasure request, whatever the channel, and is open only to the compliance role (permission `dsar:manage`). The response time is `dsarResponseHours` in the service-level rule set, 72 hours, to be confirmed by TASCO legal. Quick renewal (FR-119) offers an eligible customer a 3-step renewal; the server decides eligibility from the `quickRenewal` service-level rule, and the full 6-step flow stays available to everyone.
+
+| ID | Scenario | Preconditions and steps | Expected result | Type/Priority | Automation |
+|---|---|---|---|---|---|
+| TC-184 | Log a data request and keep a record | `compliance` logs an access request by plate, channel hotline, with a note. Read the register and the detail | 200, ID `DSR-yymmdd-XXXX`, status received, due 72 hours after receipt. Register masks the name and shows no phone. Detail shows a timeline and counts of data held, never the data. Audit `dsar.request_logged`, `dsar.request_viewed`, `dsar.register_viewed` | API · P1 | `api/dsarQuickRenewal` |
+| TC-185 | New request validation | Log with type `delete`, channel `fax`, no customer, plate `XX`, an unknown plate, a future, unreadable or too old received date | 400 for each invalid value; 404 for the unknown plate; nothing logged | API · P2 | `api/dsarQuickRenewal` |
+| TC-186 | Identity required before export | Access request received by email. Export at once; start without verification; start again with identity verified | Export 422. Start: in progress, identity not verified. Second start: identity verified, still in progress | API · P1 | `api/dsarQuickRenewal` |
+| TC-187 | Export download completes the request | After TC-186. Complete the export; then export, refuse and start again | 200 with file name `TASCO-data-<plate>-<date>.json` and the customer's data. Request completed, outcome exported, timeline received, in progress, identity verified, completed. Later actions 422. Completed-in-30-days count rises | API · P1 | `api/dsarQuickRenewal` |
+| TC-188 | Action must match the request type | Erasure request: complete an export. Access request: erase | 422 for both; nothing exported or erased | API · P2 | `api/dsarQuickRenewal` |
+| TC-189 | Erasure refused while a policy is in force | Customer with a TASCO policy in force; erasure request with identity verified. Erase without a reason; with a wrong plate; with the right plate | 400 without a reason; 400 for the wrong plate. With the right plate: request refused, reason "Hợp đồng bảo hiểm còn hiệu lực đến dd/mm/yyyy…"; nothing erased | API · P1 | `api/dsarQuickRenewal` |
+| TC-190 | Erasure anonymises | Customer without a policy; erasure request by app. Erase before identity is verified; then with reason, typed plate and identity verified | First 422. Then profile anonymised; request completed, outcome erased; the customer's other requests show no name. Audit `dsar.erased`, `dsar.request_completed` | API · P1 | `api/dsarQuickRenewal` |
+| TC-191 | Refuse a request with a reason | Open access request. Refuse with reason "x"; then with a full reason | 400 for the short reason. Then status refused with the reason recorded; audit `dsar.request_refused` | API · P1 | `api/dsarQuickRenewal` |
+| TC-192 | Only compliance handles data requests | No token; then `agent.hn`, `admin`, `steward`, `claims` and `auditor`. List, log, open, refuse and export | 401 without a token; 403 for every other role on every action | API · P1 | `api/dsarQuickRenewal` |
+| TC-193 | Response time and overdue requests | Request logged by phone, received four days ago, identity verified. Filter overdue and not overdue | Request overdue. The overdue filter returns only overdue requests and the overdue count is at least 1; the not-overdue filter returns none | API · P1 | `api/dsarQuickRenewal` |
+| TC-194 | App download recorded as a request | Customer downloads their data in the app. `compliance` filters the register by the customer | Download 200. The register shows a completed access request, channel app, outcome exported, identity verified, made by the customer | API · P1 | `api/dsarQuickRenewal` |
+| TC-195 | Earlier export and erase endpoints still work | `compliance` calls export and erase by customer ID for a customer without a policy | Export 200 with the customer's data; erasure done; audited | API · P3 | `api/dsarQuickRenewal` |
+| TC-196 | Data requests screen | `compliance` opens Governance, "Yêu cầu dữ liệu cá nhân", in Vietnamese and English; another role looks for it | Indicators for open, due within 24 hours, overdue and completed in 30 days; timeline per request; erase dialog asks for a reason and the typed plate. Not in the menu for other roles | UI · P2 | Manual |
+| TC-197 | Quick renewal for an eligible case | Renewal journey, vehicle confirmed by the customer 30 days ago, VETC wallet covers the premium | Eligible, no reasons; offers TNDS for one year | Unit · P1 | `unit/quickRenewal` |
+| TC-198 | Each reason for no quick renewal | Vary one fact at a time: other journey; already renewed; seats unknown or never confirmed; confirmation over 365 days old; physical damage cover; product not sold on the host; TASCO core unavailable; wallet below the premium | Reason returned for each, in Vietnamese with no codes. A TASCO TNDS renewal qualifies on any journey. No wallet check on TASCO hosts or when the premium is unknown | Unit · P1 | `unit/quickRenewal` |
+| TC-199 | Vehicle evidence and cover carried over | Vehicle known from TASCO core with no date; current TASCO TNDS and personal accident cover per seat, two-year term | TASCO core evidence has no age limit. Add-ons left out while `allowAddOns` is false, included when true. Term carried over; wallet checked for the whole term | Unit · P2 | `unit/quickRenewal` |
+| TC-200 | Service-level rule set checks | Validate the shipped rule set; then invalid response hours, quick-renewal block and settings; then an older version without the new fields | Shipped set valid, 72 hours, quick renewal on for renewals. Each invalid value refused. Older version valid, with quick renewal off | Unit · P2 | `unit/quickRenewal` |
+| TC-201 | Quick renewal switched off | Eligible customer in the TASCO app. Author drafts the service-level rule with quick renewal off; approver approves; customer opens home and asks for a quick quote | Before: eligible. After approval: not eligible, reason disabled; quick quote 422 | API · P1 | `api/dsarQuickRenewal`, `unit/quickRenewal` |
+| TC-202 | Home shows eligibility after vehicle confirmation | Renewal customer with an unconfirmed vehicle in the VETC app. Open home; ask for a quick quote; confirm use and seats; open home | First: not eligible, "Cần xác nhận thông tin xe"; quick quote 422; other home fields unchanged. After confirmation: eligible, TNDS for one year | API · P1 | `api/dsarQuickRenewal` |
+| TC-203 | Quick renewal in 3 steps | After TC-202. Open quick renewal (the client also asks for physical damage cover); tick the declaration; pay with an `Idempotency-Key`; retry the same key | Server quotes TNDS only, priced by core, journey renewal. Order completed with flow quick and one TNDS policy. Retry replays, no second debit. Home then shows already renewed | API · P1 | `api/dsarQuickRenewal` |
+| TC-204 | Customer app offers both paths | Read the customer app screens for home and quick renewal | Home: "Gia hạn nhanh" first and "Tùy chỉnh gói bảo hiểm" for the full flow. Quick screen: one declaration tick, one "Xác nhận thanh toán", no extra confirmation sheet. No co-branding; "Ví VETC" kept as the payment method | API · P2 | `api/dsarQuickRenewal` |
+| TC-205 | Full flow still available | Eligible and not eligible customers. Choose "Tùy chỉnh gói bảo hiểm"; go through "Gia hạn ngay", "Xem phí bảo hiểm", "Tiếp tục", declaration, "Thanh toán", "Xác nhận thanh toán" | Full flow in 6 steps for both; add-on covers can be chosen; a standard quote still needs products (400 without) | UI · P1 | Manual; `api/dsarQuickRenewal` (standard quote) |
+
 # Traceability
 
 | Requirement area | Test cases |
@@ -394,6 +423,8 @@ TASCO core is the master for products and rating. The rating source is set by `R
 | Purchase and voice | TC-064 to TC-080a, TC-145, TC-151 to TC-154, TC-156, TC-157, TC-160, TC-163 |
 | TASCO core rating and product catalogue | TC-165 to TC-180, TC-153 |
 | Customer channels and vehicle confirmation | TC-181 to TC-183 |
+| Data requests register (FR-118) | TC-105 to TC-107, TC-184 to TC-196 |
+| Quick renewal (FR-119, NFR-035) | TC-197 to TC-205 |
 | Governance, partners, claims and operations | TC-081 to TC-107, TC-113 to TC-116, TC-155, TC-161, TC-164 |
 | Platform security and non-functional requirements | TC-117 to TC-144, TC-158, TC-159, TC-162 |
 
@@ -424,7 +455,9 @@ Story-level traceability (requirement, story, scenario, automated test) is in th
 | Assisted sales and review findings | TC-156 to TC-164 | 9 |
 | TASCO core rating and product catalogue | TC-165 to TC-180 | 16 |
 | Customer channels and vehicle confirmation | TC-181 to TC-183 | 3 |
+| Data requests and quick renewal | TC-184 to TC-205 | 22 |
+| Total | TC-001 to TC-205, TC-080a | 206 |
 
 ## Workbook alignment
 
-The workbook was regenerated from the 8 October 2026 run and holds all 184 cases (TC-001 to TC-183 and TC-080a): 157 Pass, 23 Not Run and 4 Blocked (TC-017, TC-029, TC-114, TC-155). Not Run cases wait for SIT, UAT, the NFT window or a manual check; TC-180 waits for TASCO core UAT access. TC-080a passes; it cites KI-20 for context only, because the expected behaviour (one order, no double charge) is delivered.
+The workbook holds all 206 cases (TC-001 to TC-205 and TC-080a). For the Pass, Not Run and Blocked counts, see the workbook regenerated on 8 October 2026. The Blocked cases are TC-017, TC-029, TC-114 and TC-155, each tied to an open known issue. Not Run cases wait for SIT, UAT, the NFT window or a manual check; TC-180 waits for TASCO core UAT access. TC-080a passes; it cites KI-20 for context only, because the expected behaviour (one order, no double charge) is delivered.
