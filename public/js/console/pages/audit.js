@@ -61,7 +61,7 @@ export default {
     ], { label: tl('Voice compliance', 'Tuân thủ cuộc gọi tự động') }) : null;
 
     // ---- Filters ----
-    const people = selectInput([['', tl('Everyone', 'Tất cả mọi người')], ['system', tl('TASCO platform (automated)', 'Hệ thống TASCO (tự động)')], ...actors.map((a) => [a.id, a.displayName])], q.actor, { 'aria-label': tl('Person', 'Người thực hiện'), class: 'sm' });
+    const people = selectInput([['', tl('Everyone', 'Tất cả mọi người')], ['system', tl('TASCO platform (automated)', 'Hệ thống TASCO (tự động)')], ...actors.map((a) => [a.id, a.roles?.length ? `${a.displayName} · ${actorRoleText({ actorRoles: a.roles })}` : a.displayName])], q.actor, { 'aria-label': tl('Person', 'Người thực hiện'), class: 'sm' });
     people.addEventListener('change', () => go({ actor: people.value }));
     const cats = selectInput([['', tl('All activity', 'Mọi hoạt động')], ...CATEGORIES.map((c) => [c.id, tl(c.name)])], q.category, { 'aria-label': tl('Activity type', 'Loại hoạt động'), class: 'sm' });
     cats.addEventListener('change', () => go({ category: cats.value }));

@@ -18,12 +18,16 @@ import { wordmark } from '../shared/brand.js';
 let HOTLINE = null;
 let SUPPORT_EMAIL = null;
 /** Support web links (https only); null hides the row. */
-const SUPPORT_LINKS = { website: null, zalo: null, messenger: null };
+const SUPPORT_LINKS = { website: null, zalo: null, messenger: null, facebook: null };
+/** Zalo Official Account name (TASCO's OA has no public link, so customers search for it by name). */
+let ZALO_NAME = null;
 const safeUrl = (u) => { try { const x = new URL(String(u || '')); return x.protocol === 'https:' ? x.href : null; } catch { return null; } };
 function setHotline(meta) {
   SUPPORT_LINKS.website = safeUrl(meta?.supportWebsite);
   SUPPORT_LINKS.zalo = safeUrl(meta?.supportZaloUrl);
   SUPPORT_LINKS.messenger = safeUrl(meta?.supportMessengerUrl);
+  SUPPORT_LINKS.facebook = safeUrl(meta?.supportFacebookUrl);
+  ZALO_NAME = String(meta?.supportZaloName || '').trim().slice(0, 80) || null;
   const raw = String(meta?.supportHotline || '').trim();
   HOTLINE = raw ? { display: raw, tel: raw.replace(/[^0-9+]/g, '') } : null;
   const mail = String(meta?.supportEmail || '').trim();
@@ -280,24 +284,39 @@ const brandMark = (variant = 'color') => h('span', { class: 'c-brand' },
   wordmark({ size: 'sm', variant }),
   host().partner ? [h('span', { class: 'c-brand-x', 'aria-hidden': 'true' }, '×'), h('span', { class: 'c-vetc', 'aria-label': host().partner }, host().partner)] : null);
 
-/** Support options for the floating button sheet and the Account tab (only what is configured). */
+/** Support options for the floating button sheet and the Account tab (rows whose value is not configured are hidden). */
 function supportLinks() {
+  const host = (u) => new URL(u).host.replace(/^www\./, '');
+  const path = (u) => { const x = new URL(u); return `${x.host.replace(/^www\./, '')}${x.pathname.replace(/\/$/, '')}`; };
   return [
-    HOTLINE ? { href: `tel:${HOTLINE.tel}`, icon: 'phone-call', tone: '', title: `Gọi ${HOTLINE.display}`, sub: 'Tổng đài hỗ trợ 24/7' } : null,
-    SUPPORT_LINKS.zalo ? { href: SUPPORT_LINKS.zalo, icon: 'message-square', tone: 'teal', title: 'Nhắn tin qua Zalo', sub: 'Zalo Official Account TASCO', ext: true } : null,
-    SUPPORT_LINKS.messenger ? { href: SUPPORT_LINKS.messenger, icon: 'message-square', tone: 'teal', title: 'Nhắn tin qua Messenger', sub: 'Fanpage Bảo hiểm TASCO', ext: true } : null,
+    HOTLINE ? { href: `tel:${HOTLINE.tel}`, icon: 'phone-call', tone: '', title: `Gọi ${HOTLINE.display}`, sub: 'Tổng đài hỗ trợ 24/7', end: 'phone' } : null,
+    SUPPORT_LINKS.zalo ? { href: SUPPORT_LINKS.zalo, icon: 'message-circle', tone: 'teal', title: ZALO_NAME ? `Zalo: ${ZALO_NAME}` : 'Nhắn tin qua Zalo', sub: 'Zalo Official Account', ext: true }
+      : ZALO_NAME ? { copy: ZALO_NAME, icon: 'message-circle', tone: 'teal', title: `Zalo: ${ZALO_NAME}`, sub: `Tìm “${ZALO_NAME}” trong Zalo, chọn tài khoản có dấu tích xanh, rồi bấm Quan tâm hoặc Nhắn tin` } : null,
+    SUPPORT_LINKS.messenger ? { href: SUPPORT_LINKS.messenger, icon: 'message-circle', tone: 'teal', title: 'Nhắn tin qua Messenger', sub: host(SUPPORT_LINKS.messenger), ext: true } : null,
+    SUPPORT_LINKS.facebook ? { href: SUPPORT_LINKS.facebook, icon: 'thumbs-up', tone: '', title: 'Fanpage Bảo hiểm TASCO', sub: path(SUPPORT_LINKS.facebook), ext: true } : null,
     SUPPORT_EMAIL ? { href: `mailto:${SUPPORT_EMAIL}`, icon: 'mail', tone: '', title: 'Gửi email', sub: SUPPORT_EMAIL } : null,
-    SUPPORT_LINKS.website ? { href: SUPPORT_LINKS.website, icon: 'globe', tone: '', title: 'Trang web Bảo hiểm TASCO', sub: new URL(SUPPORT_LINKS.website).host.replace(/^www\./, ''), ext: true } : null,
+    SUPPORT_LINKS.website ? { href: SUPPORT_LINKS.website, icon: 'globe', tone: '', title: 'Trang web Bảo hiểm TASCO', sub: host(SUPPORT_LINKS.website), ext: true } : null,
   ].filter(Boolean);
+}
+async function copyText(text, done) {
+  try { await navigator.clipboard.writeText(text); toast(done, 'ok'); } catch { /* clipboard unavailable: the name is shown in the row */ }
+}
+/** One support row: a link, or (Zalo without a public link) a button that copies the account name. */
+function supportRow(l) {
+  const body = [h('span', { class: `c-ichip sm ${l.tone}` }, ic(l.icon, 18)),
+    h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, l.title), h('span', { class: 'c-item-sub' }, l.sub))];
+  if (l.copy) {
+    return h('li', {}, h('button', { class: 'c-item', type: 'button', 'aria-label': `${l.title}. ${l.sub}. Bấm để sao chép tên tài khoản`, onclick: () => copyText(l.copy, 'Đã sao chép tên tài khoản Zalo') },
+      body, h('span', { class: 'c-item-end' }, ic('copy', 18))));
+  }
+  return h('li', {}, h('a', { class: 'c-item', href: l.href, target: l.ext ? '_blank' : null, rel: l.ext ? 'noopener noreferrer' : null },
+    body, h('span', { class: 'c-item-end' }, ic(l.ext ? 'external-link' : l.end || 'chevron-right', 18), l.ext ? h('span', { class: 'sr-only' }, ' (mở trong thẻ mới)') : null)));
 }
 function supportSheet() {
   openSheet({
     title: 'Hỗ trợ khách hàng',
     sub: 'TASCO luôn sẵn sàng hỗ trợ bạn.',
-    body: h('ul', { class: 'c-list c-support-list' }, supportLinks().map((l) => h('li', {}, h('a', { class: 'c-item', href: l.href, target: l.ext ? '_blank' : null, rel: l.ext ? 'noopener noreferrer' : null },
-      h('span', { class: `c-ichip sm ${l.tone}` }, ic(l.icon, 18)),
-      h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, l.title), h('span', { class: 'c-item-sub' }, l.sub)),
-      h('span', { class: 'c-item-end' }, ic(l.ext ? 'external-link' : 'chevron-right', 18), l.ext ? h('span', { class: 'sr-only' }, ' (mở trong thẻ mới)') : null))))),
+    body: h('ul', { class: 'c-list c-support-list' }, supportLinks().map(supportRow)),
   });
 }
 /** Floating support button (round, navy, bottom-right above the tab or action bar). Never shown in checkout/payment. */
@@ -1191,18 +1210,7 @@ async function viewAccount() {
     h('ul', { class: 'c-list' }, h('li', {}, exportBtn)),
     h('h2', { class: 'c-group-label' }, 'Hỗ trợ'),
     h('ul', { class: 'c-list' },
-      HOTLINE ? h('li', {}, h('a', { class: 'c-item', href: `tel:${HOTLINE.tel}` }, h('span', { class: 'c-ichip sm' }, ic('headset', 18)),
-        h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, 'Tổng đài hỗ trợ 24/7'), h('span', { class: 'c-item-sub' }, HOTLINE.display)), h('span', { class: 'c-item-end' }, ic('phone', 18)))) : null,
-      SUPPORT_EMAIL ? h('li', {}, h('a', { class: 'c-item', href: `mailto:${SUPPORT_EMAIL}` }, h('span', { class: 'c-ichip sm' }, ic('mail', 18)),
-        h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, 'Email hỗ trợ'), h('span', { class: 'c-item-sub' }, SUPPORT_EMAIL)), h('span', { class: 'c-item-end' }, ic('chevron-right', 18)))) : null,
-      ...[
-        ['website', 'globe', 'Trang web Bảo hiểm TASCO', (u) => new URL(u).host.replace(/^www\./, '')],
-        ['zalo', 'message-square', 'Nhắn tin qua Zalo', () => 'Zalo Official Account TASCO'],
-        ['messenger', 'message-square', 'Nhắn tin qua Messenger', () => 'Fanpage Bảo hiểm TASCO'],
-      ].filter(([k]) => SUPPORT_LINKS[k]).map(([k, icn, title, sub]) => h('li', {}, h('a', { class: 'c-item', href: SUPPORT_LINKS[k], target: '_blank', rel: 'noopener noreferrer' },
-        h('span', { class: 'c-ichip sm' }, ic(icn, 18)),
-        h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, title), h('span', { class: 'c-item-sub' }, sub(SUPPORT_LINKS[k]))),
-        h('span', { class: 'c-item-end' }, ic('external-link', 18), h('span', { class: 'sr-only' }, ' (mở trong thẻ mới)'))))),
+      supportLinks().map(supportRow),
       h('li', {}, h('div', { class: 'c-item' }, h('span', { class: 'c-ichip sm' }, ic('languages', 18)),
         h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, 'Ngôn ngữ'), h('span', { class: 'c-item-sub' }, `Theo ngôn ngữ của ${host().open}`)), h('span', { class: 'c-item-end' }, 'Tiếng Việt')))),
     state.meta?.demoMode ? h('ul', { class: 'c-list' }, h('li', {}, h('button', { class: 'c-item', type: 'button', onclick: () => demoSheet() },

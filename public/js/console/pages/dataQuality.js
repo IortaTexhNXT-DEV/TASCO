@@ -312,7 +312,7 @@ export default {
     };
     const assignDialog = (rows) => decisionDialog({
       title: t('assignTitle', rows.length), confirmLabel: t('confirmAssign'), size: 'sm',
-      fields: [{ name: 'assignee', label: t('fAssignee'), required: true, control: selectInput([['', '—'], ...assignees.map((u) => [u.id, u.displayName])], ''), summary: (v) => assignees.find((u) => u.id === v)?.displayName || v }],
+      fields: [{ name: 'assignee', label: t('fAssignee'), required: true, control: selectInput([['', '—'], ...assignees.map((u) => [u.id, u.roles?.length ? `${u.displayName} · ${u.roles.map((r) => label('role', r)).join(', ')}` : u.displayName])], ''), summary: (v) => assignees.find((u) => u.id === v)?.displayName || v }],
       onSubmit: (v) => bulk(rows.map((r) => r.id), { action: 'assign', assignee: v.assignee }, 'assigned'),
     });
     const dismissDialog = (rows) => decisionDialog({
