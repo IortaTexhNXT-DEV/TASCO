@@ -249,7 +249,7 @@ test('catalogue sync: proposes a products draft via maker-checker, never activat
   assert.deepEqual(ev.channels, [], 'new core products are not distributed until configured');
   assert.equal(ev.rating.method, 'core');
   assert.equal(proposal.payload.products.find((x) => x.code === 'TNDS_MOTORBIKE').status, 'withdrawn');
-  assert.equal(proposal.payload.products.find((x) => x.code === 'TNDS_CAR').channels.length, 5, 'platform-owned distribution preserved');
+  assert.equal(proposal.payload.products.find((x) => x.code === 'TNDS_CAR').channels.length, active0.payload.products.find((x) => x.code === 'TNDS_CAR').channels.length, 'platform-owned distribution preserved');
   assert.deepEqual(proposal.payload.bundles, active0.payload.bundles);
   assert.equal(proposal.payload.coreCatalogue.version, 'CORE-CAT-2026.11');
 

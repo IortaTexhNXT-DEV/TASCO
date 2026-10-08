@@ -19,7 +19,10 @@
           "zalo",
           "telesales",
           "voice_bot",
-          "partner_api"
+          "partner_api",
+          "zalo_mini_app",
+          "tasco_app",
+          "tasco_web"
         ],
         "certificate": "electronic",
         "status": "active"
@@ -37,7 +40,10 @@
         "priceRegulated": true,
         "channels": [
           "vetc_app",
-          "zalo"
+          "zalo",
+          "zalo_mini_app",
+          "tasco_app",
+          "tasco_web"
         ],
         "certificate": "electronic",
         "status": "active"
@@ -57,7 +63,10 @@
         "channels": [
           "vetc_app",
           "telesales",
-          "partner_api"
+          "partner_api",
+          "zalo_mini_app",
+          "tasco_app",
+          "tasco_web"
         ],
         "certificate": "electronic",
         "status": "active"
@@ -78,7 +87,10 @@
           "zalo",
           "telesales",
           "voice_bot",
-          "partner_api"
+          "partner_api",
+          "zalo_mini_app",
+          "tasco_app",
+          "tasco_web"
         ],
         "certificate": "electronic",
         "status": "active"

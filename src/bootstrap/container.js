@@ -11,7 +11,7 @@ const { createCircuitBreaker } = require('../shared/resilience');
 const { createCodec } = require('../adapters/persistence/codec');
 const { createMemoryStore } = require('../adapters/persistence/memoryStore');
 const { createOutboxEventBus } = require('../adapters/messaging/outboxEventBus');
-const { createVetcWalletGateway, createTascoCoreGateway, createNotificationGateway } = require('../adapters/integrations/mockGateways');
+const { createVetcWalletGateway, createTascoPaymentGateway, createTascoCoreGateway, createNotificationGateway } = require('../adapters/integrations/mockGateways');
 const { createSimulatedCaller } = require('../adapters/integrations/simulatedCaller');
 const { createTascoCoreRatingClient } = require('../adapters/integrations/tascoCoreRatingClient');
 const { createSimulatedTascoCore } = require('../adapters/integrations/simulatedTascoCore');
@@ -66,6 +66,7 @@ async function createContainer(config, { logSink, store: injectedStore } = {}) {
   const breaker = (name, port, opts) => ({ port, ...createCircuitBreaker({ name, metrics, logger, ...opts }) });
   const gateways = {
     payment: breaker('vetc-wallet', createVetcWalletGateway()),
+    paymentTasco: breaker('tasco-payment', createTascoPaymentGateway()),
     policyAdmin: breaker('tasco-core', createTascoCoreGateway({ publicBaseUrl: config.publicBaseUrl })),
     telephony: breaker('voice-ai', createSimulatedCaller({ seed: config.seed }), { timeoutMs: 30000, retries: 0 }),
     notify: {

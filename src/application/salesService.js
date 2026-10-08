@@ -19,6 +19,8 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
   const quotes = store.collection('quotes');
   const orders = store.collection('orders');
   const policies = store.collection('policies');
+  /** VETC wallet inside the VETC app and Zalo mini app; TASCO's own payment gateway inside TASCO's app and website. */
+  const paymentFor = (channel) => ((channel === 'tasco_app' || channel === 'tasco_web') && gateways.paymentTasco ? gateways.paymentTasco : gateways.payment);
   const profiles = store.collection('profiles');
   const partners = store.collection('partners');
 
@@ -214,8 +216,9 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
           payment = { transactionId: `PARTNER-${q.partnerId}-${orderId}`, status: 'partner_collected' };
         } else {
           // Customer-initiated only: staff can send a quote but never debit a wallet.
-          if (!actor.roles?.includes('customer')) throw errors.forbidden('Only the customer can confirm payment, inside the VETC app');
-          payment = await gateways.payment.exec(() => gateways.payment.port.debit({ idempotencyKey: orderId, customerId: q.profileId, amount: q.total, description: `Insurance ${q.plate}` }));
+          if (!actor.roles?.includes('customer')) throw errors.forbidden('Only the customer can confirm payment, inside the customer app');
+          const pay = paymentFor(q.channel);
+          payment = await pay.exec(() => pay.port.debit({ idempotencyKey: orderId, customerId: q.profileId, amount: q.total, description: `Insurance ${q.plate}` }));
         }
       } catch (e) {
         await orders.upsert({ ...order, status: 'payment_failed', error: e.message });
@@ -255,7 +258,8 @@ function createSalesService({ store, rules, audit, events, clock, logger, metric
         let refund = { status: payment.status === 'partner_collected' ? 'not_applicable' : 'pending' };
         if (payment.status !== 'partner_collected') {
           try {
-            const r = await gateways.payment.exec(() => gateways.payment.port.refund({ transactionId: payment.transactionId, amount: q.total }));
+            const pay = paymentFor(q.channel);
+            const r = await pay.exec(() => pay.port.refund({ transactionId: payment.transactionId, amount: q.total }));
             refund = { status: 'refunded', refundId: r.refundId };
           } catch (re) { refund = { status: 'refund_failed', error: re.message }; }
         }

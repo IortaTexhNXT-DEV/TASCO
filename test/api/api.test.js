@@ -193,6 +193,26 @@ test('partner API: API key auth, new-vehicle onboarding, bind, own policies, sta
   assert.equal((await srv.call('PATCH', `/api/partners/${created.body.id}`, { token: pm, body: { status: 'suspended' } })).body.status, 'suspended');
 });
 
+test('customer journeys are reused across hosts: channel on the session drives attribution and the payment gateway', async () => {
+  const p = await findProfile(c, (x) => x.ownerType === 'individual' && !x.anonymised && x.vehicle.category === 'car_under6');
+  assert.equal((await srv.call('POST', '/api/customer/session', { body: { link: c.links.sign(p.id), channel: 'facebook' } })).status, 400, 'unknown host rejected');
+  const s = await srv.call('POST', '/api/customer/session', { body: { link: c.links.sign(p.id), channel: 'tasco_web' } });
+  assert.equal(s.body.channel, 'tasco_web');
+  const q = await srv.call('POST', '/api/customer/quotes', { token: s.body.token, body: { products: [{ code: 'TNDS_CAR' }] } });
+  assert.equal(q.status, 200);
+  assert.equal(q.body.channel, 'tasco_web');
+  const o = await srv.call('POST', '/api/customer/orders', { token: s.body.token, body: { quoteId: q.body.id }, headers: { 'Idempotency-Key': 'host-tasco-web-1' } });
+  assert.equal(o.status, 200);
+  const order = (await c.store.collection('orders').find({ where: { profile_id: p.id }, limit: 50 })).find((x) => x.quoteId === q.body.id);
+  assert.equal(order.channel, 'tasco_web');
+  assert.match(order.payment?.transactionId || order.paymentRef || JSON.stringify(order), /TP-/, 'paid through the TASCO payment gateway');
+  const z = await srv.call('POST', '/api/customer/session', { body: { link: c.links.sign(p.id), channel: 'zalo_mini_app' } });
+  const zq = await srv.call('POST', '/api/customer/quotes', { token: z.body.token, body: { products: [{ code: 'TNDS_CAR' }] } });
+  assert.equal(zq.body.channel, 'zalo_mini_app');
+  const d = await srv.call('POST', '/api/customer/session', { body: { link: c.links.sign(p.id) } });
+  assert.equal(d.body.channel, 'vetc_app', 'defaults to the VETC app');
+});
+
 test('customer app: confirming business use and seats re-categorises the vehicle and the TNDS price follows', async () => {
   const p = await findProfile(c, (x) => x.ownerType === 'individual' && !x.anonymised && x.vehicle.category === 'car_under6');
   const t = (await srv.call('POST', '/api/customer/session', { body: { link: c.links.sign(p.id) } })).body.token;

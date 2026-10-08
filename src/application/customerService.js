@@ -42,8 +42,9 @@ function createCustomerService({ store, rules, audit, events, clock, config }) {
      * VETC's identity provider; the sandbox issues a customer token for a
      * profile so journeys can be demonstrated end-to-end.
      */
-    issueCustomerToken(profileId) {
-      return signJwt({ sub: `customer:${profileId}`, roles: ['customer'], customerId: profileId, aud: 'customer' }, config.jwtSecret, 3600);
+    /** `channel` is the host the customer journey is embedded in (VETC app, Zalo mini app, TASCO app or website). */
+    issueCustomerToken(profileId, channel = 'vetc_app') {
+      return signJwt({ sub: `customer:${profileId}`, roles: ['customer'], customerId: profileId, ch: channel, aud: 'customer' }, config.jwtSecret, 3600);
     },
 
     /**

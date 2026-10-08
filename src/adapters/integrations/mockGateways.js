@@ -29,6 +29,28 @@ function createVetcWalletGateway({ failRate = 0 } = {}) {
   };
 }
 
+/**
+ * Port: Payment — sandbox for TASCO's existing online payment gateway (the one behind e.baohiemtasco.vn),
+ * reused when the customer journey runs inside TASCO's own app or website instead of the VETC app.
+ */
+function createTascoPaymentGateway({ failRate = 0 } = {}) {
+  const processed = new Map();
+  return {
+    name: 'tasco-payment',
+    async debit({ idempotencyKey, customerId, amount, description }) {
+      if (processed.has(idempotencyKey)) return processed.get(idempotencyKey);
+      if (Math.random() < failRate) throw errors.upstream('TASCO payment gateway timeout');
+      if (!Number.isInteger(amount) || amount <= 0) throw errors.validation('amount must be a positive integer');
+      const res = { transactionId: `TP-${crypto.randomUUID().slice(0, 12)}`, status: 'captured', amount, customerId, description, at: new Date().toISOString() };
+      processed.set(idempotencyKey, res);
+      return res;
+    },
+    async refund({ transactionId, amount }) {
+      return { refundId: `TR-${crypto.randomUUID().slice(0, 12)}`, transactionId, amount, status: 'refunded' };
+    },
+  };
+}
+
 /** Port: PolicyAdministration — TASCO core issues policy + e-certificate. */
 function createTascoCoreGateway({ publicBaseUrl }) {
   let seq = 100000;
@@ -70,4 +92,4 @@ function createNotificationGateway({ channel, failRate = 0 }) {
   };
 }
 
-module.exports = { createVetcWalletGateway, createTascoCoreGateway, createNotificationGateway };
+module.exports = { createVetcWalletGateway, createTascoPaymentGateway, createTascoCoreGateway, createNotificationGateway };

@@ -40,7 +40,12 @@ const PRODUCT_LINES = {
   },
 };
 
-const CHANNELS = ['vetc_app', 'zalo', 'telesales', 'voice_bot', 'partner_api'];
+/**
+ * Hosts that embed the same customer journeys (one set of services, reused across TASCO and VETC channels):
+ * the VETC app web view, a Zalo mini app, TASCO's own customer app and the TASCO website.
+ */
+const CUSTOMER_CHANNELS = ['vetc_app', 'zalo_mini_app', 'tasco_app', 'tasco_web'];
+const CHANNELS = ['vetc_app', 'zalo', 'telesales', 'voice_bot', 'partner_api', 'zalo_mini_app', 'tasco_app', 'tasco_web'];
 
 /**
  * Global search for the console top bar. Plates match by prefix on the normalised
@@ -585,7 +590,7 @@ function buildRoutes() {
     { method: 'GET', path: '/api/ops/status', auth: 'staff', perm: 'ops:read', tag: 'Operations', summary: 'Integrations, store, rules and backlog status',
       handler: async ({ c }) => ({
         store: c.store.kind,
-        integrations: [c.gateways.payment, c.gateways.policyAdmin, c.gateways.coreRating, c.gateways.productCatalogue, c.gateways.telephony, ...Object.values(c.gateways.notify)].filter(Boolean).map((g) => {
+        integrations: [c.gateways.payment, c.gateways.paymentTasco, c.gateways.policyAdmin, c.gateways.coreRating, c.gateways.productCatalogue, c.gateways.telephony, ...Object.values(c.gateways.notify)].filter(Boolean).map((g) => {
           // Additive health fields: last call latency and times (null until the integration is first used).
           const st = g.stats ? g.stats() : {};
           return { name: g.name, circuit: g.state(), mode: g.mode || null, latencyMs: st.lastLatencyMs ?? null, lastCallAt: st.lastCallAt || null, lastSuccessAt: st.lastSuccessAt || null, lastFailureAt: st.lastFailureAt || null, calls: st.calls ?? null, failures: st.failures ?? null };
@@ -628,13 +633,14 @@ function buildRoutes() {
 
     // ---------- Customer (VETC app / Zalo mini app) ----------
     { method: 'POST', path: '/api/customer/session', auth: 'public', tag: 'Customer', summary: 'Exchange a signed renewal link (or VETC SSO token) for a customer session', loginLimited: true,
-      body: { link: { type: 'string', max: 200 }, demoProfileId: S.id },
+      body: { link: { type: 'string', max: 200 }, demoProfileId: S.id, channel: { type: 'string', enum: CUSTOMER_CHANNELS } },
       handler: async ({ c, body }) => {
         let id = body.link ? c.links.verify(body.link) : null;
         if (!id && body.demoProfileId && c.config.demoMode) id = body.demoProfileId;
         const prof = id ? await c.store.collection('profiles').get(id) : null;
         if (!prof || prof.anonymised) throw errors.unauthenticated('Link invalid or expired');
-        return { token: c.services.customers.issueCustomerToken(id), profileId: id };
+        const channel = body.channel || 'vetc_app';
+        return { token: c.services.customers.issueCustomerToken(id, channel), profileId: id, channel };
       } },
     { method: 'GET', path: '/api/customer/home', auth: 'customer', tag: 'Customer', summary: 'My vehicle, cover and benefits',
       handler: async ({ c, principal }) => c.services.customers.home(principal.customerId) },
@@ -659,7 +665,7 @@ function buildRoutes() {
       } },
     { method: 'POST', path: '/api/customer/quotes', auth: 'customer', tag: 'Customer', summary: 'Quote for my vehicle',
       body: { products: PRODUCT_LINES, termYears: { type: 'integer', min: 1, max: 3 }, journey: { type: 'string', max: 40 } },
-      handler: async ({ c, principal, body }) => c.services.sales.quote({ ...body, profileId: principal.customerId, channel: 'vetc_app' }, principal) },
+      handler: async ({ c, principal, body }) => c.services.sales.quote({ ...body, profileId: principal.customerId, channel: principal.channel || 'vetc_app' }, principal) },
     { method: 'POST', path: '/api/customer/quotes/:id/rerate', auth: 'customer', tag: 'Customer', summary: 'Confirm the final TASCO price of an indicative quote',
       handler: async ({ c, principal, params }) => {
         const q = await c.services.sales.getQuote(params.id);
@@ -690,4 +696,4 @@ function buildRoutes() {
   ];
 }
 
-module.exports = { buildRoutes, CHANNELS };
+module.exports = { buildRoutes, CHANNELS, CUSTOMER_CHANNELS };

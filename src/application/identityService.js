@@ -203,7 +203,7 @@ function createIdentityService({ store, audit, config, clock, rbac }) {
       if (c.aud === 'customer') {
         const p = await store.collection('profiles').get(c.customerId);
         if (!p || p.anonymised) return null; // erased data subjects lose their sessions
-        return { id: c.sub, roles: ['customer'], customerId: c.customerId, region: null, claims: c };
+        return { id: c.sub, roles: ['customer'], customerId: c.customerId, channel: c.ch || 'vetc_app', region: null, claims: c };
       }
       if (c.aud !== 'staff') return null;
       const u = await users.get(c.sub);
