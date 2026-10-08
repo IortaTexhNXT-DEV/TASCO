@@ -9,3 +9,4 @@ coverage/
 tools/docs-source/proposal/tpl/
 __pycache__/
 tools/docs-source/conv
+tools/docs-source/gen/.cache/
