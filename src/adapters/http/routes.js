@@ -135,7 +135,7 @@ function buildRoutes() {
     // ---------- Public ----------
     { method: 'GET', path: '/api/meta', auth: 'public', tag: 'Platform', summary: 'Client bootstrap metadata',
       handler: async ({ c }) => {
-        const meta = { name: 'TASCO Growth Platform', version: require('../../../package.json').version, demoMode: c.config.demoMode, today: c.clock.today(), store: c.store.kind, supportHotline: c.config.supportHotline || null, supportEmail: c.config.supportEmail || null };
+        const meta = { name: 'TASCO Growth Platform', version: require('../../../package.json').version, demoMode: c.config.demoMode, today: c.clock.today(), store: c.store.kind, supportHotline: c.config.supportHotline || null, supportEmail: c.config.supportEmail || null, supportWebsite: c.config.supportWebsite || null, supportZaloUrl: c.config.supportZaloUrl || null, supportMessengerUrl: c.config.supportMessengerUrl || null };
         if (c.config.demoMode) {
           // Demo only: a few customers per journey so the customer app can be explored without a real link.
           meta.demoCustomers = await c.services.customers.demoCustomers();
@@ -641,6 +641,22 @@ function buildRoutes() {
     { method: 'POST', path: '/api/customer/expiry', auth: 'customer', tag: 'Customer', summary: 'Confirm my current expiry (fixes data, earns points)',
       body: { expiryDate: { type: 'date', required: true }, insurer: { type: 'string', max: 60 } },
       handler: async ({ c, principal, body }) => { const r = await c.services.customers.declareExpiry(principal.customerId, body, principal); await c.events.drain(); return r; } },
+    { method: 'POST', path: '/api/customer/vehicle', auth: 'customer', tag: 'Customer', summary: 'Confirm my vehicle use and seats before quoting (sets the TNDS tariff category)',
+      body: { usage: { type: 'string', enum: ['personal', 'commercial'], required: true }, seats: { type: 'integer', min: 1, max: 60, required: true } },
+      handler: async ({ c, principal, body }) => {
+        const p = await c.store.collection('profiles').get(principal.customerId);
+        if (!p) throw errors.notFound('Vehicle');
+        // The owner's own confirmation in an authenticated session: recorded as evidence and re-merged
+        // through the normal survivorship rules, so lineage shows where the category came from.
+        await c.services.ingestion.ingest([{
+          recordId: `CV-${p.plateKey || principal.customerId}-${Date.now()}`, source: 'customer_vehicle_confirmed',
+          plateRaw: p.plate, seatsDeclared: body.seats, usageDeclared: body.usage, ownerType: p.ownerType || 'individual',
+        }], { actor: principal.id, sourceName: 'customer_app' });
+        await c.events.drain();
+        await c.services.audit.record({ actor: principal.id, action: 'customer.vehicle_confirmed', entityType: 'profile', entityId: principal.customerId, details: { usage: body.usage, seats: body.seats } });
+        const after = await c.store.collection('profiles').get(principal.customerId);
+        return { ok: true, category: after.vehicle.category, seats: after.vehicle.seats ?? body.seats, usage: after.vehicle.usage ?? body.usage };
+      } },
     { method: 'POST', path: '/api/customer/quotes', auth: 'customer', tag: 'Customer', summary: 'Quote for my vehicle',
       body: { products: PRODUCT_LINES, termYears: { type: 'integer', min: 1, max: 3 }, journey: { type: 'string', max: 40 } },
       handler: async ({ c, principal, body }) => c.services.sales.quote({ ...body, profileId: principal.customerId, channel: 'vetc_app' }, principal) },

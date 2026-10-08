@@ -121,6 +121,10 @@ function loadConfig(env = process.env) {
     port: int(env.PORT, 3000),
     supportHotline: env.SUPPORT_HOTLINE ?? '1900 1562',
     supportEmail: env.SUPPORT_EMAIL ?? 'info@baohiemtasco.vn',
+    supportWebsite: env.SUPPORT_WEBSITE ?? 'https://baohiemtasco.vn',
+    // TASCO's official Zalo OA and Messenger links; unset hides the chat options in the customer app.
+    supportZaloUrl: env.SUPPORT_ZALO_URL || null,
+    supportMessengerUrl: env.SUPPORT_MESSENGER_URL || null,
     publicBaseUrl: env.PUBLIC_BASE_URL || `http://localhost:${int(env.PORT, 3000)}`,
     databaseUrl,
     databaseSsl: bool(env.DATABASE_SSL, production),

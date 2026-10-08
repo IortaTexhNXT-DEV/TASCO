@@ -6,6 +6,7 @@
       "tasco_core": 1.0,
       "vetc_app_purchase": 0.95,
       "vetc_account": 0.85,
+      "customer_vehicle_confirmed": 0.9,
       "customer_declared": 0.75,
       "partner_inspection_center": 0.65,
       "partner_bank": 0.6,

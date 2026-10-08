@@ -193,6 +193,22 @@ test('partner API: API key auth, new-vehicle onboarding, bind, own policies, sta
   assert.equal((await srv.call('PATCH', `/api/partners/${created.body.id}`, { token: pm, body: { status: 'suspended' } })).body.status, 'suspended');
 });
 
+test('customer app: confirming business use and seats re-categorises the vehicle and the TNDS price follows', async () => {
+  const p = await findProfile(c, (x) => x.ownerType === 'individual' && !x.anonymised && x.vehicle.category === 'car_under6');
+  const t = (await srv.call('POST', '/api/customer/session', { body: { link: c.links.sign(p.id) } })).body.token;
+  const before = await srv.call('POST', '/api/customer/quotes', { token: t, body: { products: [{ code: 'TNDS_CAR' }] } });
+  assert.equal((await srv.call('POST', '/api/customer/vehicle', { token: t, body: { usage: 'commercial', seats: 0 } })).status, 400);
+  assert.equal((await srv.call('POST', '/api/customer/vehicle', { token: t, body: { seats: 5 } })).status, 400, 'usage is required');
+  const r = await srv.call('POST', '/api/customer/vehicle', { token: t, body: { usage: 'commercial', seats: 5 } });
+  assert.equal(r.status, 200);
+  assert.notEqual(r.body.category, 'car_under6');
+  assert.equal((await c.store.collection('profiles').get(p.id)).vehicle.category, r.body.category);
+  const after = await srv.call('POST', '/api/customer/quotes', { token: t, body: { products: [{ code: 'TNDS_CAR' }] } });
+  assert.ok(after.body.total > before.body.total, 'business-use tariff is higher than private use');
+  const recs = await c.store.collection('source_records').find({ where: { plate_key: p.id }, limit: 100 });
+  assert.ok(recs.some((x) => x.source === 'customer_vehicle_confirmed'), 'the confirmation is kept as source evidence');
+});
+
 test('customer app: signed-link session, home, declare expiry, quote, pay, consent, claim, export; IDOR blocked', async () => {
   const p = await findProfile(c, (x) => x.ownerType === 'individual' && x.policy.insurer !== 'TASCO' && !x.anonymised && x.vehicle.category === 'car_under6');
   assert.equal((await srv.call('POST', '/api/customer/session', { body: { link: `${p.id}.forged` } })).status, 401);
