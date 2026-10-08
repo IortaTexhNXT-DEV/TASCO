@@ -25,7 +25,6 @@ signoff:
   - ["Official TASCO Insurance logo files (vector and PNG, colour and white versions) supplied by TASCO marketing to replace the stand-in wordmark", "TASCO Marketing", Open]
   - ["Brand colours confirmed: navy #213368 and brand teal #6CC7C5, with the darker action teal #0F8482 and link teal #0B6B66 used to meet contrast rules", "TASCO Marketing", Open]
   - ["Lexend confirmed as the brand typeface, or TASCO's own font files supplied with a licence for web use", "TASCO Marketing", Open]
-  - ["Co-brand lock-up \"TASCO × VETC\" in the VETC app and the Zalo Mini App approved", "TASCO Marketing and VETC Product Owner", Open]
   - ["Abstract brand art on the staff sign-in page accepted in place of TASCO photography, or a licensed photograph supplied", "TASCO Marketing", Open]
 ---
 
@@ -97,9 +96,9 @@ The wordmark is a stand-in. It is built as one component (`wordmark()` in `publi
 | Large | 40 px | Customer app splash screen |
 | Extra large | 56 px | Staff sign-in brand panel |
 
-## Co-branding by host
+## One brand in every host
 
-Inside the VETC app and the Zalo Mini App the app bar shows the wordmark, a multiplication sign and a navy "VETC" tag, read as "TASCO × VETC". In the TASCO app and on the TASCO website the wordmark stands alone. The host also changes the payment wording (TGP-UX-03 describes what changes by host).
+The customer app carries the TASCO Insurance brand alone, in every host: the VETC app, the Zalo Mini App, TASCO's app and the TASCO website. There is no co-brand lock-up. VETC appears only where it is a fact the customer needs, such as "Ví VETC" as the payment method. The host changes the payment wording and a few messages (TGP-UX-03 describes what changes by host).
 
 ## Sign-in page
 
@@ -426,7 +425,7 @@ The customer app is built for phones from 360 to 430 px wide. Its components use
 
 | No. | Element | Rule |
 |---|---|---|
-| 1 | App bar | White, wordmark on the left; "× VETC" inside the VETC hosts |
+| 1 | App bar | White, TASCO INSURANCE wordmark on the left |
 | 2 | Hero band | Brand teal with the navy diagonal parallelogram; greeting in navy |
 | 3 | Plate tag | Bordered like a number plate, formatted 30E-949.35 |
 | 4 | Day ring | Days of cover left; amber when 45 days or fewer, red with a warning icon when lapsed |
@@ -512,7 +511,7 @@ The console offers Light, Dark and System (following the computer's setting) in 
 
 Tokens, components and these rules change through the same pull-request review as the code. A change to a colour, a type size or a component's behaviour updates `tokens.css` or `ui.js`, the component reference kept with the source, and this document in the same release. New colour pairings are checked for contrast in both themes before review.
 
-TASCO marketing approves changes to brand elements: the logo, brand colours, typeface and co-brand lock-ups. The UX lead approves new components; a page-specific variant is preferred to a new component until the pattern is needed on a second page.
+TASCO marketing approves changes to brand elements: the logo, brand colours and typeface. The UX lead approves new components; a page-specific variant is preferred to a new component until the pattern is needed on a second page.
 
 # Appendix
 

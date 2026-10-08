@@ -257,27 +257,26 @@ Account groups three things the customer controls: privacy and contact (marketin
 
 # Hosts
 
-The same customer app runs in four hosts. One set of screens and services serves them all; the host decides the branding, the payment method and some wording.
+The same customer app runs in four hosts. One set of screens and services serves them all; the brand is always TASCO Insurance; the host decides the payment method and some wording.
 
-| Host | Channel value | Branding | Payment | Release |
+| Host | Channel value | Brand | Payment | Release |
 |---|---|---|---|---|
-| VETC app | `vetc_app` (default) | TASCO × VETC | Ví VETC (VETC wallet) | MVP pilot |
-| Zalo Mini App | `zalo_mini_app` | TASCO × VETC | Ví VETC | Scale phase, module S4 |
-| TASCO app | `tasco_app` | TASCO | Thanh toán qua cổng TASCO | Scale phase, module S3 |
-| TASCO website | `tasco_web` | TASCO | Thanh toán qua cổng TASCO | Scale phase, module S3 |
+| VETC app | `vetc_app` (default) | TASCO Insurance | Ví VETC (VETC wallet) | MVP pilot |
+| Zalo Mini App | `zalo_mini_app` | TASCO Insurance | Ví VETC | Scale phase, module S4 |
+| TASCO app | `tasco_app` | TASCO Insurance | Thanh toán qua cổng TASCO | Scale phase, module S3 |
+| TASCO website | `tasco_web` | TASCO Insurance | Thanh toán qua cổng TASCO | Scale phase, module S3 |
 
 All four hosts work in the sandbox today; the TASCO payment gateway is a sandbox adapter until TASCO's integration is specified.
 
 What changes by host:
 
-- the app bar co-brand ("× VETC" or none) and the footer note ("Phân phối qua ứng dụng VETC" or "Bảo hiểm TASCO");
+- the footer note ("Phân phối qua ứng dụng VETC" or "Bảo hiểm TASCO");
 - the payment method on step 3, its description and the security line ("Thanh toán được bảo mật bởi VETC" or "… bởi cổng thanh toán TASCO");
 - the wallet balance and the low-balance notice, shown only for the VETC wallet;
 - every message that sends the customer back to the host ("Vui lòng mở lại từ ứng dụng VETC", "… từ website Bảo hiểm TASCO");
-- the page title in the browser tab ("Trang chủ · TASCO × VETC" or "Trang chủ · Bảo hiểm TASCO");
 - the channel recorded on quotes and orders, which drives sales-by-channel reporting.
 
-The screens, steps, prices and wording of the insurance itself do not change.
+The brand, screens, steps, prices and wording of the insurance itself do not change.
 
 ::: {custom-style="Figure"}
 ![](../../shots/app-customer-buy-3-payment.png){width=6cm} ![](../../shots/app-customer-buy-3-payment-tasco-web.png){width=6cm}

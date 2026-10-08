@@ -50,14 +50,14 @@ TASCO and VETC customer service and telesales staff, trainers, the TASCO product
 
 # Where the app runs
 
-The same app runs in four places. The content and steps are identical; the branding and the payment method follow the host.
+The same app runs in four places. The content, steps and TASCO Insurance brand are identical; only the payment method follows the host.
 
-| Host | How the customer opens it | Branding | Payment method |
+| Host | How the customer opens it | Brand | Payment method |
 |---|---|---|---|
-| VETC app | The Insurance section, or a renewal link in a VETC notification, Zalo message or SMS | TASCO × VETC | **Ví VETC** (VETC wallet) |
-| Zalo Mini App | The VETC mini app inside Zalo | TASCO × VETC | **Ví VETC** |
-| TASCO app | The insurance section of TASCO's own app | TASCO | **Thanh toán qua cổng TASCO** (TASCO payment gateway: domestic ATM card, international card or bank QR) |
-| TASCO website | A link from baohiemtasco.vn | TASCO | **Thanh toán qua cổng TASCO** |
+| VETC app | The Insurance section, or a renewal link in a VETC notification, Zalo message or SMS | TASCO Insurance | **Ví VETC** (VETC wallet) |
+| Zalo Mini App | The VETC mini app inside Zalo | TASCO Insurance | **Ví VETC** |
+| TASCO app | The insurance section of TASCO's own app | TASCO Insurance | **Thanh toán qua cổng TASCO** (TASCO payment gateway: domestic ATM card, international card or bank QR) |
+| TASCO website | A link from baohiemtasco.vn | TASCO Insurance | **Thanh toán qua cổng TASCO** |
 
 The host opens the app with a signed link that identifies the customer's vehicle; the customer does not create a password. A renewal link is valid for 30 days. If the link has expired, the app says "Liên kết đã hết hạn hoặc không hợp lệ" (the link has expired or is not valid) and asks the customer to open it again from the host app.
 
