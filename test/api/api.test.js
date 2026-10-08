@@ -255,3 +255,26 @@ test('data steward, compliance (DSAR), auditor, admin and support endpoints', as
   const pw = await srv.call('POST', '/api/auth/password', { token: support, body: { currentPassword: 'Tasco@Demo2026!', newPassword: 'Another long password' } });
   assert.equal(pw.status, 200);
 });
+
+test('console shell: /api/auth/me display name and global customer search (plate prefix, phone, ABAC, masking)', async () => {
+  const agent = await srv.login('agent.hn');
+  const me = await srv.call('GET', '/api/auth/me', { token: agent });
+  assert.equal(me.body.displayName, 'Telesales Agent (Hà Nội)');
+
+  const p = await findProfile(c, (x) => x.province === 'Hà Nội' && x.phone && !x.anonymised);
+  const prefix = p.id.slice(0, 5);
+  const byPlate = await srv.call('GET', `/api/search/customers?q=${encodeURIComponent(prefix.toLowerCase())}`, { token: agent });
+  assert.equal(byPlate.status, 200);
+  assert.ok(byPlate.body.items.some((i) => i.id === p.id), 'plate prefix finds the customer');
+  assert.ok(byPlate.body.items.every((i) => i.region === 'Hà Nội'), 'regional agent only sees own region');
+  const byPhone = await srv.call('GET', `/api/search/customers?q=${encodeURIComponent(p.phone)}`, { token: agent });
+  assert.ok(byPhone.body.items.some((i) => i.id === p.id), 'phone finds the customer');
+  assert.equal((await srv.call('GET', '/api/search/customers?q=ab', { token: agent })).body.items.length, 0);
+
+  const campaign = await srv.login('campaign');
+  const masked = await srv.call('GET', `/api/search/customers?q=${encodeURIComponent(p.phone)}`, { token: campaign });
+  const hit = masked.body.items.find((i) => i.id === p.id);
+  assert.ok(hit && hit.phone !== p.phone, 'phone masked without PII permission');
+  const exec = await srv.login('exec');
+  assert.equal((await srv.call('GET', '/api/search/customers?q=30A', { token: exec })).status, 403);
+});

@@ -19,12 +19,34 @@ const STRINGS = {
     poweredBy: 'Phát triển bởi',
     hello: 'Xin chào', copy: 'Sao chép', copied: 'Đã sao chép',
     perSeat: (m) => `${m} triệu đồng/chỗ`, years: (n) => `${n} năm`,
+    // Console shell (v2)
+    groupSell: 'Bán hàng', groupEngage: 'Tương tác', groupServe: 'Dịch vụ', groupPartners: 'Đối tác', groupData: 'Dữ liệu',
+    approvals: 'Phê duyệt', campaigns: 'Chiến dịch', customer: 'Khách hàng 360', console: 'Bảng điều khiển',
+    searchPlaceholder: 'Tìm biển số hoặc số điện thoại…', searchLabel: 'Tìm khách hàng', searchHint: 'Nhập ít nhất 3 ký tự của biển số, hoặc số điện thoại đầy đủ',
+    searchNoResults: 'Không tìm thấy khách hàng phù hợp', searching: 'Đang tìm…',
+    notifications: 'Thông báo', allCaughtUp: 'Bạn đã xử lý hết', allCaughtUpHint: 'Không có việc cần chú ý lúc này.',
+    notifApprovals: (n) => `${n} thay đổi quy tắc chờ phê duyệt`, notifHandoffs: (n) => `${n} khách nóng mới cần gọi`, notifClaims: (n) => `${n} hồ sơ bồi thường sắp quá hạn tiếp nhận`,
+    notifDq: (n) => `${n} vấn đề dữ liệu đang mở`, notifApprovalItem: 'Chờ phê duyệt', notifHandoffItem: 'Khách nóng mới', notifClaimItem: 'Sắp quá hạn SLA', notifClaimOverdue: 'Đã quá hạn SLA',
+    viewAll: 'Xem tất cả', userMenu: 'Tài khoản', profileRegion: 'Khu vực', allRegions: 'Toàn quốc',
+    languageLabel: 'Ngôn ngữ', themeLight: 'Sáng', themeDark: 'Tối', themeSystem: 'Theo hệ thống', changePassword: 'Đổi mật khẩu',
+    collapseSidebar: 'Thu gọn thanh bên', expandSidebar: 'Mở rộng thanh bên', mainNav: 'Điều hướng chính', breadcrumb: 'Đường dẫn',
+    footerCredit: '© 2026 Bảo hiểm TASCO · Phát triển bởi iorta TechNXT · v1.0', skipToContent: 'Bỏ qua đến nội dung chính',
+    pageNotFound: 'Không tìm thấy trang', noAccess: 'Bạn không có quyền truy cập trang này.', sessionExpired: 'Phiên làm việc đã hết hạn — vui lòng đăng nhập lại',
+    setOwnPassword: 'Vui lòng đặt mật khẩu của riêng bạn', currentPassword: 'Mật khẩu hiện tại', newPassword: 'Mật khẩu mới', newPasswordHelp: 'Tối thiểu 12 ký tự',
+    passwordChanged: 'Đã đổi mật khẩu — vui lòng đăng nhập lại', helpManuals: 'Hướng dẫn đầy đủ có trong bộ tài liệu người dùng.',
+    // Components
+    rowsPerPage: 'Số dòng mỗi trang', rangeOf: (a, b, n) => `${a}–${b} trong ${n}`, exportCsv: 'Xuất CSV', filters: 'Bộ lọc', clearFilters: 'Xóa bộ lọc',
+    moreActions: 'Thao tác khác', noResults: 'Không có kết quả', noResultsHint: 'Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.', sortBy: (c) => `Sắp xếp theo ${c}`,
+    required: 'Bắt buộc', optional: 'Không bắt buộc', technicalDetails: 'Chi tiết kỹ thuật', dataTable: 'Bảng dữ liệu', showDataTable: 'Xem dạng bảng',
+    invalidDate: 'Ngày không hợp lệ (dd/mm/yyyy)', dateHint: 'dd/mm/yyyy', confirm: 'Xác nhận', dismiss: 'Đóng thông báo', back: 'Quay lại', of: 'trên',
+    confidence: 'Độ tin cậy', confidenceHigh: 'Cao', confidenceMedium: 'Trung bình', confidenceLow: 'Thấp', page: 'Trang', total: 'Tổng',
+    selectedCount: (n) => `Đã chọn ${n}`, clearSelection: 'Bỏ chọn', selectAll: 'Chọn tất cả', selectRow: 'Chọn dòng',
   },
   en: {
     signIn: 'Sign in', username: 'Username', password: 'Password', mfaCode: '6-digit authentication code', verify: 'Verify',
     signOut: 'Sign out', help: 'Help', theme: 'Theme', language: 'Tiếng Việt', menu: 'Menu',
-    home: 'Home', leads: 'Leads', voice: 'Voice bot', handoffs: 'Telesales inbox', journeys: 'Journeys',
-    rules: 'Rules studio', partners: 'Partners', claims: 'Claims', dq: 'Data quality', audit: 'Audit', users: 'Users', ops: 'Operations',
+    home: 'Dashboard', leads: 'Leads', voice: 'Voice assistant', handoffs: 'Telesales inbox', journeys: 'Journeys',
+    rules: 'Business rules', partners: 'Partners', claims: 'Claims', dq: 'Data quality', audit: 'Audit', users: 'Users', ops: 'Operations',
     groupWork: 'Work', groupGrowth: 'Growth', groupGov: 'Governance', groupAdmin: 'Administration',
     loading: 'Loading…', empty: 'Nothing here yet', save: 'Save', cancel: 'Cancel', close: 'Close', search: 'Search', apply: 'Apply', reset: 'Reset',
     score: 'Score', tier: 'Tier', journey: 'Journey', nba: 'Next best action', expiry: 'Expiry', days: 'Days', region: 'Region', plate: 'Plate', premium: 'Premium',
@@ -39,6 +61,28 @@ const STRINGS = {
     poweredBy: 'Built by',
     hello: 'Hello', copy: 'Copy', copied: 'Copied',
     perSeat: (m) => `VND ${m} million per seat`, years: (n) => `${n} year${n === 1 ? '' : 's'}`,
+    // Console shell (v2)
+    groupSell: 'Sell', groupEngage: 'Engage', groupServe: 'Serve', groupPartners: 'Partners', groupData: 'Data',
+    approvals: 'Approvals', campaigns: 'Campaigns', customer: 'Customer 360', console: 'Console',
+    searchPlaceholder: 'Search plate or phone…', searchLabel: 'Search customers', searchHint: 'Type at least 3 characters of a plate, or a full phone number',
+    searchNoResults: 'No matching customers', searching: 'Searching…',
+    notifications: 'Notifications', allCaughtUp: 'You’re all caught up', allCaughtUpHint: 'Nothing needs your attention right now.',
+    notifApprovals: (n) => `${n} rule change${n === 1 ? '' : 's'} awaiting approval`, notifHandoffs: (n) => `${n} new hot lead${n === 1 ? '' : 's'} to call`, notifClaims: (n) => `${n} claim${n === 1 ? '' : 's'} near the acknowledgement SLA`,
+    notifDq: (n) => `${n} open data issue${n === 1 ? '' : 's'}`, notifApprovalItem: 'Awaiting approval', notifHandoffItem: 'New hot lead', notifClaimItem: 'SLA due soon', notifClaimOverdue: 'SLA breached',
+    viewAll: 'View all', userMenu: 'Account', profileRegion: 'Region', allRegions: 'All regions',
+    languageLabel: 'Language', themeLight: 'Light', themeDark: 'Dark', themeSystem: 'System', changePassword: 'Change password',
+    collapseSidebar: 'Collapse sidebar', expandSidebar: 'Expand sidebar', mainNav: 'Main navigation', breadcrumb: 'Breadcrumb',
+    footerCredit: '© 2026 TASCO Insurance · Powered by iorta TechNXT · v1.0', skipToContent: 'Skip to main content',
+    pageNotFound: 'Page not found', noAccess: 'You do not have access to this page.', sessionExpired: 'Session expired — please sign in again',
+    setOwnPassword: 'Please set your own password', currentPassword: 'Current password', newPassword: 'New password', newPasswordHelp: 'At least 12 characters',
+    passwordChanged: 'Password changed — please sign in again', helpManuals: 'Full manuals are available in the user documentation.',
+    // Components
+    rowsPerPage: 'Rows per page', rangeOf: (a, b, n) => `${a}–${b} of ${n}`, exportCsv: 'Export CSV', filters: 'Filters', clearFilters: 'Clear filters',
+    moreActions: 'More actions', noResults: 'No results', noResultsHint: 'Try changing the filters or search terms.', sortBy: (c) => `Sort by ${c}`,
+    required: 'Required', optional: 'Optional', technicalDetails: 'Technical details', dataTable: 'Data table', showDataTable: 'Show as table',
+    invalidDate: 'Invalid date (dd/mm/yyyy)', dateHint: 'dd/mm/yyyy', confirm: 'Confirm', dismiss: 'Dismiss', back: 'Back', of: 'of',
+    confidence: 'Confidence', confidenceHigh: 'High', confidenceMedium: 'Medium', confidenceLow: 'Low', page: 'Page', total: 'Total',
+    selectedCount: (n) => `${n} selected`, clearSelection: 'Clear selection', selectAll: 'Select all', selectRow: 'Select row',
   },
 };
 
@@ -214,4 +258,8 @@ export function labelIn(l, group, code) {
   return LABELS[l]?.[group]?.[key] ?? LABELS.en[group]?.[key] ?? (code === null || code === '' ? '—' : humanise(code));
 }
 export const label = (group, code) => labelIn(lang, group, code);
+/** Business label for a code (alias of label) — the one helper pages should use for any enum/code. */
+export const businessLabel = label;
+/** Intl locale for the UI language: numbers 1,234 (en) / 1.234 (vi). Dates stay dd/MM/yyyy in both. */
+export const locale = () => (lang === 'en' ? 'en-US' : 'vi-VN');
 export const hasLabel = (group, code) => code !== null && code !== undefined && !!(LABELS[lang]?.[group]?.[code] ?? LABELS.en[group]?.[code]);

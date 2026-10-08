@@ -40,6 +40,36 @@ const PRODUCT_LINES = {
 
 const CHANNELS = ['vetc_app', 'zalo', 'telesales', 'voice_bot', 'partner_api'];
 
+/**
+ * Global search for the console top bar. Plates match by prefix on the normalised
+ * key (e.g. "30E949" → 30E-949.35); phone numbers match exactly through the blind
+ * index (names are encrypted at rest and are not searchable). Results respect
+ * region ABAC and PII masking; nothing is returned for very short queries.
+ */
+async function searchCustomers(c, principal, q, limit) {
+  const { access } = c.services;
+  const profiles = c.store.collection('profiles');
+  const raw = String(q || '').trim();
+  const compact = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  let found = [];
+  const phone = normalizePhone(raw);
+  if (phone.valid) {
+    const { blindIndex } = require('../../shared/crypto');
+    found = await profiles.find({ where: { phone_bidx: blindIndex(c.config.blindIndexKey, phone.value) }, limit: limit * 3 });
+  } else if (compact.length >= 3 && /^\d{2}[A-Z]/.test(compact)) {
+    found = await profiles.find({ where: { id: { gte: compact, lt: `${compact}\uffff` } }, orderBy: ['id', 'asc'], limit: limit * 3 });
+  }
+  const items = [];
+  for (const p of found) {
+    if (p.anonymised) continue;
+    try { await access.check(principal, 'read', { type: 'profile', region: p.province }); } catch { continue; }
+    const m = access.maskProfile(principal, p);
+    items.push({ id: p.id, plate: p.plate, name: m.name || null, phone: m.phone || null, region: p.province || null, expiryDate: p.policy?.expiryDate || null });
+    if (items.length >= limit) break;
+  }
+  return { items, total: items.length };
+}
+
 async function customerDetail(c, principal, id) {
   const { access } = c.services;
   const s = (n) => c.store.collection(n);
@@ -94,7 +124,10 @@ function buildRoutes() {
     { method: 'POST', path: '/api/auth/logout', auth: 'staff', tag: 'Auth', summary: 'Revoke current token',
       handler: async ({ c, principal }) => c.services.identity.logout(principal.claims) },
     { method: 'GET', path: '/api/auth/me', auth: 'staff', tag: 'Auth', summary: 'Current user and permissions',
-      handler: async ({ c, principal }) => ({ id: principal.id, username: principal.username, roles: principal.roles, region: principal.region, permissions: [...c.services.access.permissions(principal)] }) },
+      handler: async ({ c, principal }) => {
+        const u = await c.store.collection('users').get(principal.id);
+        return { id: principal.id, username: principal.username, displayName: u?.displayName || principal.username, roles: principal.roles, region: principal.region, permissions: [...c.services.access.permissions(principal)] };
+      } },
     { method: 'POST', path: '/api/auth/password', auth: 'staff', tag: 'Auth', summary: 'Change password',
       body: { currentPassword: { type: 'string', max: 200, required: true }, newPassword: { type: 'string', max: 200, required: true } },
       handler: async ({ c, principal, body }) => c.services.identity.changePassword(principal.id, body) },
@@ -126,6 +159,9 @@ function buildRoutes() {
       } },
     { method: 'POST', path: '/api/leads/recompute', auth: 'staff', perm: 'leads:recompute', tag: 'Leads', summary: 'Re-score all leads with active rules',
       handler: async ({ c, principal }) => c.services.leads.recompute(null, { actor: principal.id }) },
+    { method: 'GET', path: '/api/search/customers', auth: 'staff', perm: 'profile:read', tag: 'Customers', summary: 'Global customer search by licence plate (prefix) or phone (exact)',
+      query: { q: { type: 'string', max: 40, required: true }, limit: { type: 'integer', min: 1, max: 20 } },
+      handler: async ({ c, principal, query }) => searchCustomers(c, principal, query.q, query.limit || 8) },
     { method: 'GET', path: '/api/customers/:id', auth: 'staff', perm: 'profile:read', tag: 'Customers', summary: 'Customer 360 (PII masked by permission)',
       handler: async ({ c, principal, params }) => customerDetail(c, principal, params.id) },
     { method: 'GET', path: '/api/customers/:id/lineage', auth: 'staff', perm: 'profile:read', tag: 'Customers', summary: 'Field-level data lineage',
