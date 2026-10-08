@@ -230,7 +230,7 @@ async function saveCertificate(p, plate) {
     g.fillStyle = '#ffffff'; roundRect(g, 64, 64, 260, 92, 18); g.fill();
     if (logo) { const lh = 60; const lw = (logo.width / logo.height) * lh; g.drawImage(logo, 64 + (260 - lw) / 2, 64 + 16, lw, lh); }
     g.fillStyle = '#ffffff'; g.font = font(700, 46); g.fillText('Giấy chứng nhận bảo hiểm', 64, 236);
-    g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = font(500, 30); g.fillText('Bản điện tử · TASCO Insurance × VETC', 64, 280);
+    g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = font(500, 30); g.fillText(`Bản điện tử · TASCO Insurance${host().partner ? ` × ${host().partner}` : ''}`, 64, 280);
     g.fillStyle = '#101828'; g.font = font(700, 40);
     let y = 380;
     for (const line of wrapText(g, productName(p), W - 128)) { g.fillText(line, 64, y); y += 52; }
@@ -421,7 +421,7 @@ function quickActions(home) {
 
 const footnote = () => h('footer', { class: 'c-footnote' },
   h('span', {}, ic('scale', 14), 'Phí bảo hiểm TNDS bắt buộc theo quy định của Bộ Tài chính.'),
-  h('span', {}, ic('lock', 14), 'VETC và TASCO không bao giờ yêu cầu mã OTP qua điện thoại.'));
+  h('span', {}, ic('lock', 14), `${host().partner ? `${host().partner} và TASCO` : 'TASCO'} không bao giờ yêu cầu mã OTP qua điện thoại.`));
 
 // ---------------------------------------------------------------- views: home
 async function viewHome() {
@@ -483,7 +483,7 @@ function setErr(input, msg) {
 }
 
 function viewConfirm() {
-  const f = flowPage({ title: 'Ngày hết hạn bảo hiểm', onBack: () => { location.hash = '#/home'; } });
+  const f = flowPage({ title: 'Ngày hết hạn bảo hiểm', support: true, onBack: () => { location.hash = '#/home'; } });
   const date = dateInput('exp');
   const insurers = ['TASCO', 'PVI', 'PTI', 'Bảo Việt', 'PJICO', 'BIC', 'MIC', 'Khác'];
   const ins = h('fieldset', { class: 'c-fieldset' }, h('legend', {}, 'Công ty bảo hiểm hiện tại'), h('div', { class: 'c-choices' },
@@ -522,64 +522,85 @@ function stepper() {
 }
 
 const USAGE_TEXT = { personal: 'Không kinh doanh vận tải', commercial: 'Có kinh doanh vận tải' };
+const vehicleType = (cat) => (!cat ? 'Ô tô' : /^truck/.test(cat) ? 'Xe tải' : cat === 'pickup_van' ? 'Xe bán tải' : 'Xe chở người');
+const reqMark = () => h('span', { class: 'c-req', 'aria-hidden': 'true' }, ' *');
 
 /**
- * "Thông tin xe": the customer confirms use and seats before pricing (the compulsory TNDS tariff depends on them).
- * Changes are saved with POST /api/customer/vehicle; `home` is refreshed in place and onChanged() re-prices.
- * Returns { el, confirm } — confirm() resolves true when the details are confirmed (saving them if they changed).
+ * Quote-form vehicle fields, laid out like the e.baohiemtasco.vn quote form: the business-use question as two teal
+ * radios in two columns, then "Loại xe" and "Số chỗ ngồi" (unit "chỗ" inside the input) side by side.
+ * draft = { usage, seats } is updated in place; s (purchase state) remembers unsaved edits across re-renders.
+ */
+function vehicleFields(v, draft, s) {
+  const usage = h('fieldset', { class: 'c-radios' },
+    h('legend', { class: 'c-qlabel' }, 'Xe có kinh doanh vận tải không?', reqMark()),
+    h('div', { class: 'c-radios-grid' }, [['personal', 'Không'], ['commercial', 'Có']].map(([u, l]) => h('label', { class: 'c-radio' },
+      h('input', { type: 'radio', name: 'vusage', value: u, checked: draft.usage === u, onchange: () => { draft.usage = u; s.vUsage = u; } }),
+      h('span', { class: 'c-radio-mark', 'aria-hidden': 'true' }), h('span', {}, l)))));
+  const typeIn = h('input', { id: 'vtype', class: 'c-input', readonly: true, value: vehicleType(v.category), 'aria-describedby': 'vtype-help' });
+  const seatsIn = h('input', { id: 'vseats', class: 'c-input has-suffix', type: 'number', inputmode: 'numeric', min: '1', max: '60', step: '1', required: true, value: draft.seats ? String(draft.seats) : '', 'aria-describedby': 'vseats-err' });
+  seatsIn.addEventListener('input', () => { draft.seats = seatsIn.value === '' ? null : Number(seatsIn.value); s.vSeats = draft.seats; seatsIn.removeAttribute('aria-invalid'); mount(document.getElementById('vseats-err')); });
+  const row = h('div', { class: 'c-qrow' },
+    h('div', { class: 'c-field' }, h('label', { for: 'vtype' }, 'Loại xe'), typeIn, h('span', { class: 'c-help', id: 'vtype-help' }, 'Theo đăng ký xe')),
+    h('div', { class: 'c-field' }, h('label', { for: 'vseats' }, 'Số chỗ ngồi', reqMark()),
+      h('div', { class: 'c-input-wrap' }, seatsIn, h('span', { class: 'c-suffix', 'aria-hidden': 'true' }, 'chỗ')),
+      h('span', { class: 'c-err', id: 'vseats-err', 'aria-live': 'polite' })));
+  return [usage, row];
+}
+
+/**
+ * Save the vehicle's use and seats when they changed (the compulsory TNDS tariff depends on them).
+ * Changes are saved with POST /api/customer/vehicle and `home` is refreshed in place. Resolves { ok, changed }.
+ */
+async function saveVehicle(home, s, draft, btn) {
+  const v = home.vehicle;
+  const curUsage = v.usage === 'commercial' ? 'commercial' : 'personal';
+  const curSeats = Number(v.seats) > 0 ? Number(v.seats) : null;
+  const seats = Number(draft.seats);
+  if (!(Number.isInteger(seats) && seats >= 1 && seats <= 60)) { const inp = document.getElementById('vseats'); if (inp) setErr(inp, 'Nhập số chỗ ngồi từ 1 đến 60'); return { ok: false }; }
+  const changed = draft.usage !== curUsage || seats !== curSeats;
+  if (changed) {
+    if (btn) busy(btn, true);
+    try {
+      await api.post('/api/customer/vehicle', { usage: draft.usage, seats });
+      Object.assign(home, await api.get('/api/customer/home'));
+      state.home = home;
+    } catch (ex) { if (btn) busy(btn, false); toast(viError(ex), 'danger'); return { ok: false }; }
+    if (btn) busy(btn, false);
+  }
+  s.vehicleConfirmed = true; s.vUsage = null; s.vSeats = null;
+  if (changed) toast('Đã cập nhật thông tin xe và tính lại phí.', 'ok');
+  return { ok: true, changed };
+}
+
+/**
+ * "Thông tin xe" on the review step: a one-line summary with Edit once confirmed, otherwise the quote-form fields
+ * with a full-width confirm button. onChanged(changed) re-prices.
  */
 function vehicleConfirmCard(home, s, { onChanged }) {
   const v = home.vehicle;
   const curUsage = v.usage === 'commercial' ? 'commercial' : 'personal';
   const curSeats = Number(v.seats) > 0 ? Number(v.seats) : null;
   const draft = { usage: s.vUsage || curUsage, seats: s.vSeats ?? curSeats };
-  const note = h('p', { class: 'c-xs c-muted c-veh-note' }, ic('scale', 14), 'Phí bảo hiểm bắt buộc phụ thuộc loại xe, số chỗ và mục đích sử dụng theo quy định.');
-  const head = h('div', { class: 'c-row' }, plateTag(v.plate), h('span', { class: 'c-small c-muted c-grow' }, categoryText(v)));
   const el = h('section', { class: 'c-card c-veh', 'aria-labelledby': 'veh-h' });
-
-  async function confirm(btn) {
-    const seats = Number(draft.seats);
-    if (!(Number.isInteger(seats) && seats >= 1 && seats <= 60)) { const inp = el.querySelector('#vseats'); if (inp) setErr(inp, 'Nhập số chỗ ngồi từ 1 đến 60'); return false; }
-    const changed = draft.usage !== curUsage || seats !== curSeats;
-    if (changed) {
-      if (btn) busy(btn, true);
-      try {
-        await api.post('/api/customer/vehicle', { usage: draft.usage, seats });
-        Object.assign(home, await api.get('/api/customer/home'));
-        state.home = home;
-      } catch (ex) { if (btn) busy(btn, false); toast(viError(ex), 'danger'); return false; }
-    }
-    s.vehicleConfirmed = true; s.vUsage = null; s.vSeats = null;
-    if (changed) toast('Đã cập nhật thông tin xe và tính lại phí.', 'ok');
-    await onChanged(changed);
-    return true;
-  }
-
+  const head = h('div', { class: 'c-row' }, plateTag(v.plate), h('span', { class: 'c-small c-muted c-grow' }, categoryText(v)));
   if (s.vehicleConfirmed) {
     const edit = h('button', { class: 'c-btn sm soft', type: 'button' }, ic('edit', 16), 'Sửa');
     edit.addEventListener('click', () => { s.vehicleConfirmed = false; onChanged(false); });
     mount(el,
       h('div', { class: 'c-row spread' }, h('h2', { id: 'veh-h', class: 'c-card-title' }, 'Thông tin xe'), edit),
       head,
-      h('p', { class: 'c-small c-veh-sum' }, `${USAGE_TEXT[curUsage]}${curSeats ? ` · ${curSeats} chỗ ngồi` : ''}`),
-      note);
+      h('p', { class: 'c-small c-veh-sum' }, `${USAGE_TEXT[curUsage]}${curSeats ? ` · ${curSeats} chỗ ngồi` : ''}`));
     return { el, confirm: async () => true };
   }
-
-  const usageSeg = h('fieldset', { class: 'c-seg two' }, h('legend', { class: 'sr-only' }, 'Mục đích sử dụng'),
-    ['personal', 'commercial'].map((u) => h('label', {}, h('input', { type: 'radio', name: 'vusage', value: u, checked: draft.usage === u, onchange: () => { draft.usage = u; s.vUsage = u; } }), USAGE_TEXT[u])));
-  const seatsIn = h('input', { id: 'vseats', class: 'c-input', type: 'number', inputmode: 'numeric', min: '1', max: '60', step: '1', value: draft.seats ? String(draft.seats) : '', 'aria-describedby': 'vseats-err' });
-  seatsIn.addEventListener('input', () => { draft.seats = seatsIn.value === '' ? null : Number(seatsIn.value); s.vSeats = draft.seats; seatsIn.removeAttribute('aria-invalid'); mount(document.getElementById('vseats-err')); });
-  const ok = h('button', { class: 'c-btn sm primary', type: 'button' }, ic('check', 16), 'Xác nhận');
+  const ok = h('button', { class: 'c-btn primary block', type: 'button' }, 'Xác nhận thông tin xe');
+  const confirm = async (btn) => { const r = await saveVehicle(home, s, draft, btn); if (r.ok) await onChanged(r.changed); return r.ok; };
   ok.addEventListener('click', () => confirm(ok));
   mount(el,
-    h('h2', { id: 'veh-h', class: 'c-card-title' }, 'Thông tin xe'),
+    h('h2', { id: 'veh-h', class: 'c-qform-title' }, 'Thông tin xe'),
+    h('p', { class: 'c-qform-sub' }, 'Xác nhận để tính đúng phí bảo hiểm bắt buộc'),
     head,
-    h('div', { class: 'c-seg-wrap' }, h('span', { class: 'c-seg-label', 'aria-hidden': 'true' }, 'Mục đích sử dụng'), usageSeg),
-    h('div', { class: 'c-veh-row' },
-      h('div', { class: 'c-field c-grow' }, h('label', { for: 'vseats' }, 'Số chỗ ngồi'), seatsIn, h('span', { class: 'c-err', id: 'vseats-err', 'aria-live': 'polite' })),
-      ok),
-    note);
+    vehicleFields(v, draft, s),
+    ok);
   return { el, confirm: () => confirm(null) };
 }
 
@@ -611,8 +632,10 @@ async function viewBuy(query) {
     return { products };
   }
 
-  // Step 1 — choose cover
+  // Step 1 — the quote form (as on e.baohiemtasco.vn): vehicle questions, term, add-ons and "Xem phí bảo hiểm".
   function step1() {
+    const v = home.vehicle;
+    const draft = { usage: s.vUsage || (v.usage === 'commercial' ? 'commercial' : 'personal'), seats: s.vSeats ?? (Number(v.seats) > 0 ? Number(v.seats) : null) };
     const termSeg = h('fieldset', { class: 'c-seg', 'aria-describedby': 'term-help' }, h('legend', { class: 'sr-only' }, 'Thời hạn bảo hiểm'),
       [1, 2, 3].map((y) => h('label', {}, h('input', { type: 'radio', name: 'term', value: String(y), checked: s.term === y, onchange: () => { s.term = y; } }), `${y} năm`)));
     const sw = (key, label) => {
@@ -634,32 +657,28 @@ async function viewBuy(query) {
     paIn.addEventListener('change', () => { s.pa = paIn.checked; paCard.classList.toggle('on', s.pa); });
     pdIn.addEventListener('change', () => { s.pd = pdIn.checked; pdCard.classList.toggle('on', s.pd); pdBody.hidden = !s.pd; });
 
-    const veh = vehicleConfirmCard(home, s, { onChanged: () => step1() });
-    f.show(
-      veh.el,
-      h('section', { class: 'c-section', 'aria-labelledby': 'req-h' },
-        h('div', { class: 'c-section-head' }, h('h2', { id: 'req-h' }, 'Bảo hiểm bắt buộc')),
-        h('div', { class: 'c-product on' },
-          h('div', { class: 'c-product-head' }, productIcon('TNDS_CAR'),
-            h('div', { class: 'c-product-text' }, h('p', { class: 'c-product-name' }, 'Bảo hiểm TNDS bắt buộc', h('span', { class: 'c-tag' }, 'Bắt buộc')),
-              h('p', { class: 'c-product-desc' }, 'Bồi thường thiệt hại về người và tài sản cho bên thứ ba.')),
-            h('span', { class: 'c-ichip sm green', 'aria-hidden': 'true' }, ic('check', 18, { strokeWidth: 2.5 }))),
-          h('div', { class: 'c-product-body' },
-            h('div', { class: 'c-seg-wrap' }, h('span', { class: 'c-seg-label', 'aria-hidden': 'true' }, 'Thời hạn bảo hiểm'), termSeg),
-            h('div', { class: 'c-row spread', id: 'term-help' },
-              h('span', { class: 'c-reg' }, ic('scale', 16), 'Giá theo quy định của Bộ Tài chính'),
-              home.premium ? h('span', { class: 'c-small c-muted c-nowrap' }, h('strong', { class: 'c-num' }, fmtVnd(home.premium)), '/năm') : null)))),
-      h('section', { class: 'c-section', 'aria-labelledby': 'opt-h' },
-        h('div', { class: 'c-section-head' }, h('h2', { id: 'opt-h' }, 'Bảo vệ thêm'), h('span', { class: 'c-xs c-muted' }, 'Tùy chọn')),
-        paCard, pdCard));
-    const next = h('button', { class: 'c-btn primary block', type: 'button' }, 'Xem phí bảo hiểm', ic('chevron-right', 20));
+    const next = h('button', { class: 'c-btn primary block c-qform-submit', type: 'button' }, 'Xem phí bảo hiểm');
     next.addEventListener('click', async () => {
       if (s.pd && !(s.pdValue >= 100000000)) { setErr(pdValue, 'Giá trị xe tối thiểu 100.000.000 ₫'); return; }
-      if (!s.vehicleConfirmed && !(await veh.confirm())) return;
+      if (!(await saveVehicle(home, s, draft, next)).ok) return;
       busy(next, true);
       try { s.quote = await api.post('/api/customer/quotes', quoteRequest()); go(2); } catch (ex) { busy(next, false); toast(viError(ex), 'danger'); }
     });
-    f.setBar(next);
+    f.show(
+      h('section', { class: 'c-card c-qform', 'aria-labelledby': 'qf-h' },
+        h('h2', { class: 'c-qform-title', id: 'qf-h' }, 'Bảo hiểm TNDS bắt buộc xe ô tô'),
+        h('p', { class: 'c-qform-sub' }, 'Xe ', h('span', { class: 'c-strong c-nowrap' }, v.plate), ` · ${categoryText(v)}`),
+        vehicleFields(v, draft, s),
+        h('div', { class: 'c-field' }, h('span', { class: 'c-qlabel', 'aria-hidden': 'true' }, 'Thời hạn bảo hiểm'), termSeg,
+          h('div', { class: 'c-row spread', id: 'term-help' },
+            h('span', { class: 'c-reg' }, ic('scale', 16), 'Giá theo quy định của Bộ Tài chính'),
+            home.premium ? h('span', { class: 'c-small c-muted c-nowrap' }, h('strong', { class: 'c-num' }, fmtVnd(home.premium)), '/năm') : null)),
+        h('div', { class: 'c-qform-addons', role: 'group', 'aria-labelledby': 'opt-h' },
+          h('div', { class: 'c-section-head' }, h('h3', { id: 'opt-h' }, 'Bảo vệ thêm'), h('span', { class: 'c-xs c-muted' }, 'Tùy chọn')),
+          paCard, pdCard),
+        next),
+      h('p', { class: 'c-xs c-muted c-veh-note' }, ic('scale', 14), 'Phí bảo hiểm bắt buộc phụ thuộc loại xe, số chỗ và mục đích sử dụng theo quy định.'));
+    f.setBar();
   }
 
   /** Re-price the current selection after the vehicle details changed (same products and term). */
@@ -978,7 +997,7 @@ async function viewClaimNew() {
   const TOTAL = 5;
   const TITLES = ['Chọn hợp đồng', 'Thời gian và địa điểm', 'Sự việc', 'Hình ảnh', 'Xem lại và gửi'];
   const prog = h('div', { class: 'c-progress' });
-  const f = flowPage({ title: 'Báo tai nạn', top: prog, onBack: () => { if (s.step > 1 && s.step <= TOTAL) go(s.step - 1); else location.hash = '#/claims'; } });
+  const f = flowPage({ title: 'Báo tai nạn', top: prog, support: true, onBack: () => { if (s.step > 1 && s.step <= TOTAL) go(s.step - 1); else location.hash = '#/claims'; } });
   const setProg = () => mount(prog,
     h('div', { class: 'c-progress-meta' }, h('strong', {}, TITLES[s.step - 1]), h('span', {}, `Bước ${s.step}/${TOTAL}`)),
     h('div', { class: 'c-bar', role: 'progressbar', 'aria-label': 'Tiến độ báo tai nạn', 'aria-valuemin': '1', 'aria-valuemax': String(TOTAL), 'aria-valuenow': String(s.step), 'aria-valuetext': `Bước ${s.step} trên ${TOTAL}: ${TITLES[s.step - 1]}` },
@@ -1164,7 +1183,7 @@ async function viewAccount() {
     h('h1', { class: 'c-page-title', tabindex: '-1' }, 'Tài khoản'),
     h('section', { class: 'c-card c-profile', 'aria-label': 'Thông tin của bạn' },
       h('span', { class: 'c-avatar', 'aria-hidden': 'true' }, name ? name[0].toUpperCase() : ic('user', 26)),
-      h('div', { class: 'c-grow' }, h('div', { class: 'c-strong', style: 'font-size:17px' }, name ? `Khách hàng ${name}` : 'Khách hàng VETC'),
+      h('div', { class: 'c-grow' }, h('div', { class: 'c-strong', style: 'font-size:17px' }, name ? `Khách hàng ${name}` : 'Quý khách'),
         h('div', { class: 'c-row', style: 'gap:8px;margin-top:6px' }, plateTag(d.vehicle.plate, 'sm'), h('span', { class: 'c-xs c-muted' }, d.vehicle.province || '')))),
     h('h2', { class: 'c-group-label' }, 'Quyền riêng tư và liên lạc'),
     h('ul', { class: 'c-list' }, mkRow, callRow, svcRow),
@@ -1191,9 +1210,21 @@ async function viewAccount() {
     h('ul', { class: 'c-list' }, h('li', {}, h('button', { class: 'c-item', type: 'button', onclick: signOut }, h('span', { class: 'c-ichip sm rose' }, ic('log-out', 18)),
       h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, 'Thoát')))),
     ),
-    h('footer', { class: 'c-footnote', style: 'align-items:center;text-align:center' }, h('span', {}, 'Bảo hiểm TASCO · Phân phối qua ứng dụng VETC')),
+    brandFooter(),
   ];
   return tabPage('account', content);
+}
+
+/** Account tab footer: teal band (as on baohiemtasco.vn) with the white wordmark and the contact lines in navy. */
+function brandFooter() {
+  return h('footer', { class: 'c-brandfoot' },
+    h('span', { class: 'c-brandfoot-band', 'aria-hidden': 'true' }),
+    wordmark({ size: 'md', variant: 'white' }),
+    h('ul', { class: 'c-brandfoot-list' },
+      HOTLINE ? h('li', {}, ic('phone', 16), h('a', { href: `tel:${HOTLINE.tel}` }, 'Hotline ', h('strong', {}, HOTLINE.display))) : null,
+      SUPPORT_EMAIL ? h('li', {}, ic('mail', 16), h('a', { href: `mailto:${SUPPORT_EMAIL}` }, SUPPORT_EMAIL)) : null,
+      SUPPORT_LINKS.website ? h('li', {}, ic('globe', 16), h('a', { href: SUPPORT_LINKS.website, target: '_blank', rel: 'noopener noreferrer' }, new URL(SUPPORT_LINKS.website).host.replace(/^www\./, ''), h('span', { class: 'sr-only' }, ' (mở trong thẻ mới)'))) : null),
+    h('p', { class: 'c-brandfoot-note' }, host().partner ? `Bảo hiểm TASCO · Phân phối qua ${host().via}` : 'Bảo hiểm TASCO'));
 }
 
 function signOut() {

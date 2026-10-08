@@ -49,6 +49,19 @@ function anotherForm() {
   return form;
 }
 
+/** Teal utility strip: hotline and website from the public meta endpoint (hidden when not configured). */
+async function strip() {
+  const el = document.getElementById('strip');
+  if (!el) return;
+  const meta = await fetch('/api/meta', { headers: { Accept: 'application/json' } }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+  const hotline = String(meta.supportHotline || '').trim();
+  let site = null;
+  try { const u = new URL(String(meta.supportWebsite || '')); if (u.protocol === 'https:') site = u; } catch { /* not configured */ }
+  mount(el,
+    hotline ? h('a', { href: `tel:${hotline.replace(/[^0-9+]/g, '')}`, 'aria-label': `Gọi hotline ${hotline}` }, icon('phone', { size: 14 }), 'Hotline ', h('strong', {}, hotline)) : null,
+    site ? h('a', { class: 'v-strip-site', href: site.href, rel: 'noopener' }, icon('globe', { size: 14 }), site.host.replace(/^www\./, '')) : null);
+}
+
 function footer() {
   mount(foot,
     h('span', {}, icon('lock', { size: 14 }), 'Không hiển thị thông tin cá nhân · No personal data is shown'),
@@ -57,6 +70,7 @@ function footer() {
 
 async function run() {
   footer();
+  strip();
   if (!certNo) { mount(box, anotherForm()); box.removeAttribute('aria-busy'); return; }
   document.title = `${certNo} · Tra cứu giấy chứng nhận · TASCO Insurance`;
   const res = await fetch(`/api/public/certificates/${encodeURIComponent(certNo)}`, { headers: { Accept: 'application/json' } });
