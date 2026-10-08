@@ -4,7 +4,7 @@ import {
   pageHeader, card, button, dataTable, kpiStrip, kpiTile, drawer, keyValueList, badge, segmented, formField, input, selectInput, dateInput,
   barChart, banner, statusChip, emptyState, toast, errorToast, formatNumber, formatPercent, formatDate, formatDateTime, icon,
 } from '../ui.js';
-import { st, outcomeLabel, reasonText, relTime } from './sales-common.js';
+import { st, outcomeLabel, reasonText } from './sales-common.js';
 
 const JOURNEYS = ['renewal', 'conquest', 'new_vehicle', 'lapsed_uninsured'];
 const sum = (o) => Object.values(o || {}).reduce((a, b) => a + (Number(b) || 0), 0);
@@ -21,24 +21,26 @@ function audienceText(a) {
   if (!a) return '—';
   return [a.tier ? label('tier', a.tier) : null, a.journey ? label('journey', a.journey) : st('allJourneys'), a.region || st('allRegions')].filter(Boolean).join(' · ');
 }
-function audienceChips(a) {
+function audienceChips(a, { wrap = false } = {}) {
   if (!a) return null;
-  return h('span', { class: 'row tight' }, a.tier ? badge(label('tier', a.tier), a.tier === 'hot' ? 'danger' : 'warn') : null,
-    h('span', { class: 'cell-sub trunc-1' }, audienceText({ ...a, tier: null })));
+  return h('span', { class: 'row tight audience-cell' }, a.tier ? badge(label('tier', a.tier), a.tier === 'hot' ? 'danger' : 'warn') : null,
+    h('span', { class: wrap ? 'cell-sub' : 'cell-sub trunc-1' }, audienceText({ ...a, tier: null })));
 }
+/** Business time of a run (the scheduled calling/sending time), falling back to when it was recorded. */
+const whenOf = (r) => r.result?.at || r.startedAt;
 
 function resultsDrawer(r) {
   const res = r.result || {};
   const body = isJourney(r)
     ? [
-      keyValueList([[st('channel'), st('channelJourney')], [st('started'), formatDateTime(r.startedAt)], [st('by'), r.by || '—'],
+      keyValueList([[st('channel'), st('channelJourney')], [st('started'), formatDateTime(whenOf(r))], [st('by'), r.by || '—'],
         [st('dueNow'), formatNumber(res.due)], [st('touchpointsDone'), formatNumber(res.done)], [st('touchpointsSkipped'), formatNumber(res.skipped)]], { columns: 3 }),
       card({ title: st('byChannel'), body: barChart({ title: st('byChannel'), data: Object.entries(res.byChannel || {}).map(([k, v]) => ({ label: label('channel', k), value: v })).sort((a, b) => b.value - a.value) }) }),
       card({ title: st('byJourney'), body: barChart({ title: st('byJourney'), data: Object.entries(res.byJourney || {}).map(([k, v]) => ({ label: label('journey', k), value: v })).sort((a, b) => b.value - a.value) }) }),
     ]
     : [
-      keyValueList([[st('channel'), st('channelVoice')], [st('started'), formatDateTime(r.startedAt)], [st('by'), r.by || '—'],
-        [st('audience'), audienceChips(res.audience)], [st('maxCalls'), formatNumber(res.limit)], [st('reached'), formatNumber(res.called)]], { columns: 3 }),
+      keyValueList([[st('channel'), st('channelVoice')], [st('started'), formatDateTime(whenOf(r))], [st('by'), r.by || '—'],
+        [st('audience'), audienceChips(res.audience, { wrap: true })], [st('maxCalls'), formatNumber(res.limit)], [st('reached'), formatNumber(res.called)]], { columns: 3 }),
       card({ title: st('outcomes'), body: barChart({ title: st('outcomes'), data: Object.entries(res.outcomes || {}).map(([k, v]) => ({ label: outcomeLabel(k), value: v })).sort((a, b) => b.value - a.value) }) }),
       sum(res.skipped) ? card({ title: st('heldBack'), body: barChart({ title: st('heldBack'), data: heldBack(res.skipped) }) }) : null,
     ];
@@ -107,7 +109,7 @@ function newCampaignDrawer(ctx, regions, onDone) {
   }
   const channelSeg = segmented({
     label: st('channel'), value: 'voice',
-    options: [['voice', st('channelVoice'), 'bot'], ['journey', st('channelJourney'), 'send']],
+    options: [['voice', st('channelVoice'), 'mic'], ['journey', st('channelJourney'), 'send']],
     onChange: (v) => { channel = v; mount(fieldsEl, v === 'voice' ? voiceFields : journeyFields, previewEl); preview(); },
   });
   mount(fieldsEl, voiceFields, previewEl);
@@ -154,10 +156,9 @@ export default {
       caption: t('campaigns'), rows: items, pagination: { pageSize: 25 },
       onRowClick: resultsDrawer,
       columns: [
-        { key: 'name', label: st('campaignName'), primary: true, sortable: true, value: nameOf, width: '28%', render: (r) => h('span', { class: 'cell-stack' }, h('span', { class: 'strong campaign-name' }, nameOf(r)), h('span', { class: 'channel-sub' }, icon(isJourney(r) ? 'send' : 'bot', { size: 13 }), isJourney(r) ? st('channelJourney') : st('channelVoice'))) },
+        { key: 'name', label: st('campaignName'), primary: true, sortable: true, value: nameOf, width: '26%', render: (r) => h('span', { class: 'cell-stack' }, h('span', { class: 'strong campaign-name' }, nameOf(r)), h('span', { class: 'channel-sub' }, icon(isJourney(r) ? 'send' : 'mic', { size: 13 }), [isJourney(r) ? st('channelJourney') : st('channelVoice'), r.by].filter(Boolean).join(' · '))) },
         { key: 'audience', label: st('audience'), render: (r) => (isJourney(r) ? h('span', { class: 'muted' }, st('allJourneys')) : audienceChips(r.result?.audience)), exportValue: (r) => (isJourney(r) ? st('allJourneys') : audienceText(r.result?.audience)) },
-        { key: 'startedAt', label: st('started'), sortable: true, nowrap: true, value: (r) => r.startedAt, render: (r) => relTime(r.startedAt), exportValue: (r) => formatDateTime(r.startedAt) },
-        { key: 'by', label: st('by'), nowrap: true },
+        { key: 'startedAt', label: st('started'), sortable: true, nowrap: true, value: whenOf, render: (r) => formatDateTime(whenOf(r)), exportValue: (r) => formatDateTime(whenOf(r)) },
         { key: 'reached', label: st('reached'), align: 'right', sortable: true, value: reachedOf, render: (r) => formatNumber(reachedOf(r)) },
         { key: 'hot', label: st('hotHandoffs'), align: 'right', render: (r) => (isJourney(r) ? '—' : formatNumber(r.result?.outcomes?.hot_handoff || 0)) },
         { key: 'links', label: st('linksSent'), align: 'right', render: (r) => (isJourney(r) ? '—' : formatNumber(r.result?.outcomes?.link_sent || 0)) },
@@ -171,8 +172,8 @@ export default {
       items.length ? kpiStrip([
         kpiTile({ label: st('campaignsRun'), icon: 'megaphone', value: formatNumber(items.length) }),
         reached ? kpiTile({ label: st('customersReached'), icon: 'users', value: formatNumber(reached) }) : null,
-        hot ? kpiTile({ label: st('hotHandoffs'), icon: 'inbox', value: formatNumber(hot), hint: called ? formatPercent(hot / called) : null }) : null,
-        links ? kpiTile({ label: st('linksSent'), icon: 'send', value: formatNumber(links), hint: called ? formatPercent(links / called) : null }) : null,
+        hot ? kpiTile({ label: st('hotHandoffs'), icon: 'inbox', value: formatNumber(hot), hint: called ? st('ofCalls', formatPercent(hot / called)) : null }) : null,
+        links ? kpiTile({ label: st('linksSent'), icon: 'send', value: formatNumber(links), hint: called ? st('ofCalls', formatPercent(links / called)) : null }) : null,
       ].filter(Boolean)) : null,
       card({ flush: true, body: table }));
     if (route.query.new) { history.replaceState(null, '', '#/campaigns'); open(); }

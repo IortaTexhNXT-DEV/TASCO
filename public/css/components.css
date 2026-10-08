@@ -420,10 +420,11 @@ dialog.modal.sm { width: min(420px, calc(100vw - 32px)); }
 @media (prefers-reduced-motion: reduce) { .skeleton, .btn[aria-busy="true"]::after { animation: none; } .toast, .popover, .backdrop { animation: none; } }
 
 /* ---------- Key-value list ---------- */
-dl.kv { display: grid; grid-template-columns: minmax(110px, 40%) 1fr; gap: var(--sp-2) var(--sp-4); margin: 0; }
+dl.kv { display: grid; grid-template-columns: minmax(110px, 40%) 1fr; gap: var(--sp-2) var(--sp-4); }
+:where(dl.kv, .kv-list) { margin: 0; } /* zero specificity so .stack spacing still applies */
 dl.kv dt { color: var(--text-muted); font-size: var(--fs-13); }
 dl.kv dd { margin: 0; overflow-wrap: anywhere; }
-.kv-list { display: grid; gap: var(--sp-4) var(--sp-5); grid-template-columns: minmax(0, 1fr); margin: 0; }
+.kv-list { display: grid; gap: var(--sp-4) var(--sp-5); grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 720px) { .kv-list.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kv-list.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .kv-list > div { min-width: 0; }
 .kv-list dt { font-size: var(--fs-12); color: var(--text-subtle); font-weight: var(--fw-medium); margin-bottom: 2px; display: flex; align-items: center; gap: 4px; }
@@ -580,7 +581,7 @@ td.wf-actions { width: 1%; white-space: nowrap; text-align: right; padding-top: 
 .wf-section + .wf-section { margin-top: var(--sp-6); }
 .wf-section > h3 { margin: 0 0 var(--sp-3); font-size: var(--fs-13); font-weight: var(--fw-semibold); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
 .wf-prose { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); line-height: 1.55; }
-.wf-summary { display: block; max-width: 30ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wf-summary { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; max-width: 30ch; white-space: normal; overflow: hidden; overflow-wrap: anywhere; }
 .wf-ref { font-weight: var(--fw-medium); color: var(--text); white-space: nowrap; }
 .wf-head { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
 .wf-photos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); }
@@ -680,5 +681,5 @@ td > .wf-summary { max-width: 100%; }
 .wf-issue { min-width: 10rem; }
 .wf-assignee { white-space: normal; }
 td > .wf-summary { width: 0; min-width: 100%; max-width: none; }
-td:has(> .wf-summary) { width: auto; max-width: none; min-width: 6rem; }
+td:has(> .wf-summary) { width: auto; max-width: none; min-width: 10rem; }
 @media (max-width: 1439px) { .row-actions .btn.row-action { width: 8.75rem; } .card.wf-dense th, .card.wf-dense td { padding-left: 10px; padding-right: 10px; } }

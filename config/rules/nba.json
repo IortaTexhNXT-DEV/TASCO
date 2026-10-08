@@ -117,7 +117,7 @@
         },
         "then": {
           "action": "voice_bot",
-          "label": "AI voice bot call → telesales handoff",
+          "label": "Voice assistant call → telesales handoff",
           "reason": "high intent and call consent on file"
         }
       },

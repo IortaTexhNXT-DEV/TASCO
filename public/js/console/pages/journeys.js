@@ -11,6 +11,9 @@ const EVENTS = [
   ['vetc.tag_activated', ['New ETC tag activated', 'Kích hoạt thẻ ETC mới']], ['vetc.inspection_booked', ['Inspection booked', 'Đặt lịch đăng kiểm']],
   ['vetc.wallet_topped_up', ['Wallet topped up', 'Nạp tiền vào ví']], ['vetc.long_trip_started', ['Long highway trip started', 'Bắt đầu chuyến đi dài trên cao tốc']],
 ];
+/** Channels always listed in the same order (app, Zalo, SMS, voice, telesales). */
+const CH_ORDER = ['app_push', 'vetc_app', 'zalo_zns', 'zalo', 'sms', 'email', 'voice_bot', 'telesales'];
+const byChannelOrder = (a, b) => (CH_ORDER.indexOf(a) + 99 * (CH_ORDER.indexOf(a) < 0)) - (CH_ORDER.indexOf(b) + 99 * (CH_ORDER.indexOf(b) < 0));
 const TRIGGER_RESULT = { sent: ['Message sent', 'Đã gửi tin nhắn'], blocked: ['Blocked by content rules', 'Bị chặn bởi kiểm soát nội dung'], failed: ['Delivery failed', 'Gửi thất bại'], 'condition not met': ['Conditions not met', 'Không thỏa điều kiện'], 'no permitted channel': ['No permitted channel', 'Không có kênh được phép'] };
 const pick = (pair) => (getLang() === 'vi' ? pair[1] : pair[0]);
 const dayLabel = (anchor, offset) => (anchor === 'expiry'
@@ -126,7 +129,7 @@ export default {
             { key: 'profileId', label: st('vehicle'), render: (x) => plateTag(x.profileId), value: (x) => formatPlate(x.profileId) },
             { key: 'journey', label: st('journey'), sortable: true, render: (x) => label('journey', x.journey), value: (x) => label('journey', x.journey) },
             { key: 'step', label: st('step'), render: (x) => label('step', x.step), value: (x) => label('step', x.step) },
-            { key: 'channels', label: st('channel'), render: (x) => h('span', { class: 'row tight' }, x.channels.map((c) => tooltip(h('span', { class: 'ch-ic', role: 'img', 'aria-label': label('channel', c), tabindex: '0' }, icon(channelIcon(c), { size: 14 })), label('channel', c)))), exportValue: (x) => x.channels.map((c) => label('channel', c)).join(' / ') },
+            { key: 'channels', label: st('channel'), render: (x) => h('span', { class: 'row tight' }, [...x.channels].sort(byChannelOrder).map((c) => tooltip(h('span', { class: 'ch-ic', role: 'img', 'aria-label': label('channel', c), tabindex: '0' }, icon(channelIcon(c), { size: 14 })), label('channel', c)))), exportValue: (x) => x.channels.map((c) => label('channel', c)).join(' / ') },
             { key: 'status', label: st('status'), render: (x) => statusChip(x.status) },
           ],
           toolbar: { search: true, export: { filename: 'touchpoints.csv' } },

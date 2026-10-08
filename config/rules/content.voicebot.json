@@ -34,11 +34,11 @@
       },
       "expiryKnown": {
         "vi": "Cảm ơn Quý khách, đã xác minh xe {{plateMasked}}. Theo dữ liệu của VETC, bảo hiểm TNDS của xe hết hạn vào ngày {{expiryVi}}. Thông tin này có đúng không ạ?",
-        "en": "Thank you, vehicle {{plateMasked}} verified. Our records show your TNDS cover ends on {{expiry}}. Is that correct?"
+        "en": "Thank you, vehicle {{plateMasked}} verified. Our records show your TNDS cover ends on {{expiryVi}}. Is that correct?"
       },
       "expiryLapsed": {
         "vi": "Cảm ơn Quý khách, đã xác minh xe {{plateMasked}}. Theo dữ liệu của VETC, bảo hiểm TNDS của xe đã hết hạn từ ngày {{expiryVi}}. Xe đã được gia hạn chưa ạ?",
-        "en": "Thank you, vehicle {{plateMasked}} verified. Our records show your TNDS cover ended on {{expiry}}. Has it been renewed?"
+        "en": "Thank you, vehicle {{plateMasked}} verified. Our records show your TNDS cover ended on {{expiryVi}}. Has it been renewed?"
       },
       "expiryUnknown": {
         "vi": "Cảm ơn Quý khách, đã xác minh xe {{plateMasked}}. Quý khách có nhớ bảo hiểm TNDS hiện tại hết hạn vào tháng nào không ạ?",

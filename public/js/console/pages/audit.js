@@ -53,7 +53,7 @@ export default {
     // ---- Voice compliance KPIs ----
     const vb = gov?.voiceBot;
     const kpis = vb ? kpiStrip([
-      kpiTile({ label: tl('Voice assistant calls', 'Cuộc gọi trợ lý giọng nói'), value: formatNumber(vb.calls), icon: 'bot' }),
+      kpiTile({ label: tl('Voice assistant calls', 'Cuộc gọi trợ lý giọng nói'), value: formatNumber(vb.calls), icon: 'mic' }),
       kpiTile({ label: tl('Disclosed as automated', 'Thông báo là cuộc gọi tự động'), value: vb.calls ? '100%' : '—', icon: 'badge-check', hint: tl('Announced at the start of every call', 'Thông báo ở đầu mọi cuộc gọi') }),
       kpiTile({ label: tl('Opt-out rate', 'Tỷ lệ từ chối nhận cuộc gọi'), value: formatPercent(vb.optOutRate, { decimals: 1 }), icon: 'phone', hint: tl('Customers asking not to be called', 'Khách hàng yêu cầu không gọi') }),
       kpiTile({ label: tl('Plate verification failures', 'Xác minh biển số không đạt'), value: formatPercent(vb.plateVerificationFailureRate, { decimals: 1 }), icon: 'car', hint: tl('Call ended before any offer', 'Kết thúc trước khi chào bán') }),

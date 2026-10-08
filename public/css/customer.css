@@ -460,6 +460,8 @@ body.customer .c-check input[type="checkbox"] { width: 22px; height: 22px; min-h
 .c-emergency a:hover { text-decoration: none; background: var(--surface-2); }
 .c-emergency a:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .c-emergency strong { display: block; font-size: 14px; }
+.c-help-mail { margin: -4px 0 0; text-align: center; }
+.c-help-mail a { color: var(--link); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
 
 /* Photos */
 .c-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -615,3 +617,16 @@ body.customer .c-input-wrap > .c-input.has-suffix { padding-left: 14px; padding-
 .c-fieldset > legend { font-size: 14px; font-weight: 600; padding: 0; margin-bottom: 10px; }
 .v-form-row .c-input::placeholder { text-transform: none; }
 .c-splash > .c-hero-brand { flex: 0 0 auto; align-self: flex-start; }
+
+/* Vehicle confirmation ("Thông tin xe") */
+.c-veh { display: flex; flex-direction: column; gap: 12px; }
+.c-veh > h2, .c-veh .c-card-title { margin: 0; }
+.c-seg.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.c-seg.two label { font-size: 14px; line-height: 1.25; padding: 4px 8px; }
+.c-veh-row { display: flex; align-items: flex-end; gap: 12px; }
+.c-veh-row .c-field { min-width: 0; }
+.c-veh-row > .c-btn { min-height: 48px; flex: none; }
+.c-veh-row .c-err:empty { display: none; }
+.c-veh-sum { margin: 0; color: var(--text); }
+.c-veh-note { display: flex; gap: 6px; align-items: flex-start; margin: 0; line-height: 1.45; }
+.c-veh-note .icon { flex: none; margin-top: 2px; }

@@ -239,7 +239,7 @@ const LABELS = {
     objective: { new_business: 'New business', retention: 'Retention', cross_sell: 'Cross-sell' },
     ruleKind: {
       scoring: 'Lead scoring', nba: 'Next best action', journeys: 'Journeys', benefits: 'Benefits', products: 'Product catalogue', enrichment: 'Data enrichment',
-      contact_policy: 'Contact policy', copy_guard: 'Copy guard', 'content.messages': 'Message content', 'content.voicebot': 'Voice bot script', commission: 'Commission',
+      contact_policy: 'Contact policy', copy_guard: 'Copy guard', 'content.messages': 'Message content', 'content.voicebot': 'Voice assistant script', commission: 'Commission',
       costs: 'Channel costs', abac: 'Attribute access policies', referral: 'Referral', retention: 'Data retention', service_levels: 'Service levels', triggers: 'Ecosystem triggers',
       'tariff.tnds_car': 'TNDS car tariff', 'tariff.tnds_motorbike': 'TNDS motorbike tariff', 'rating.motor_pd': 'Physical damage rating', 'rating.pa_seat': 'Seat accident rating',
     },

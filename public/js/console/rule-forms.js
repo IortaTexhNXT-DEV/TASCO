@@ -782,7 +782,7 @@ function displayValue(f, v, row, ctxValue) {
     case 'formula': return formulaText(v);
     case 'bands': return bandsText(v);
     case 'view': return f.format ? f.format(v, row) : (v === undefined || v === null ? '—' : String(v));
-    case 'message': return typeof v === 'string' ? v : '—';
+    case 'message': return typeof v === 'string' ? readablePlaceholders(v) : '—';
     default: return v === undefined || v === null || v === '' ? '—' : readablePlaceholders(String(v));
   }
 }
@@ -1253,7 +1253,7 @@ function weightsEditor(ctx, abs) {
     const sum = rows.reduce((s, r) => s + (Number(r.weight) || 0), 0);
     const ok = Math.abs(sum - 100) < 0.001;
     mount(total, h('span', { class: 'rf-total-label' }, tl('Total weight', 'Tổng trọng số')),
-      h('span', { class: `rf-total-value ${ok ? 'ok' : 'danger'}` }, `${formatNumber(sum, { decimals: 1 })} / 100`),
+      h('span', { class: `rf-total-value ${ok ? 'ok' : 'danger'}` }, `${formatNumber(sum, { decimals: Number.isInteger(+sum.toFixed(1)) ? 0 : 1 })} / 100`),
       ok ? badge(tl('Weights total 100', 'Tổng trọng số bằng 100'), 'ok', { icon: 'check' }) : badge(tl(`Must total 100 (${sum > 100 ? '+' : ''}${formatNumber(sum - 100, { decimals: 1 })})`, `Tổng phải bằng 100 (${sum > 100 ? '+' : ''}${formatNumber(sum - 100, { decimals: 1 })})`), 'danger', { icon: 'alert-triangle' }));
     rows.forEach((r, i) => { if (bars[i]) bars[i].style.width = `${Math.max(0, Math.min(100, Number(r.weight) || 0))}%`; });
   };

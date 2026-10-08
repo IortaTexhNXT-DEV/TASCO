@@ -319,7 +319,7 @@ async function renderDetail(main, ctx, rawId) {
         { key: 'version_no', label: tl('Version', 'Phiên bản'), align: 'right', render: (v) => h('span', { class: v.id === r.id ? 'strong' : null }, `v${v.version_no}`) },
         { key: 'status', label: tl('Status', 'Trạng thái'), render: (v) => ruleStatusChip(v.status) },
         { key: 'description', label: tl('Change note', 'Ghi chú thay đổi'), render: (v) => h('span', { class: 'rs-note', title: versionNote(v) }, versionNote(v) || '—') },
-        { key: 'by', label: tl('Author', 'Tác giả'), nowrap: true, render: (v) => plainName(v.createdByDisplayName, v.createdByName, v.createdBy) },
+        { key: 'by', label: tl('Author', 'Tác giả'), render: (v) => plainName(v.createdByDisplayName, v.createdByName, v.createdBy) },
         { key: 'at', label: tl('Last activity', 'Hoạt động gần nhất'), nowrap: true, render: (v) => { const e = lastEvent(v); return h('time', { datetime: e.at, title: formatDateTime(e.at) }, formatRelative(e.at)); } },
       ],
     }),

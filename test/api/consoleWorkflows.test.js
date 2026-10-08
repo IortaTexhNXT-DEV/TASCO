@@ -107,7 +107,7 @@ test('data quality: partner-sourced issues name the partner, voice issues name t
   await c.store.collection('lineage').insert({ id: 'B-test-1', entityType: 'batch', entityId: 'B-test-1', source: 'P-SHOWROOM-01', records: 1, rejected: 1, at: '2026-10-07T01:00:00.000Z' });
   const [a, b] = await c.services.ops.describeIssues(items);
   assert.equal(a.origin.source, 'partner_api');
-  assert.equal(a.origin.partnerName, 'Car Showroom Network (demo)');
+  assert.equal(a.origin.partnerName, 'Car Showroom Network');
   assert.equal(b.origin.source, 'voice_bot');
 });
 
@@ -169,4 +169,27 @@ test('operations: integration health fields and job schedule', async () => {
   assert.ok(s2.rules.every((r) => 'activatedAt' in r));
   const runs = (await srv.call('GET', '/api/ops/jobs', { token: sup })).body;
   assert.equal(runs[0].actorName, 'Production Support');
+});
+
+test('UX review: customer app reads support contacts and vehicle details it pre-fills; copy says "voice assistant" and dates are dd/MM/yyyy', async () => {
+  const meta = (await srv.call('GET', '/api/meta')).body;
+  assert.equal(meta.supportHotline, '1900 1562');
+  assert.equal(meta.supportEmail, 'info@baohiemtasco.vn');
+  assert.match(meta.supportWebsite, /^https:\/\//);
+
+  // The "Thông tin xe" card is pre-filled from home.vehicle and reflects a confirmation immediately.
+  const p = await findProfile(c, (x) => x.ownerType === 'individual' && !x.anonymised && x.vehicle.category === 'car_under6');
+  const t = (await srv.call('POST', '/api/customer/session', { body: { link: c.links.sign(p.id) } })).body.token;
+  const home = (await srv.call('GET', '/api/customer/home', { token: t })).body;
+  assert.ok('seats' in home.vehicle && 'usage' in home.vehicle);
+  await srv.call('POST', '/api/customer/vehicle', { token: t, body: { usage: 'personal', seats: 7 } });
+  const after = (await srv.call('GET', '/api/customer/home', { token: t })).body;
+  assert.equal(after.vehicle.seats, 7);
+  assert.equal(after.vehicle.usage, 'personal');
+
+  // Business wording: the NBA label and the voice script English gloss.
+  const nba = await c.services.rules.get('nba');
+  assert.ok(!JSON.stringify(nba).includes('voice bot'), 'NBA labels say "voice assistant", never "bot"');
+  const script = await c.services.rules.get('content.voicebot');
+  assert.match(script.lines.expiryKnown.en, /\{\{expiryVi\}\}/, 'English gloss shows the expiry as dd/MM/yyyy');
 });

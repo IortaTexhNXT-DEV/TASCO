@@ -13,12 +13,20 @@ import { icon } from '../shared/icons.js';
  * back button and a sticky action bar. All DOM is built with h()/mount() (no innerHTML, CSP-safe).
  */
 
-/** Support line shown for roadside help and support (set to the contracted hotline before go-live). */
-/** Support hotline from server configuration (SUPPORT_HOTLINE); null hides the call actions. */
+/** Support hotline and e-mail from server configuration (SUPPORT_HOTLINE / SUPPORT_EMAIL); null hides the actions. */
 let HOTLINE = null;
+let SUPPORT_EMAIL = null;
+/** Support web links (https only); null hides the row. */
+const SUPPORT_LINKS = { website: null, zalo: null, messenger: null };
+const safeUrl = (u) => { try { const x = new URL(String(u || '')); return x.protocol === 'https:' ? x.href : null; } catch { return null; } };
 function setHotline(meta) {
+  SUPPORT_LINKS.website = safeUrl(meta?.supportWebsite);
+  SUPPORT_LINKS.zalo = safeUrl(meta?.supportZaloUrl);
+  SUPPORT_LINKS.messenger = safeUrl(meta?.supportMessengerUrl);
   const raw = String(meta?.supportHotline || '').trim();
   HOTLINE = raw ? { display: raw, tel: raw.replace(/[^0-9+]/g, '') } : null;
+  const mail = String(meta?.supportEmail || '').trim();
+  SUPPORT_EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/.test(mail) ? mail : null;
 }
 
 const state = { token: null, meta: null, home: null, entryError: null };
@@ -460,6 +468,68 @@ function stepper() {
   return { el, set };
 }
 
+const USAGE_TEXT = { personal: 'Không kinh doanh vận tải', commercial: 'Có kinh doanh vận tải' };
+
+/**
+ * "Thông tin xe": the customer confirms use and seats before pricing (the compulsory TNDS tariff depends on them).
+ * Changes are saved with POST /api/customer/vehicle; `home` is refreshed in place and onChanged() re-prices.
+ * Returns { el, confirm } — confirm() resolves true when the details are confirmed (saving them if they changed).
+ */
+function vehicleConfirmCard(home, s, { onChanged }) {
+  const v = home.vehicle;
+  const curUsage = v.usage === 'commercial' ? 'commercial' : 'personal';
+  const curSeats = Number(v.seats) > 0 ? Number(v.seats) : null;
+  const draft = { usage: s.vUsage || curUsage, seats: s.vSeats ?? curSeats };
+  const note = h('p', { class: 'c-xs c-muted c-veh-note' }, ic('scale', 14), 'Phí bảo hiểm bắt buộc phụ thuộc loại xe, số chỗ và mục đích sử dụng theo quy định.');
+  const head = h('div', { class: 'c-row' }, plateTag(v.plate), h('span', { class: 'c-small c-muted c-grow' }, categoryText(v)));
+  const el = h('section', { class: 'c-card c-veh', 'aria-labelledby': 'veh-h' });
+
+  async function confirm(btn) {
+    const seats = Number(draft.seats);
+    if (!(Number.isInteger(seats) && seats >= 1 && seats <= 60)) { const inp = el.querySelector('#vseats'); if (inp) setErr(inp, 'Nhập số chỗ ngồi từ 1 đến 60'); return false; }
+    const changed = draft.usage !== curUsage || seats !== curSeats;
+    if (changed) {
+      if (btn) busy(btn, true);
+      try {
+        await api.post('/api/customer/vehicle', { usage: draft.usage, seats });
+        Object.assign(home, await api.get('/api/customer/home'));
+        state.home = home;
+      } catch (ex) { if (btn) busy(btn, false); toast(viError(ex), 'danger'); return false; }
+    }
+    s.vehicleConfirmed = true; s.vUsage = null; s.vSeats = null;
+    if (changed) toast('Đã cập nhật thông tin xe và tính lại phí.', 'ok');
+    await onChanged(changed);
+    return true;
+  }
+
+  if (s.vehicleConfirmed) {
+    const edit = h('button', { class: 'c-btn sm soft', type: 'button' }, ic('edit', 16), 'Sửa');
+    edit.addEventListener('click', () => { s.vehicleConfirmed = false; onChanged(false); });
+    mount(el,
+      h('div', { class: 'c-row spread' }, h('h2', { id: 'veh-h', class: 'c-card-title' }, 'Thông tin xe'), edit),
+      head,
+      h('p', { class: 'c-small c-veh-sum' }, `${USAGE_TEXT[curUsage]}${curSeats ? ` · ${curSeats} chỗ ngồi` : ''}`),
+      note);
+    return { el, confirm: async () => true };
+  }
+
+  const usageSeg = h('fieldset', { class: 'c-seg two' }, h('legend', { class: 'sr-only' }, 'Mục đích sử dụng'),
+    ['personal', 'commercial'].map((u) => h('label', {}, h('input', { type: 'radio', name: 'vusage', value: u, checked: draft.usage === u, onchange: () => { draft.usage = u; s.vUsage = u; } }), USAGE_TEXT[u])));
+  const seatsIn = h('input', { id: 'vseats', class: 'c-input', type: 'number', inputmode: 'numeric', min: '1', max: '60', step: '1', value: draft.seats ? String(draft.seats) : '', 'aria-describedby': 'vseats-err' });
+  seatsIn.addEventListener('input', () => { draft.seats = seatsIn.value === '' ? null : Number(seatsIn.value); s.vSeats = draft.seats; seatsIn.removeAttribute('aria-invalid'); mount(document.getElementById('vseats-err')); });
+  const ok = h('button', { class: 'c-btn sm primary', type: 'button' }, ic('check', 16), 'Xác nhận');
+  ok.addEventListener('click', () => confirm(ok));
+  mount(el,
+    h('h2', { id: 'veh-h', class: 'c-card-title' }, 'Thông tin xe'),
+    head,
+    h('div', { class: 'c-seg-wrap' }, h('span', { class: 'c-seg-label', 'aria-hidden': 'true' }, 'Mục đích sử dụng'), usageSeg),
+    h('div', { class: 'c-veh-row' },
+      h('div', { class: 'c-field c-grow' }, h('label', { for: 'vseats' }, 'Số chỗ ngồi'), seatsIn, h('span', { class: 'c-err', id: 'vseats-err', 'aria-live': 'polite' })),
+      ok),
+    note);
+  return { el, confirm: () => confirm(null) };
+}
+
 async function viewBuy(query) {
   const home = await api.get('/api/customer/home');
   state.home = home;
@@ -511,8 +581,9 @@ async function viewBuy(query) {
     paIn.addEventListener('change', () => { s.pa = paIn.checked; paCard.classList.toggle('on', s.pa); });
     pdIn.addEventListener('change', () => { s.pd = pdIn.checked; pdCard.classList.toggle('on', s.pd); pdBody.hidden = !s.pd; });
 
+    const veh = vehicleConfirmCard(home, s, { onChanged: () => step1() });
     f.show(
-      h('div', { class: 'c-row' }, plateTag(home.vehicle.plate), h('span', { class: 'c-small c-muted c-grow' }, categoryText(home.vehicle))),
+      veh.el,
       h('section', { class: 'c-section', 'aria-labelledby': 'req-h' },
         h('div', { class: 'c-section-head' }, h('h2', { id: 'req-h' }, 'Bảo hiểm bắt buộc')),
         h('div', { class: 'c-product on' },
@@ -531,10 +602,25 @@ async function viewBuy(query) {
     const next = h('button', { class: 'c-btn primary block', type: 'button' }, 'Xem phí bảo hiểm', ic('chevron-right', 20));
     next.addEventListener('click', async () => {
       if (s.pd && !(s.pdValue >= 100000000)) { setErr(pdValue, 'Giá trị xe tối thiểu 100.000.000 ₫'); return; }
+      if (!s.vehicleConfirmed && !(await veh.confirm())) return;
       busy(next, true);
       try { s.quote = await api.post('/api/customer/quotes', quoteRequest()); go(2); } catch (ex) { busy(next, false); toast(viError(ex), 'danger'); }
     });
     f.setBar(next);
+  }
+
+  /** Re-price the current selection after the vehicle details changed (same products and term). */
+  async function requote(changed) {
+    if (!changed) { step2(); return; }
+    const q = s.quote;
+    const tnds = q.lines.find((l) => isTnds(l.product));
+    if (tnds) s.term = Math.max(1, Math.round(daysBetween(tnds.startDate, tnds.endDate) / 365));
+    s.pa = q.lines.some((l) => l.product === 'PA_SEAT');
+    const pdLine = q.lines.find((l) => l.product === 'MOTOR_PD');
+    s.pd = !!pdLine;
+    if (pdLine?.sumInsured) s.pdValue = pdLine.sumInsured;
+    try { s.quote = await api.post('/api/customer/quotes', quoteRequest()); s.fromQuote = false; } catch (ex) { toast(viError(ex), 'danger'); }
+    step2();
   }
 
   // Step 2 — review price
@@ -573,9 +659,7 @@ async function viewBuy(query) {
     }
     f.show(
       blocks,
-      h('section', { class: 'c-card', 'aria-labelledby': 'veh-h' },
-        h('h2', { id: 'veh-h', class: 'c-card-title' }, 'Xe được bảo hiểm'),
-        h('div', { class: 'c-row' }, plateTag(home.vehicle.plate), h('span', { class: 'c-small c-muted c-grow' }, categoryText(home.vehicle)))),
+      vehicleConfirmCard(home, s, { onChanged: requote }).el,
       h('section', { class: 'c-card', 'aria-labelledby': 'fee-h' },
         h('h2', { id: 'fee-h', class: 'c-card-title' }, 'Chi tiết phí'),
         q.lines.map((l) => h('div', { class: 'c-price-line' },
@@ -595,7 +679,11 @@ async function viewBuy(query) {
       h('div', { class: 'c-meta-row' }, ic('clock', 16), `Báo giá có hiệu lực đến ${fmtDateTime(q.expiresAt)}`));
     const blocked = q.indicative || needsInspection;
     const next = h('button', { class: 'c-btn primary', type: 'button', 'aria-disabled': blocked ? 'true' : null, 'aria-describedby': blocked ? 'bar-hint' : null }, 'Tiếp tục');
-    next.addEventListener('click', () => { if (!blocked) go(3); });
+    next.addEventListener('click', () => {
+      if (blocked) return;
+      if (!s.vehicleConfirmed) { const b = f.app.querySelector('.c-veh .c-btn.primary'); toast('Vui lòng xác nhận thông tin xe trước khi tiếp tục.', 'info'); b?.focus(); return; }
+      go(3);
+    });
     f.setBar(
       blocked ? h('div', { class: 'c-actionbar-hint', id: 'bar-hint' }, ic('lock', 16), q.indicative ? 'Cần xác nhận giá chính thức trước khi thanh toán' : 'Cần giám định xe trước khi thanh toán') : null,
       h('div', { class: 'c-actionbar-sum' }, h('span', { class: 'c-xs' }, 'Tổng thanh toán'), h('strong', {}, fmtVnd(q.total))), next);
@@ -818,6 +906,7 @@ async function viewClaims() {
     h('div', { class: 'c-emergency' },
       h('a', { href: 'tel:115' }, h('span', { class: 'c-ichip sm rose' }, ic('phone-call', 18)), h('span', {}, h('strong', {}, 'Cấp cứu 115'), 'Người bị thương')),
       HOTLINE ? h('a', { href: `tel:${HOTLINE.tel}` }, h('span', { class: 'c-ichip sm' }, ic('headset', 18)), h('span', {}, h('strong', {}, HOTLINE.display), 'Tổng đài 24/7')) : null),
+    SUPPORT_EMAIL ? h('p', { class: 'c-xs c-muted c-help-mail' }, 'Cần hỗ trợ về hồ sơ bồi thường? Email ', h('a', { href: `mailto:${SUPPORT_EMAIL}` }, SUPPORT_EMAIL)) : null,
     h('section', { class: 'c-section', 'aria-labelledby': 'my-claims' },
       h('div', { class: 'c-section-head' }, h('h2', { id: 'my-claims' }, 'Yêu cầu của tôi'), list.length ? h('span', { class: 'c-xs c-muted' }, `${list.length} yêu cầu`) : null),
       list.length ? list.map(claimCard) : emptyState('clipboard-check', 'Chưa có yêu cầu bồi thường', 'Yêu cầu bạn gửi sẽ hiển thị tại đây cùng tiến độ xử lý.')),
@@ -1031,6 +1120,16 @@ async function viewAccount() {
     h('ul', { class: 'c-list' },
       HOTLINE ? h('li', {}, h('a', { class: 'c-item', href: `tel:${HOTLINE.tel}` }, h('span', { class: 'c-ichip sm' }, ic('headset', 18)),
         h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, 'Tổng đài hỗ trợ 24/7'), h('span', { class: 'c-item-sub' }, HOTLINE.display)), h('span', { class: 'c-item-end' }, ic('phone', 18)))) : null,
+      SUPPORT_EMAIL ? h('li', {}, h('a', { class: 'c-item', href: `mailto:${SUPPORT_EMAIL}` }, h('span', { class: 'c-ichip sm' }, ic('mail', 18)),
+        h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, 'Email hỗ trợ'), h('span', { class: 'c-item-sub' }, SUPPORT_EMAIL)), h('span', { class: 'c-item-end' }, ic('chevron-right', 18)))) : null,
+      ...[
+        ['website', 'globe', 'Trang web Bảo hiểm TASCO', (u) => new URL(u).host.replace(/^www\./, '')],
+        ['zalo', 'message-square', 'Nhắn tin qua Zalo', () => 'Zalo Official Account TASCO'],
+        ['messenger', 'message-square', 'Nhắn tin qua Messenger', () => 'Fanpage Bảo hiểm TASCO'],
+      ].filter(([k]) => SUPPORT_LINKS[k]).map(([k, icn, title, sub]) => h('li', {}, h('a', { class: 'c-item', href: SUPPORT_LINKS[k], target: '_blank', rel: 'noopener noreferrer' },
+        h('span', { class: 'c-ichip sm' }, ic(icn, 18)),
+        h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, title), h('span', { class: 'c-item-sub' }, sub(SUPPORT_LINKS[k]))),
+        h('span', { class: 'c-item-end' }, ic('external-link', 18), h('span', { class: 'sr-only' }, ' (mở trong thẻ mới)'))))),
       h('li', {}, h('div', { class: 'c-item' }, h('span', { class: 'c-ichip sm' }, ic('languages', 18)),
         h('span', { class: 'c-item-text' }, h('span', { class: 'c-item-title' }, 'Ngôn ngữ'), h('span', { class: 'c-item-sub' }, 'Theo ngôn ngữ của ứng dụng VETC')), h('span', { class: 'c-item-end' }, 'Tiếng Việt')))),
     state.meta?.demoMode ? h('ul', { class: 'c-list' }, h('li', {}, h('button', { class: 'c-item', type: 'button', onclick: () => demoSheet() },

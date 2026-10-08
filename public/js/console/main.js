@@ -41,7 +41,7 @@ const NAV = [
   { group: 'groupSell', items: [
     { route: 'leads', icon: 'users', perm: 'leads:read' },
     { route: 'handoffs', icon: 'inbox', perm: 'handoff:read', badge: 'handoffs' },
-    { route: 'voice', icon: 'bot', perm: 'voice:operate' },
+    { route: 'voice', icon: 'mic', perm: 'voice:operate' },
   ] },
   { group: 'groupEngage', items: [
     { route: 'journeys', icon: 'route', perm: 'journeys:run' },
@@ -356,8 +356,11 @@ const signals = {
       }));
     }
     if (can('rules:approve')) {
-      jobs.push(api.get('/api/rules?status=pending_approval').then((r) => {
-        const list = Array.isArray(r) ? r : r.items || [];
+      jobs.push(Promise.all([api.get('/api/rules?status=pending_approval'), api.get('/api/rules/context').catch(() => ({}))]).then(([r, context]) => {
+        // Count only the changes this user can decide (not their own, and restricted kinds only for the named roles),
+        // so the badge matches "Waiting for you" on the Approvals page.
+        const restricted = context?.restrictedKinds || {};
+        const list = (Array.isArray(r) ? r : r.items || []).filter((x) => x.createdBy !== state.user.id && (!restricted[x.kind] || restricted[x.kind].some((role) => state.user.roles.includes(role))));
         out.approvals = list.length;
         if (!PAGES.approvals) out.approvalsOnRules = list.length;
         for (const rs of list.slice(0, 10)) {

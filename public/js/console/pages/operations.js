@@ -18,7 +18,7 @@ const t = pageStrings('ops', {
     opJobs: 'Tác vụ nền', opJob: 'Tác vụ', opSchedule: 'Lịch chạy', opLastRun: 'Lần chạy gần nhất', opNextRun: 'Lần chạy tiếp theo', opRunNow: 'Chạy ngay', opHistory: 'Lịch sử chạy', opViewHistory: 'Xem lịch sử',
     everyN: (n) => `${n} phút một lần`, dailyAt: (t2) => `Hằng ngày lúc ${t2}`, neverRun: 'Chưa chạy', runConfirm: (n) => `Chạy “${n}” ngay?`, runMsg: 'Tác vụ chạy trên dữ liệu thật và được ghi vào nhật ký kiểm toán.',
     runDone: 'Tác vụ đã chạy xong', opStarted: 'Bắt đầu', opBy: 'Người chạy', opStatus: 'Kết quả', opDuration: 'Thời lượng', opSummary: 'Tóm tắt', scheduler: 'Lịch tự động', staff: 'Nhân viên',
-    sumRecon: (a, b) => `${a} đơn đã kiểm tra · ${b} chênh lệch`, sumRelay: (n) => `${n} sự kiện đã chuyển tiếp`, sumRetention: 'Đã áp dụng chính sách lưu trữ', sumCatalogue: { no_change: 'Không có thay đổi', proposed: 'Đã đề xuất cập nhật danh mục', already_proposed: 'Đã có đề xuất chờ duyệt' },
+    sumRecon: (a, b) => `${a} đơn đã kiểm tra · ${b} chênh lệch`, sumRelay: (n) => `${n} sự kiện đã chuyển tiếp`, sumVoice: (a, b) => `${a} cuộc gọi · ${b} chuyển telesales`, sumJourney: (a) => `${a} điểm chạm đã gửi`, sumRetention: 'Đã áp dụng chính sách lưu trữ', sumCatalogue: { no_change: 'Không có thay đổi', proposed: 'Đã đề xuất cập nhật danh mục', already_proposed: 'Đã có đề xuất chờ duyệt' },
     opBacklog: 'Hàng đợi sự kiện', evPending: 'Chờ xử lý', evDone: 'Đã xử lý', evDead: 'Lỗi không gửi được', opRules: 'Phiên bản quy tắc đang áp dụng', opRuleSet: 'Bộ quy tắc', opVersion: 'Phiên bản', opActivated: 'Áp dụng từ',
     runDetail: 'Chi tiết lần chạy', noRuns: 'Chưa có lần chạy', checksums: 'Mã kiểm tra (checksum)', secs: (n) => `${n} giây`, lessSec: '< 1 giây',
   },
@@ -29,7 +29,7 @@ const t = pageStrings('ops', {
     opJobs: 'Background jobs', opJob: 'Job', opSchedule: 'Schedule', opLastRun: 'Last run', opNextRun: 'Next run', opRunNow: 'Run now', opHistory: 'Run history', opViewHistory: 'View history',
     everyN: (n) => `Every ${n} minutes`, dailyAt: (t2) => `Daily at ${t2}`, neverRun: 'Not run yet', runConfirm: (n) => `Run “${n}” now?`, runMsg: 'The job runs against live data and is recorded in the audit trail.',
     runDone: 'Job finished', opStarted: 'Started', opBy: 'Run by', opStatus: 'Result', opDuration: 'Duration', opSummary: 'Summary', scheduler: 'Scheduler', staff: 'Staff member',
-    sumRecon: (a, b) => `${a} orders checked · ${b} mismatch${b === '1' ? '' : 'es'}`, sumRelay: (n) => `${n} events relayed`, sumRetention: 'Retention policy applied', sumCatalogue: { no_change: 'No changes', proposed: 'Catalogue update proposed', already_proposed: 'Update already awaiting approval' },
+    sumRecon: (a, b) => `${a} orders checked · ${b} mismatch${b === '1' ? '' : 'es'}`, sumRelay: (n) => `${n} events relayed`, sumVoice: (a, b) => `${a} calls · ${b} hot handoffs`, sumJourney: (a) => `${a} touchpoints sent`, sumRetention: 'Retention policy applied', sumCatalogue: { no_change: 'No changes', proposed: 'Catalogue update proposed', already_proposed: 'Update already awaiting approval' },
     opBacklog: 'Event backlog', evPending: 'Waiting', evDone: 'Processed', evDead: 'Dead letter', opRules: 'Active rule versions', opRuleSet: 'Rule set', opVersion: 'Version', opActivated: 'Active since',
     runDetail: 'Job run', noRuns: 'No runs yet', checksums: 'Checksums', secs: (n) => `${n} s`, lessSec: '< 1 s',
   },
@@ -38,7 +38,7 @@ const t = pageStrings('ops', {
 /** Display order and icon of integrations (names from the gateway registry). */
 const INTEGRATIONS = [
   ['tasco-core-rating', 'gauge'], ['tasco-core-catalogue', 'layers'], ['tasco-core', 'file-check'], ['vetc-wallet', 'wallet'],
-  ['voice-ai', 'bot'], ['app-push', 'smartphone'], ['zalo-zns', 'message-square'], ['sms', 'send'],
+  ['voice-ai', 'mic'], ['app-push', 'smartphone'], ['zalo-zns', 'message-square'], ['sms', 'send'],
 ];
 const CIRCUIT_TONE = { closed: 'ok', half_open: 'warn', open: 'danger' };
 const RUN_KIND = { 'catalogue-sync': 'catalogue_sync' };
@@ -60,6 +60,8 @@ function runSummary(r) {
   if (r.kind === 'reconciliation') return t('sumRecon', formatNumber(x.checked || 0), formatNumber(x.mismatches || 0));
   if (r.kind === 'relay') return t('sumRelay', formatNumber(x.processed || 0));
   if (r.kind === 'retention') return t('sumRetention');
+  if (r.kind === 'voice_campaign') return t('sumVoice', formatNumber(x.called || 0), formatNumber(x.outcomes?.hot_handoff || 0));
+  if (r.kind === 'journey_run') return t('sumJourney', formatNumber(x.done || 0));
   if (r.kind === 'catalogue_sync') return (t('sumCatalogue') || {})[x.status] || label('status', r.status);
   return label('status', r.status);
 }
@@ -172,8 +174,8 @@ export default {
         card({ title: t('opHistory'), flush: true, class: 'wf-dense section', body: historyTable(runs) }),
         h('div', { class: 'grid-12 section' },
           h('div', { class: 'span-5' }, card({ title: t('opBacklog'), body: h('div', { class: 'wf-tile-stats' },
-            [['pending', 'evPending', backlog.pending], ['done', 'evDone', backlog.done], ['dead_letter', 'evDead', backlog.dead_letter]].map(([st, key, n]) => h('div', {},
-              h('span', { class: 'wf-stat-label' }, t(key)), h('span', { class: 'wf-stat-value wf-big' }, formatNumber(n || 0)), h('span', { class: `wf-dot-line ${st}` }, statusChip(st))))) })),
+            [['pending', 'evPending', backlog.pending], ['done', 'evDone', backlog.done], ['dead_letter', 'evDead', backlog.dead_letter]].map(([, key, n]) => h('div', {},
+              h('span', { class: 'wf-stat-label' }, t(key)), h('span', { class: 'wf-stat-value wf-big' }, formatNumber(n || 0))))) })),
           h('div', { class: 'span-7' }, card({ title: t('opRules'), flush: true, class: 'wf-dense', body: h('div', {},
             dataTable({ caption: t('opRules'), rows: rulesRows, rowKey: (r) => r.kind, pagination: { pageSize: 10 }, columns: [
               { key: 'kind', label: t('opRuleSet'), render: (r) => label('ruleKind', r.kind) },

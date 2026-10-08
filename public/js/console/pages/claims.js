@@ -17,7 +17,7 @@ const t = pageStrings('claims', {
   vi: {
     clSubtitle: 'Hồ sơ báo tai nạn từ ứng dụng VETC', clOpen: 'Đang xử lý', clDueSoon: 'Sắp đến hạn SLA', clBreached: 'Quá hạn SLA', clPaidMonth: 'Đã chi trả trong tháng',
     clPaidHint: (a) => `Tổng ${a}`, clOpenHint: (n) => `${n} chờ tiếp nhận`, clQueue: 'Danh sách hồ sơ', clRef: 'Hồ sơ', clVehicle: 'Xe', clPolicy: 'Hợp đồng', clIncident: 'Ngày xảy ra',
-    clSummary: 'Tóm tắt', clStatus: 'Trạng thái', clNext: 'Bước tiếp theo', clReported: (r) => `Báo ${r}`, clSearch: 'Tìm hồ sơ, biển số, diễn biến…',
+    clSummary: 'Tóm tắt', clStatus: 'Trạng thái', clNext: 'Bước tiếp theo', clReported: (r) => `Báo ${r}`, clSearch: 'Tìm hồ sơ hoặc biển số…',
     fAll: 'Tất cả', fNeedsAction: 'Cần tiếp nhận', fAssessment: 'Đang giám định', fPayment: 'Chờ chi trả', fClosed: 'Đã đóng', fDueSoon: 'Sắp đến hạn', fBreached: 'Quá hạn',
     aAcknowledge: 'Tiếp nhận', aAssign: 'Giao giám định', aStart: 'Bắt đầu giám định', aApprove: 'Duyệt bồi thường', aReject: 'Từ chối hồ sơ', aPay: 'Ghi nhận chi trả',
     aNote: 'Thêm ghi chú', aDetails: 'Xem chi tiết', aHistory: 'Xem lịch sử',
@@ -41,7 +41,7 @@ const t = pageStrings('claims', {
   en: {
     clSubtitle: 'Accident reports from the VETC app', clOpen: 'Open claims', clDueSoon: 'Due soon', clBreached: 'SLA breached', clPaidMonth: 'Paid this month',
     clPaidHint: (a) => `${a} paid out`, clOpenHint: (n) => `${n} awaiting acknowledgement`, clQueue: 'Claims queue', clRef: 'Claim', clVehicle: 'Vehicle', clPolicy: 'Policy', clIncident: 'Incident',
-    clSummary: 'Summary', clStatus: 'Status', clNext: 'Next step', clReported: (r) => `Reported ${r}`, clSearch: 'Search claim, plate or description…',
+    clSummary: 'Summary', clStatus: 'Status', clNext: 'Next step', clReported: (r) => `Reported ${r}`, clSearch: 'Search claim or plate…',
     fAll: 'All', fNeedsAction: 'To acknowledge', fAssessment: 'In assessment', fPayment: 'Awaiting payment', fClosed: 'Closed', fDueSoon: 'Due soon', fBreached: 'Breached',
     aAcknowledge: 'Acknowledge', aAssign: 'Assign assessor', aStart: 'Start assessment', aApprove: 'Approve claim', aReject: 'Reject claim', aPay: 'Mark as paid',
     aNote: 'Add note', aDetails: 'View details', aHistory: 'View history',
@@ -295,8 +295,9 @@ export default {
     const columns = [
       { key: 'id', label: t('clRef'), sortable: true, render: (c) => h('span', { class: 'wf-ref', title: t('clReported', formatRelative(c.history?.[0]?.at)) }, c.id), value: (c) => c.history?.[0]?.at || c.id, exportValue: (c) => c.id },
       { key: 'plate', label: t('clVehicle'), sortable: true, render: (c) => vehicleCell(c.plate, c.customerName), value: (c) => c.plate || '', exportValue: (c) => formatPlate(c.plate) },
-      { key: 'product', label: t('clPolicy'), sortable: true, render: (c) => h('span', { class: 'nowrap', title: label('product', c.product) }, productShort(c.product)), value: (c) => productShort(c.product) },
-      { key: 'incidentDate', label: t('clIncident'), sortable: true, nowrap: true, render: (c) => formatDate(c.incidentDate) },
+      { key: 'incidentDate', label: t('clIncident'), sortable: true, nowrap: true, value: (c) => c.incidentDate,
+        render: (c) => h('span', { class: 'cell-stack' }, h('span', {}, formatDate(c.incidentDate)), h('span', { class: 'cell-sub', title: label('product', c.product) }, productShort(c.product))),
+        exportValue: (c) => `${formatDate(c.incidentDate)} · ${productShort(c.product)}` },
       { key: 'description', label: t('clSummary'), render: (c) => h('span', { class: 'wf-summary', title: c.description || '' }, firstLine(c.description) || '—'), exportValue: (c) => c.description || '' },
       { key: 'status', label: t('clStatus'), sortable: true, render: (c) => h('div', { class: 'wf-status-cell' }, statusChip(c.status), c.sla ? slaFor(c) : null),
         value: (c) => (c.sla?.dueAt ? `0${c.sla.dueAt}` : `1${c.status}`), exportValue: (c) => label('status', c.status) },

@@ -29,11 +29,11 @@ const DEMO_USERS = [
 ];
 
 const DEMO_PARTNERS = [
-  { id: 'P-BANK-01', name: 'Partner Bank (demo)', type: 'bank' },
-  { id: 'P-SHOWROOM-01', name: 'Car Showroom Network (demo)', type: 'showroom' },
-  { id: 'P-AGENT-01', name: 'Independent Agency (demo)', type: 'agent' },
-  { id: 'P-FLEET-01', name: 'Fleet Operator (demo)', type: 'fleet' },
-  { id: 'P-INSPECTION_CENTER-01', name: 'Inspection Centre (demo)', type: 'inspection_center' },
+  { id: 'P-BANK-01', name: 'Partner Bank', type: 'bank' },
+  { id: 'P-SHOWROOM-01', name: 'Car Showroom Network', type: 'showroom' },
+  { id: 'P-AGENT-01', name: 'Independent Agency', type: 'agent' },
+  { id: 'P-FLEET-01', name: 'Fleet Operator', type: 'fleet' },
+  { id: 'P-INSPECTION_CENTER-01', name: 'Inspection Centre', type: 'inspection_center' },
 ];
 
 /** Deterministic authenticator key for a demo user (UAT only; seed is a secret env var). */

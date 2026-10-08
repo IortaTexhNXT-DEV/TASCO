@@ -67,6 +67,9 @@
 .sim-table th[scope="row"] { font-weight: var(--fw-medium); color: var(--text-muted); white-space: nowrap; }
 .sim-table tr.sim-diff td:last-child { font-weight: var(--fw-semibold); }
 .sim-table tr.sim-diff { background: color-mix(in srgb, var(--warn-bg) 55%, transparent); }
+.sim-table table { table-layout: fixed; width: 100%; }
+.sim-table th, .sim-table td { overflow-wrap: anywhere; padding-left: var(--sp-2); padding-right: var(--sp-2); }
+.sim-table th[scope="row"] { width: 34%; white-space: normal; }
 .sim-delta { margin-left: 6px; font-size: var(--fs-12); font-weight: var(--fw-semibold); }
 .sim-delta.up { color: var(--ok); }
 .sim-delta.down { color: var(--danger); }
@@ -257,11 +260,12 @@ td .input-group.rf-num > .ig-suffix { height: var(--control-h-sm); padding: 0 va
 @media (max-width: 1360px) { .rf-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .rs-versions table { table-layout: fixed; }
 .rs-versions th:nth-child(1) { width: 76px; }
-.rs-versions th:nth-child(2) { width: 150px; }
+.rs-versions th:nth-child(2) { width: 168px; }
 .rs-versions th:nth-child(4) { width: 170px; }
 .rs-versions th:nth-child(5) { width: 130px; }
-.rs-versions td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rs-versions .rs-note { max-width: none; }
+.rs-versions td { overflow: hidden; overflow-wrap: anywhere; }
+.rs-versions td:nth-child(2) { white-space: nowrap; }
+.rs-versions .rs-note { max-width: none; white-space: normal; }
 .rf-sub { font-size: var(--fs-14); margin: 0 0 var(--sp-2); }
 .ap-card .tabs { padding-top: var(--sp-2); }
 .ap-card table { table-layout: fixed; }

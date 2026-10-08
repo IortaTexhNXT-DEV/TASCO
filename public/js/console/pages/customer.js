@@ -206,7 +206,7 @@ function dataTab(d, ctx) {
   const insurer = p.policy.insurer === 'TASCO' ? 'TASCO' : p.policy.insurer === 'OTHER' ? st('otherInsurer') : p.policy.insurer || st('unknownInsurer');
   const golden = card({ title: st('goldenRecord'), body: keyValueList([
     [st('ownerName'), masked(p.name)],
-    [st('phone'), masked(p.phone)],
+    [st('phone'), masked(/^0\d{9}$/.test(p.phone || '') ? p.phone.replace(/^(\d{4})(\d{3})(\d{3})$/, '$1 $2 $3') : p.phone)],
     [st('ownerType'), p.ownerType === 'company' ? st('company') : st('personal')],
     [st('province'), p.province],
     [st('vehicleCategory'), label('category', p.vehicle.category)],
@@ -281,7 +281,7 @@ function contactTab(d, ctx) {
 /* ---------------- Activity ---------------- */
 const ACT = {
   'profile.viewed': ['eye', 'Viewed the customer record', 'Đã xem hồ sơ khách hàng'],
-  'voice.call_completed': ['bot', 'Assistant call completed', 'Hoàn tất cuộc gọi trợ lý'],
+  'voice.call_completed': ['mic', 'Assistant call completed', 'Hoàn tất cuộc gọi trợ lý'],
   'consent.withdrawn': ['x-circle', 'Customer withdrew consent', 'Khách rút lại đồng ý liên hệ'],
   'consent.updated': ['check-circle', 'Consent preferences updated', 'Cập nhật tùy chọn đồng ý'],
   'customer.expiry_declared': ['calendar', 'Customer confirmed the expiry date in the app', 'Khách xác nhận ngày hết hạn trên ứng dụng'],
@@ -358,7 +358,7 @@ export default {
       ? () => button({ label: st('sendQuote'), icon: 'send', variant: 'primary', onClick: sendQuote })
       : can('voice:operate') && lead && !dnc ? () => button({ label: st('startCall'), icon: 'phone-call', variant: 'primary', onClick: startCall }) : null;
     const menuItems = [
-      can('quote:create') && can('voice:operate') && lead && !dnc ? { label: st('startCall'), icon: 'bot', onClick: startCall } : null,
+      can('quote:create') && can('voice:operate') && lead && !dnc ? { label: st('startCall'), icon: 'mic', onClick: startCall } : null,
       can('handoff:read') ? { label: st('openInbox'), icon: 'inbox', onClick: () => navigate('handoffs') } : null,
       can('profile:update') ? { label: st('correctExpiry'), icon: 'edit', onClick: () => correctExpiryDrawer(api, p, ctx.rerender) } : null,
       can('journeys:run') ? { label: st('simulateTopUp'), icon: 'wallet', onClick: async () => {

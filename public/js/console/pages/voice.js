@@ -10,12 +10,15 @@ const QUICK = ['đúng rồi', 'phí bao nhiêu tiền vậy', 'sao biết số 
 const OUTCOMES = ['hot_handoff', 'link_sent', 'callback_later', 'already_renewed', 'opted_out', 'plate_mismatch', 'unverified', 'wrong_person', 'no_answer', 'scam_concern'];
 const spokenPlate = (key) => formatPlate(key).replace('-', ' ').replace('.', ' ');
 
+/** Plates spoken by the customer are masked like everywhere else in the console (e.g. "92G 514 73" → "92G ***73"). */
+const maskSpokenPlate = (text) => String(text || '').replace(/\b(\d{2}[A-Z]{1,2}\d?)([\s.-]*)(\d)[\s.]*(\d)[\s.]*(\d)[\s.]*(\d)[\s.]*(\d)\b/gi, (m, pre, sep, a, b2, c, d, e) => `${pre}${sep || ' '}***${d}${e}`);
+
 function bubbles(transcript, showGloss) {
   return transcript.map((m) => h('div', { class: `bubble-row ${m.speaker === 'bot' ? 'bot' : 'customer'}` },
-    m.speaker === 'bot' ? h('span', { class: 'bubble-avatar', 'aria-hidden': 'true' }, icon('bot', { size: 16 })) : null,
+    m.speaker === 'bot' ? h('span', { class: 'bubble-avatar', 'aria-hidden': 'true' }, icon('mic', { size: 16 })) : null,
     h('div', { class: `bubble ${m.speaker === 'bot' ? 'bot' : 'customer'}` },
       h('span', { class: 'sr-only' }, m.speaker === 'bot' ? `${st('assistant')}: ` : `${st('customer')}: `),
-      m.text,
+      m.speaker === 'bot' ? m.text : maskSpokenPlate(m.text),
       showGloss && m.gloss ? h('span', { class: 'gloss' }, m.gloss) : null)));
 }
 
@@ -109,7 +112,7 @@ async function simulator(main, ctx, profileId) {
   const glossSw = switchControl({ label: st('showTranslation'), checked: showGloss, onChange: (v) => { showGloss = v; paint(); } });
   const phone = h('section', { class: 'call-panel', 'aria-label': st('rehearsalTitle') },
     h('header', { class: 'call-head' },
-      h('span', { class: 'call-avatar', 'aria-hidden': 'true' }, icon('bot', { size: 22 })),
+      h('span', { class: 'call-avatar', 'aria-hidden': 'true' }, icon('mic', { size: 22 })),
       h('div', { class: 'grow' }, h('p', { class: 'call-name' }, st('callerId')), h('p', { class: 'call-to' }, `→ ${s.ctx.plateMasked} · ${s.phoneMasked || ''}`)),
       button({ label: st('endCall'), icon: 'phone', variant: 'danger solid', size: 'sm', onClick: () => navigate('voice') })),
     statusEl, stageEl, chat, form);
@@ -156,7 +159,7 @@ export default {
         filters: [filterChip({ label: st('outcome'), value: outcome, options: OUTCOMES.map((o) => [o, outcomeLabel(o)]), onChange: (v) => navigate(`voice${v ? `?outcome=${v}` : ''}`) })],
         export: { filename: 'calls.csv' },
       },
-      empty: { icon: 'bot', title: st('noCalls'), text: st('noCallsHint') },
+      empty: { icon: 'mic', title: st('noCalls'), text: st('noCallsHint') },
     });
     mount(main,
       pageHeader({
@@ -167,12 +170,12 @@ export default {
         ].filter(Boolean),
       }),
       n ? kpiStrip([
-        kpiTile({ label: st('calls'), icon: 'bot', value: formatNumber(data.total) }),
+        kpiTile({ label: st('calls'), icon: 'mic', value: formatNumber(data.total) }),
         kpiTile({ label: st('verification'), icon: 'badge-check', value: formatPercent(verified / n), hint: `${formatNumber(verified)} / ${formatNumber(n)}` }),
         hot ? kpiTile({ label: st('hotHandoffs'), icon: 'inbox', value: formatNumber(hot), hint: formatPercent(hot / n) }) : null,
         links ? kpiTile({ label: st('linksSent'), icon: 'send', value: formatNumber(links), hint: formatPercent(links / n) }) : null,
       ].filter(Boolean)) : null,
-      card({ flush: true, body: n || outcome ? table : emptyState({ icon: 'bot', title: st('noCalls'), text: st('noCallsHint'), action: button({ label: st('rehearse'), icon: 'phone-call', onClick: () => rehearsePicker(api, navigate) }) }) }));
+      card({ flush: true, body: n || outcome ? table : emptyState({ icon: 'mic', title: st('noCalls'), text: st('noCallsHint'), action: button({ label: st('rehearse'), icon: 'phone-call', onClick: () => rehearsePicker(api, navigate) }) }) }));
     if (route.query.call) openCall(api, route.query.call, navigate, () => history.replaceState(null, '', '#/voice'));
   },
 };

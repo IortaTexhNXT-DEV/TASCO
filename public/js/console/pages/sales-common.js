@@ -92,7 +92,7 @@ const EN = {
   eligible: 'Can be contacted', willCall: 'Will be called', heldBack: 'Held back by contact policy', routedFleet: 'Routed to fleet team', launch: 'Launch campaign', launched: 'Campaign completed',
   results: 'Results', outcomes: 'Outcomes', notContacted: 'Not contacted', touchpointsDone: 'Touchpoints sent', touchpointsSkipped: 'Skipped', byChannel: 'By channel', byJourney: 'By journey',
   messagingInfo: 'Sends every touchpoint that is due, following each journey’s cadence and the contact policy.', dueNow: 'Due now', runNow: 'Run now', campaignResults: 'Campaign results',
-  previewLoading: 'Checking contact policy…', limitHelp: 'Between 1 and 200',
+  previewLoading: 'Checking contact policy…', limitHelp: 'Between 1 and 200', ofCalls: (p) => `${p} of calls`,
   // Journeys
   journeysSubtitle: 'Cadences for new business and retention', simulateEvent: 'Simulate ecosystem event', inJourney: 'In journey', conversion: 'Conversion', cadence: 'Cadence',
   event: 'Event', customerPlate: 'Customer plate', plateHelp: 'e.g. 30E-949.35', sendEvent: 'Send event', eventResult: 'Result', runDate: 'Business date', runTime: 'Send time (local)',
@@ -100,7 +100,7 @@ const EN = {
   nextTouchpoints: 'Next scheduled touchpoints', due: 'Due', step: 'Step', priority: 'Priority', anchorExpiry: 'Before / after policy expiry', anchorToday: 'From enrolment', anchorTag: 'From tag activation',
   cardSold: 'Sold', cardHot: 'Hot', anchorPurchase: 'After purchase', consentReach: 'Consent & reach', noNotes: 'No notes yet', withinSla: 'Within SLA',
   slaHint: (b, s) => `${b} breached · ${s} due soon`, noCallbacksHint: 'Callbacks you schedule will appear here.', messagesCalls: 'Messages and calls', renewLink: 'renewal link',
-  derived: (x) => `Derived: ${x}`, reasonHot: 'Interested on assistant call', reasonEscalation: 'No response to reminders', quoteSentEvent: 'Quote sent to the customer’s app',
+  derived: (x) => `Derived: ${x}`, reasonHot: 'Interested during assistant call', reasonEscalation: 'No response to reminders', quoteSentEvent: 'Quote sent to the customer’s app',
   sentVia: (step, ch) => `${step} sent via ${ch}`, policyIssued: (p) => `Policy issued: ${p}`, sold: 'Sold', policiesByProduct: 'Policies by product',
 };
 
@@ -177,7 +177,7 @@ const VI = {
   eligible: 'Được phép liên hệ', willCall: 'Sẽ gọi', heldBack: 'Bị chặn bởi chính sách liên lạc', routedFleet: 'Chuyển nhóm đội xe', launch: 'Chạy chiến dịch', launched: 'Chiến dịch đã hoàn tất',
   results: 'Kết quả', outcomes: 'Kết quả cuộc gọi', notContacted: 'Không liên hệ', touchpointsDone: 'Đã gửi', touchpointsSkipped: 'Bỏ qua', byChannel: 'Theo kênh', byJourney: 'Theo hành trình',
   messagingInfo: 'Gửi mọi điểm chạm đến hạn theo nhịp của từng hành trình và chính sách liên lạc.', dueNow: 'Đến hạn', runNow: 'Chạy ngay', campaignResults: 'Kết quả chiến dịch',
-  previewLoading: 'Đang kiểm tra chính sách liên lạc…', limitHelp: 'Từ 1 đến 200',
+  previewLoading: 'Đang kiểm tra chính sách liên lạc…', limitHelp: 'Từ 1 đến 200', ofCalls: (p) => `${p} số cuộc gọi`,
   journeysSubtitle: 'Nhịp chăm sóc cho khai thác mới và tái tục', simulateEvent: 'Giả lập sự kiện hệ sinh thái', inJourney: 'Trong hành trình', conversion: 'Chuyển đổi', cadence: 'Nhịp chăm sóc',
   event: 'Sự kiện', customerPlate: 'Biển số khách hàng', plateHelp: 'VD: 30E-949.35', sendEvent: 'Gửi sự kiện', eventResult: 'Kết quả', runDate: 'Ngày nghiệp vụ', runTime: 'Giờ gửi (địa phương)',
   runDone: (d, s) => `Đã gửi ${d} điểm chạm, bỏ qua ${s}`, runHelp: 'Mọi tin nhắn đều tuân thủ đồng ý, khung giờ, giới hạn tần suất và kiểm soát nội dung.',
@@ -295,10 +295,13 @@ function viOne(part) {
   }
   return p;
 }
+/** Group thousands in free numbers of rule-generated text ("2585 km" → "2,585 km" / "2.585 km"). */
+const groupNums = (str) => String(str).replace(/(^|[\s(])(\d{4,})(?=$|[\s),.;%])/g, (m, pre, n) => `${pre}${formatNumber(Number(n))}`);
 /** Rule-generated explanation in the UI language. */
 export function explain(text) {
-  if (!text || getLang() !== 'vi') return text;
-  return String(text).split(';').map(viOne).filter(Boolean).join('; ');
+  if (!text) return text;
+  if (getLang() !== 'vi') return groupNums(String(text).replace(/\bvoice bot\b/gi, 'voice assistant'));
+  return groupNums(String(text).split(';').map(viOne).filter(Boolean).join('; '));
 }
 
 const BENEFIT_IDS = ['roadside_24_7', 'e_certificate', 'auto_renew', 'inspection_assist', 'claims_fast_lane', 'loyalty_points', 'multi_year', 'upsell_pa_seat', 'upsell_motor_pd', 'fleet_dashboard'];
@@ -308,16 +311,16 @@ const BENEFIT_EN_TITLES = { inspection_assist: 'Inspection (đăng kiểm) remin
 export function talkingPoint(text) {
   const str = String(text);
   const ben = /^Benefit: (.+?) — (.+)$/.exec(str);
-  if (getLang() !== 'vi') return ben ? `${ben[1]} — ${ben[2]}` : str;
+  if (getLang() !== 'vi') return groupNums(ben ? `${ben[1]} — ${ben[2]}` : str);
   for (const [re, vi] of TALKING) if (re.test(str)) return vi;
   if (ben) {
     const id = BENEFIT_IDS.find((b) => ben[1].startsWith(labelIn('en', 'benefit', b)) || ben[1] === BENEFIT_EN_TITLES[b]);
     return `${id ? labelIn('vi', 'benefit', id) : ben[1]} — ${explain(ben[2])}`;
   }
-  return str;
+  return groupNums(str);
 }
 
-export const CHANNEL_ICON = { app_push: 'bell', zalo_zns: 'message-square', sms: 'send', voice_bot: 'bot', telesales: 'headset', vetc_app: 'monitor', zalo: 'message-square', email: 'send', partner_api: 'handshake' };
+export const CHANNEL_ICON = { app_push: 'bell', zalo_zns: 'message-square', sms: 'send', voice_bot: 'mic', telesales: 'headset', vetc_app: 'monitor', zalo: 'message-square', email: 'send', partner_api: 'handshake' };
 export const channelIcon = (ch) => CHANNEL_ICON[ch] || 'circle-dot';
 
 const OUTCOME_TONE = { hot_handoff: 'ok', link_sent: 'ok', callback_later: 'warn', unverified: 'warn', plate_mismatch: 'warn', wrong_person: 'warn', already_renewed: 'neutral', no_answer: 'neutral', opted_out: 'danger', scam_concern: 'danger', journey_escalation: 'info' };
