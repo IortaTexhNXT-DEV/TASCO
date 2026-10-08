@@ -140,7 +140,7 @@ function buildRoutes() {
     // ---------- Public ----------
     { method: 'GET', path: '/api/meta', auth: 'public', tag: 'Platform', summary: 'Client bootstrap metadata',
       handler: async ({ c }) => {
-        const meta = { name: 'TASCO Growth Platform', version: require('../../../package.json').version, demoMode: c.config.demoMode, today: c.clock.today(), store: c.store.kind, supportHotline: c.config.supportHotline || null, supportEmail: c.config.supportEmail || null, supportWebsite: c.config.supportWebsite || null, supportZaloUrl: c.config.supportZaloUrl || null, supportMessengerUrl: c.config.supportMessengerUrl || null };
+        const meta = { name: 'TASCO Growth Platform', version: require('../../../package.json').version, demoMode: c.config.demoMode, today: c.clock.today(), store: c.store.kind, supportHotline: c.config.supportHotline || null, supportEmail: c.config.supportEmail || null, supportWebsite: c.config.supportWebsite || null, supportZaloUrl: c.config.supportZaloUrl || null, supportZaloName: c.config.supportZaloName || null, supportFacebookUrl: c.config.supportFacebookUrl || null, supportMessengerUrl: c.config.supportMessengerUrl || null };
         if (c.config.demoMode) {
           // Demo only: a few customers per journey so the customer app can be explored without a real link.
           meta.demoCustomers = await c.services.customers.demoCustomers();

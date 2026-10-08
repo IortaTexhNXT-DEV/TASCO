@@ -122,9 +122,12 @@ function loadConfig(env = process.env) {
     supportHotline: env.SUPPORT_HOTLINE ?? '1900 1562',
     supportEmail: env.SUPPORT_EMAIL ?? 'info@baohiemtasco.vn',
     supportWebsite: env.SUPPORT_WEBSITE ?? 'https://baohiemtasco.vn',
-    // TASCO's official Zalo OA and Messenger links; unset hides the chat options in the customer app.
+    // TASCO's official Zalo OA has no public link: the app tells customers to search for it by name.
+    // SUPPORT_ZALO_URL (a zalo.me OA link) turns that into a direct link when TASCO provides one.
     supportZaloUrl: env.SUPPORT_ZALO_URL || null,
-    supportMessengerUrl: env.SUPPORT_MESSENGER_URL || null,
+    supportZaloName: env.SUPPORT_ZALO_NAME ?? 'Bảo hiểm Tasco',
+    supportFacebookUrl: env.SUPPORT_FACEBOOK_URL ?? 'https://www.facebook.com/tasco.baohiem/',
+    supportMessengerUrl: env.SUPPORT_MESSENGER_URL ?? 'https://m.me/tasco.baohiem',
     publicBaseUrl: env.PUBLIC_BASE_URL || `http://localhost:${int(env.PORT, 3000)}`,
     databaseUrl,
     databaseSsl: bool(env.DATABASE_SSL, production),
