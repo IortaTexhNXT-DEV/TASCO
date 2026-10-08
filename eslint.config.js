@@ -5,7 +5,7 @@ const globals = require('globals');
 
 /** Lint configuration (flat config). Quality gate in CI: zero errors. */
 module.exports = [
-  { ignores: ['node_modules/**', 'coverage/**', 'public/vendor/**', 'docs/**'] },
+  { ignores: ['node_modules/**', 'coverage/**', 'public/vendor/**', 'docs/**', 'tools/docs-source/**'] },
   js.configs.recommended,
   {
     files: ['src/**/*.js', 'test/**/*.js', 'eslint.config.js'],

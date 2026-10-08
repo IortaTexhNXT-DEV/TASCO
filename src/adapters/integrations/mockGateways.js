@@ -7,7 +7,7 @@ const { errors } = require('../../shared/errors');
  * Sandbox implementations of the outbound ports. Each real adapter (VETC wallet
  * API, TASCO core policy admin, Zalo ZNS, SMS brandname, FCM/APNs push, SIP/
  * voice-AI vendor) implements the same method signatures — see
- * docs/architecture/integration-architecture.pdf for the contracts.
+ * TGP-ARC-02 Integration Architecture (docs/architecture) for the contracts.
  */
 
 /** Port: PaymentGateway — VETC wallet debit with idempotency. */

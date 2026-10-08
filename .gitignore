@@ -6,3 +6,4 @@ coverage/
 *.log
 .DS_Store
 /tmp/
+tools/docs-source/proposal/tpl/

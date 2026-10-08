@@ -2383,7 +2383,10 @@
                       "zalo",
                       "telesales",
                       "voice_bot",
-                      "partner_api"
+                      "partner_api",
+                      "zalo_mini_app",
+                      "tasco_app",
+                      "tasco_web"
                     ]
                   },
                   "termYears": {
@@ -6556,6 +6559,16 @@
                     "type": "string",
                     "maxLength": 80,
                     "pattern": "^[A-Za-z0-9_\\-:@.]+$"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "enum": [
+                      "vetc_app",
+                      "zalo_mini_app",
+                      "tasco_app",
+                      "tasco_web"
+                    ]
                   }
                 }
               }
@@ -6685,6 +6698,88 @@
                 },
                 "required": [
                   "expiryDate"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/customer/vehicle": {
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "Confirm my vehicle use and seats before quoting (sets the TNDS tariff category)",
+        "operationId": "postApiCustomerVehicle",
+        "x-audience": "customer",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "usage": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "enum": [
+                      "personal",
+                      "commercial"
+                    ]
+                  },
+                  "seats": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 60
+                  }
+                },
+                "required": [
+                  "usage",
+                  "seats"
                 ]
               }
             }

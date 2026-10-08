@@ -88,29 +88,27 @@ Security controls:
 | `test/` | unit, integration, API, security, Postgres and performance tests |
 | `deploy/k8s/` | Kubernetes manifests (Deployment, HPA, PDB, NetworkPolicy, CronJobs, ExternalSecret) |
 | `Dockerfile`, `docker-compose.yml`, `railway.json` | container and Railway deployment |
-| `docs/` | full documentation set in **Word (.docx) and PDF** (below); test cases & results in `docs/quality/TASCO-Test-Cases-and-Results.xlsx` |
+| `docs/` | the documentation set in **Word** (38 documents, below), the proposal and cover letter, and test cases & results in `docs/quality/TASCO-Test-Cases-and-Results.xlsx` |
+| `tools/docs-source/` | Markdown sources, screenshots and the generator for the Word documents |
 
 ## Proposal to TASCO Insurance
 
-| Document | Word | PDF |
-|---|---|---|
-| Proposal for the TASCO Motor Insurance Growth Platform | [docx](docs/proposal/TASCO-Growth-Platform-Proposal.docx) | [pdf](docs/proposal/TASCO-Growth-Platform-Proposal.pdf) |
-| Cover letter | [docx](docs/proposal/TASCO-Proposal-Cover-Letter.docx) | [pdf](docs/proposal/TASCO-Proposal-Cover-Letter.pdf) |
+[Cover Letter](<docs/proposal/ITN-TASCO-2026-001 Cover Letter.docx>) · [Proposal for the TASCO Motor Insurance Growth Platform](<docs/proposal/ITN-TASCO-2026-001 Proposal for the TASCO Motor Insurance Growth Platform.docx>)
 
 ## Documentation
 
-Every document is published as **Word (`.docx`, editable)** and **PDF (`.pdf`, for distribution)** with the same name. Links below open the PDF; the `.docx` sits alongside it.
-
+38 documents, counted by topic, each in **Word** on the iorta TechNXT template (cover, contents, document control, acronyms, numbered sections, sign-off). Sources are in `tools/docs-source/`.
 
 | Area | Documents |
 |---|---|
-| Business | [Strategy & business case](docs/business/01-business-context-and-growth-strategy.pdf) · [FRS](docs/business/02-functional-requirements-specification.pdf) · [NFR](docs/business/03-non-functional-requirements.pdf) · [User stories](docs/business/04-user-stories-and-acceptance-criteria.pdf) · [Traceability](docs/business/05-requirements-traceability-matrix.pdf) · [Personas & journeys](docs/business/06-personas-and-journey-maps.pdf) · [Commercials](docs/business/07-commercials-and-engagement-model.pdf) |
-| Architecture | [Solution](docs/architecture/solution-architecture.pdf) · [ADRs](docs/architecture/adr/) (incl. [ADR-013 TASCO core as rating master](docs/architecture/adr/ADR-013-tasco-core-rating-master.pdf)) · [Integration](docs/architecture/integration-architecture.pdf) · [Deployment & infrastructure](docs/architecture/deployment-and-infrastructure-architecture.pdf) · [Data (ERD, dictionary)](docs/architecture/data-architecture.pdf) · [Security & threat model](docs/architecture/security-architecture.pdf) · [AI governance](docs/architecture/ai-governance.pdf) · [OpenAPI](docs/api/openapi.json) |
-| Quality | **[Test cases & results (Excel)](docs/quality/TASCO-Test-Cases-and-Results.xlsx)** · [Test strategy](docs/quality/test-strategy.pdf) · [Test cases](docs/quality/test-case-catalogue.pdf) · [Performance plan](docs/quality/performance-and-capacity-test-plan.pdf) · [UAT plan](docs/quality/uat-plan.pdf) |
-| Operations | [Runbook & support](docs/operations/runbook-and-support-guide.pdf) · [Monitoring](docs/operations/monitoring-and-alerting.pdf) · [DR/BCP](docs/operations/dr-bcp.pdf) · [Production readiness](docs/operations/production-readiness-checklist.pdf) · [Go-live & hypercare](docs/operations/go-live-and-hypercare-plan.pdf) · [Release & change](docs/operations/release-and-change-management.pdf) |
-| Delivery | [Project plan](docs/delivery/project-plan.pdf) · [Methodology](docs/delivery/delivery-methodology.pdf) · [RACI](docs/delivery/raci.pdf) · [Risk register](docs/delivery/risk-register.pdf) · [KT plan](docs/delivery/kt-plan.pdf) · [Change & training](docs/delivery/change-management-and-training.pdf) |
-| UX | [Design system](docs/ux/design-system.pdf) · [Standards & accessibility](docs/ux/ux-standards-and-accessibility.pdf) · [IA & journeys](docs/ux/journey-maps-and-information-architecture.pdf) · [Usability testing](docs/ux/usability-testing-plan.pdf) |
-| Manuals | [User manual](docs/manuals/user-manual.pdf) · persona manuals · [Partner API guide](docs/manuals/partner-api-guide.pdf) · [Customer app guide](docs/manuals/customer-app-guide.pdf) |
+| Register | [Document Register](<docs/TGP-00 Document Register.docx>) |
+| Business | [Business Context and Growth Strategy](<docs/business/TGP-BUS-01 Business Context and Growth Strategy.docx>) · [Functional Requirements Specification](<docs/business/TGP-BUS-02 Functional Requirements Specification.docx>) · [Non-Functional Requirements](<docs/business/TGP-BUS-03 Non-Functional Requirements.docx>) · [User Stories and Acceptance Criteria](<docs/business/TGP-BUS-04 User Stories and Acceptance Criteria.docx>) · [Requirements Traceability Matrix](<docs/business/TGP-BUS-05 Requirements Traceability Matrix.docx>) · [Personas and Customer Journeys](<docs/business/TGP-BUS-06 Personas and Customer Journeys.docx>) · [Commercials and Engagement Model](<docs/business/TGP-BUS-07 Commercials and Engagement Model.docx>) |
+| Architecture | [OpenAPI](docs/api/openapi.json) · [Solution Architecture](<docs/architecture/TGP-ARC-01 Solution Architecture.docx>) · [Integration Architecture](<docs/architecture/TGP-ARC-02 Integration Architecture.docx>) · [Data Architecture](<docs/architecture/TGP-ARC-03 Data Architecture.docx>) · [Security Architecture](<docs/architecture/TGP-ARC-04 Security Architecture.docx>) · [Deployment and Infrastructure Architecture](<docs/architecture/TGP-ARC-05 Deployment and Infrastructure Architecture.docx>) · [AI Governance](<docs/architecture/TGP-ARC-06 AI Governance.docx>) · [Architecture Decision Records](<docs/architecture/TGP-ARC-07 Architecture Decision Records.docx>) |
+| UX | [Design System](<docs/ux/TGP-UX-01 Design System.docx>) · [UX Standards and Accessibility](<docs/ux/TGP-UX-02 UX Standards and Accessibility.docx>) · [Information Architecture and Navigation](<docs/ux/TGP-UX-03 Information Architecture and Navigation.docx>) · [Usability Testing Plan](<docs/ux/TGP-UX-04 Usability Testing Plan.docx>) |
+| Quality | **[Test cases & results (Excel)](docs/quality/TASCO-Test-Cases-and-Results.xlsx)** · [Test Strategy](<docs/quality/TGP-QA-01 Test Strategy.docx>) · [Test Case Catalogue](<docs/quality/TGP-QA-02 Test Case Catalogue.docx>) · [Performance and Capacity Test Plan](<docs/quality/TGP-QA-03 Performance and Capacity Test Plan.docx>) · [User Acceptance Test Plan](<docs/quality/TGP-QA-04 User Acceptance Test Plan.docx>) |
+| Delivery | [Project Plan](<docs/delivery/TGP-DEL-01 Project Plan.docx>) · [Delivery Methodology](<docs/delivery/TGP-DEL-02 Delivery Methodology.docx>) · [RACI Matrix](<docs/delivery/TGP-DEL-03 RACI Matrix.docx>) · [Risk Register](<docs/delivery/TGP-DEL-04 Risk Register.docx>) · [Knowledge Transfer Plan](<docs/delivery/TGP-DEL-05 Knowledge Transfer Plan.docx>) · [Organisational Change and Training Plan](<docs/delivery/TGP-DEL-06 Organisational Change and Training Plan.docx>) |
+| Operations | [Runbook and Support Guide](<docs/operations/TGP-OPS-01 Runbook and Support Guide.docx>) · [Monitoring and Alerting](<docs/operations/TGP-OPS-02 Monitoring and Alerting.docx>) · [Disaster Recovery and Business Continuity Plan](<docs/operations/TGP-OPS-03 Disaster Recovery and Business Continuity Plan.docx>) · [Production Readiness Checklist](<docs/operations/TGP-OPS-04 Production Readiness Checklist.docx>) · [Go-Live and Hypercare Plan](<docs/operations/TGP-OPS-05 Go-Live and Hypercare Plan.docx>) · [Release and Change Management](<docs/operations/TGP-OPS-06 Release and Change Management.docx>) |
+| Manuals | [Staff Console User Manual](<docs/manuals/TGP-MAN-01 Staff Console User Manual.docx>) · [Customer App Guide](<docs/manuals/TGP-MAN-02 Customer App Guide.docx>) · [Partner API Integration Guide](<docs/manuals/TGP-MAN-03 Partner API Integration Guide.docx>) |
 
 ## Honest status
 
